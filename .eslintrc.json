@@ -1,0 +1,7 @@
+{
+  "extends": ["next/core-web-vitals", "prettier"],
+  "rules": {
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/no-noninteractive-tabindex": "warn"
+  }
+}

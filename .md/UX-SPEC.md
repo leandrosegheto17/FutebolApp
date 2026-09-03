@@ -12,6 +12,24 @@ de dado de `ConflictList` em T09 — sem redesenho; (b) nova ação de anonimiza
 dado pessoal em T04; (c) uma observação não bloqueante para o Tech Lead confirmar em
 `TASK.md` (quantidade de times "N" por rodada). Mudanças marcadas explicitamente onde
 ocorrem, conforme o mecanismo de histórico de componente (Seção 3.3).
+
+**Revisão 2026-09-03 (resolução de BLOCKER-004, escalado pelo Frontend)**: o
+Frontend, ao implementar `FE-02` (T02), identificou divergência entre a prosa da
+Seção 2 (que já mencionava "ausências", ecoando RF-03.1 do `PRD-TECNICO.md`) e três
+outras fontes — o wireframe ASCII da própria Seção 2, a tabela da Seção 6.2, e o
+contrato de dado real de `BE-03` (`app.ranking_publico`) — que concordavam entre si
+em **omitir** o campo. Verificado RF-03.1 (EARS, "o sistema deve sempre exibir...
+número de presenças e número de ausências") e o fluxo 4.3 do `PRD-TECNICO.md`
+(diagrama Mermaid, nó D: "Exibe nome de exibição + pontuação + presenças/ausências")
+— o requisito de negócio é firme, repetido em dois pontos independentes do
+`PRD-TECNICO.md` (Seção 1 e Seção 4), não um resíduo de rascunho. **Decisão: leitura
+2** — a lacuna está no wireframe/Seção 6.2/contrato de dado, não na prosa da Seção 2.
+Wireframe de T02 (Seção 2) e Seção 6.2 corrigidos nesta revisão para incluir
+"ausências"; novo bloqueio (`BLOCKER-005`) escalado a `software-architect`/`backend`
+pedindo o campo `ausencias` na view `app.ranking_publico` (reabre `BE-03`, já
+aprovado pelo QA). `BLOCKER-004` marcado `Resolvido` em `BLOCKERS.md`. Mudança
+visível registrada em Seção 3.3 (histórico de componente) — Tech Lead precisa
+reestimar `FE-02`.
 **Input de origem**: `SDD.md` (aprovado com ressalvas no Gate 2 do CTO, 2026-09-02;
 Anexo A registra a resolução pós-Gate 2) + ADRs 001-011 (especialmente 003, 004, 005,
 007, 010, 011) + `PRD-TECNICO.md` (Business Analyst, Seção 4 — fluxos de usuário — e
@@ -158,11 +176,11 @@ repetida aqui.
 │ [Ranking] [Presenca Mensal]   │  <- tabs
 ├─────────────────────────────┤
 │ 🥇 1  João Pedro   42 pts     │
-│      12 presenças · 1 cartão  │
+│      12 presenças · 2 ausências · 1 cartão │
 │ 🥈 2  Carlinhos    38 pts     │
-│      10 presenças · 0 cartão  │
+│      10 presenças · 4 ausências · 0 cartão │
 │  3   Rafa "Foguinho" 35 pts   │
-│      11 presenças · 2 cartões │
+│      11 presenças · 3 ausências · 2 cartões│
 │  ...                          │
 ├─────────────────────────────┤
 │ Atualizado em: 02/09/2026     │
@@ -175,6 +193,15 @@ repetida aqui.
   **Nunca** exibe contato ou data de nascimento (RN-01/RF-03.1) — nem como campo
   oculto no DOM (ver Seção 7, constraint aplicada de ADR-005: a garantia é no banco,
   mas o frontend também nunca deve *solicitar* essas colunas à view pública).
+  **Correção (revisão 2026-09-03, resolução de `BLOCKER-004`)**: o wireframe acima
+  agora exibe explicitamente a contagem de ausências por atleta, alinhado à prosa
+  desta mesma seção e a RF-03.1/fluxo 4.3 do `PRD-TECNICO.md`. Antes desta revisão o
+  wireframe mostrava apenas "12 presenças · 1 cartão", sem ausências — inconsistência
+  identificada pelo Frontend ao implementar `FE-02` (`BLOCKER-004`). O campo depende
+  de um novo campo `ausencias` na view `app.ranking_publico`, ainda não existente —
+  ver `BLOCKER-005` (escalado a `software-architect`/`backend`) e Seção 7.2, item 4.
+  Até a resolução de `BLOCKER-005`, esta tela permanece implementada (`FE-02`) sem a
+  coluna de ausências, com a divergência documentada, não escondida.
 - Top 3 com indicador visual (medalha/posição destacada) — reforçado por texto
   "1º, 2º, 3º", nunca só cor/ícone (WCAG 1.4.1).
 - Cartões amarelo/vermelho exibidos como contagem com rótulo textual, não só cor.
@@ -667,8 +694,9 @@ não há sistema prévio no projeto.
 |---|---|---|---|---|
 | 2026-09-02 | T04 (Cadastro/Edição de Atleta) | Adicionada ação "Solicitar exclusão/anonimização de dados pessoais": botão em "zona de risco", novo componente `TypedConfirmationModal`, e novo estado de tela pós-anonimização (campos pessoais somente-leitura com placeholder) | Resolução de BLOCKER-002 — mecanismo de anonimização definido em `ADR-011` (LGPD Art. 18), antes deliberadamente omitido enquanto o SDD.md não o desenhava | **Sim** |
 | 2026-09-02 | T09 (Montagem de Times) / `ConflictList` | Nenhuma mudança de desenho — contrato de dado assumido (`[{atleta_a, atleta_b, motivo}]`) **confirmado** como subconjunto de `restricoes_conflitantes`/`grupos_conflito` | Resolução de BLOCKER-001 — mecanismo de RF-05.2 detalhado em `ADR-010` | **Não** (confirmação, não alteração) |
+| 2026-09-03 | T02 (Ranking Público) / `Card` (mobile) e `<table>` (desktop, Seção 6.2) | Adicionada a coluna/linha "ausências" por atleta, no wireframe (Seção 2) e na tabela de adaptação responsiva (Seção 6.2) — campo já previsto em prosa na Seção 2 e em RF-03.1, mas ausente do wireframe/6.2 desde a versão anterior deste documento (`FE-02` já foi implementado sem esse campo, seguindo as fontes então consistentes) | Resolução de `BLOCKER-004` (escalado pelo Frontend) — RF-03.1/fluxo 4.3 do `PRD-TECNICO.md` confirmam o requisito como firme, não resíduo de rascunho | **Sim** — depende também de `BLOCKER-005` (novo campo `ausencias` na view `app.ranking_publico`, escalado a `software-architect`/`backend`); `FE-02` (já `Concluída`) precisa de incremento quando o campo existir no contrato |
 
-Nenhuma outra mudança registrada além das duas acima. A partir de agora, qualquer
+Nenhuma outra mudança registrada além das três acima. A partir de agora, qualquer
 alteração subsequente a componente já estimado pelo Tech Lead deve ser adicionada como
 nova linha aqui.
 
@@ -782,7 +810,7 @@ pura.
 | Tela | `base` (mobile) | `sm`/`lg` (tablet/desktop) |
 |---|---|---|
 | Navegação interna | `BottomTabBar` fixo na base da tela | `TopNav` horizontal fixo no topo |
-| T02 Ranking | Lista de `Card` empilhados | `lg`: vira `<table>` real com colunas (posição, nome, pontos, presenças, cartões) — mesma semântica, densidade maior |
+| T02 Ranking | Lista de `Card` empilhados | `lg`: vira `<table>` real com colunas (posição, nome, pontos, presenças, ausências, cartões) — mesma semântica, densidade maior. **Coluna "ausências" adicionada na revisão 2026-09-03 (resolução de `BLOCKER-004`) — depende de `BLOCKER-005`** |
 | T05 Lançamento de Rodada | `Stepper` de 3 etapas, uma por tela | `lg`: pode exibir etapas 1 e 2 lado a lado (lista de presença + eventos), sem remover a possibilidade de uso 100% mobile |
 | T09 Montagem de Times | Times empilhados verticalmente (Time A acima de Time B), troca de jogador via modal de seleção (toque) | `lg`: Times lado a lado (colunas), troca de jogador pode oferecer drag-and-drop **como atalho opcional**, mantendo o modal de seleção como alternativa sempre disponível (não substituindo, por acessibilidade — 2.1.1) |
 | T04/T07/T10 Formulários | Campos empilhados, um por linha | `sm`/`lg`: campos relacionados podem parear em duas colunas (ex.: nome + apelido), sem alterar ordem de tabulação lógica |
@@ -816,11 +844,11 @@ comportamento responsivo definido acima.
 
 ### 7.2 Conflitos/pendências sinalizados ao Software Architect (não resolvidos unilateralmente)
 
-Registrados também em `BLOCKERS.md`. Dois dos três pontos abaixo, sinalizados na
-versão anterior deste documento, **foram resolvidos** pelo Software Architect nesta
-revisão (2026-09-02) — mantidos aqui como registro histórico do que foi escalado e
+Registrados também em `BLOCKERS.md`. Dois dos quatro pontos abaixo, sinalizados na
+versão anterior deste documento, **foram resolvidos** pelo Software Architect na
+revisão de 2026-09-02 — mantidos aqui como registro histórico do que foi escalado e
 como foi resolvido, conforme guardrail de não apagar em silêncio o que já foi
-sinalizado; o terceiro segue em aberto.
+sinalizado; o terceiro segue em aberto e um quarto foi adicionado em 2026-09-03.
 
 1. **[RESOLVIDO] Mecanismo de explicação de conflito para RF-05.2 (T09)** —
    pendência originalmente registrada pelo Gate 2 do CTO (item 6, dono Software
@@ -858,6 +886,26 @@ sinalizado; o terceiro segue em aberto.
    nesta revisão (o Anexo A do `SDD.md` confirma que os itens 1, 2, 4, 5 e 7 do Gate
    2 não são objeto desta rodada de resolução). **Escalado para**:
    `software-architect` (acompanhamento, não bloqueio).
+4. **[EM ABERTO, novo 2026-09-03] Campo "número de ausências" ausente na view
+   `app.ranking_publico` (T02)** — pendência identificada pelo Frontend ao
+   implementar `FE-02` e escalada como `BLOCKER-004` (destino original: `ux-ui`).
+   RF-03.1 e o fluxo 4.3 do `PRD-TECNICO.md` exigem exibir "número de ausências" por
+   atleta no ranking público; a prosa da Seção 2 deste documento já refletia esse
+   requisito, mas o wireframe da própria Seção 2, a tabela da Seção 6.2 e o contrato
+   real de `BE-03` (schema `RankingPublicoItem`) concordavam em omiti-lo — três
+   fontes consistentes entre si, divergindo apenas da prosa. **Resolução do UX/UI
+   (2026-09-03)**: confirmado que RF-03.1 é requisito firme (repetido em dois pontos
+   independentes do `PRD-TECNICO.md`, sem interpretação registrada na Seção 7 que o
+   revogasse) — a lacuna estava no wireframe/Seção 6.2/contrato, não na prosa.
+   Wireframe de T02 e Seção 6.2 corrigidos nesta revisão (ver Seção 2, Seção 3.3).
+   **Isto não é uma restrição técnica do SDD.md sendo contornada** — é ausência de um
+   campo de dado derivável (`total_rodadas - presencas` por atleta, ou equivalente)
+   que ainda não existe na view. **Escalado para**: `software-architect`/`backend`
+   via novo bloqueio `BLOCKER-005`, pedindo o campo `ausencias` em
+   `app.ranking_publico` — reabre `BE-03` (já aprovado pelo QA) com nova versão de
+   `API-CONTRACT.yaml`. `BLOCKER-004` marcado `Resolvido` em `BLOCKERS.md` (a decisão
+   de leitura e a correção de UX-SPEC.md são responsabilidade do UX/UI, cumpridas
+   aqui); `BLOCKER-005` segue **Aberto**, de responsabilidade do Software Architect.
 
 ### 7.3 Pontos observados, sem conflito de arquitetura, mas com impacto de UX a monitorar
 
@@ -905,7 +953,7 @@ sinalizado; o terceiro segue em aberto.
 
 ---
 
-## Checklist de Prontidão (revalidado em 2026-09-02, pós-resolução de BLOCKER-001/002)
+## Checklist de Prontidão (revalidado em 2026-09-03, pós-resolução de BLOCKER-004)
 
 - [x] Todo fluxo do PRD-TECNICO.md tem tela(s) correspondente(s) mapeada(s) — Seção
       1.1, incluindo a justificativa explícita de não aplicabilidade para RF-08
@@ -920,7 +968,10 @@ sinalizado; o terceiro segue em aberto.
       `TypedConfirmationModal`, adicionado nesta revisão para a ação de
       anonimização de T04, está marcado como novo e específico do domínio. Mudança
       registrada em Seção 3.3 (histórico de componente), com reestimativa
-      necessária pelo Tech Lead para T04.
+      necessária pelo Tech Lead para T04. Nesta revisão (2026-09-03), a coluna
+      "ausências" adicionada a T02 não é um componente novo (reaproveita `Card`/
+      `<table>` já existentes) — mudança de conteúdo de dado, registrada em Seção
+      3.3 com reestimativa necessária para `FE-02`.
 - [x] Toda tela passou por `accessibility-review` sem pendência crítica aberta —
       Seção 5, requisitos transversais (5.1) e pontos específicos por tela (5.2),
       incluindo o ponto novo de T04 (`TypedConfirmationModal`, `aria-readonly` nos
@@ -932,12 +983,14 @@ sinalizado; o terceiro segue em aberto.
 - [x] Toda restrição técnica do SDD.md foi checada via `technical-constraint-check`
       e todo conflito encontrado está sinalizado ao Software Architect, não
       resolvido por conta própria — Seção 7.1 (agora com 2 novas linhas para
-      `ADR-010`/`ADR-011`, confirmadas) e 7.2 (dos 3 pontos originalmente escalados,
-      2 estão **[RESOLVIDO]** — `BLOCKER-001` e `BLOCKER-002`, ambos `Resolvido` em
-      `BLOCKERS.md` — e 1 segue **[EM ABERTO]**, item 3, acompanhamento não
-      bloqueante); 7.3 registra observações de impacto de UX que não chegam a ser
-      conflito de arquitetura, incluindo o ponto novo (não bloqueante) sobre a
-      quantidade de times "N" em T09, para o Tech Lead confirmar em `TASK.md`.
+      `ADR-010`/`ADR-011`, confirmadas) e 7.2 (dos 4 pontos já escalados ao longo do
+      projeto, 2 estão **[RESOLVIDO]** — `BLOCKER-001` e `BLOCKER-002`, ambos
+      `Resolvido` em `BLOCKERS.md` — 1 segue **[EM ABERTO]**, item 3, acompanhamento
+      não bloqueante, e 1 é novo nesta revisão — item 4, **[EM ABERTO]**, campo
+      `ausencias` ausente em `app.ranking_publico`, escalado como `BLOCKER-005`); 7.3
+      registra observações de impacto de UX que não chegam a ser conflito de
+      arquitetura, incluindo o ponto (não bloqueante) sobre a quantidade de times
+      "N" em T09, para o Tech Lead confirmar em `TASK.md`.
 - [x] Nenhuma das 7 seções está vazia ou com placeholder.
 
 **Veredito desta revisão**: `UX-SPEC.md` permanece completo e liberado para o Tech
@@ -956,3 +1009,15 @@ formalmente em aberto em `BLOCKERS.md` (Seção 7.2) — não bloqueiam o iníci
 trabalho do Tech Lead sobre as demais telas, mas T09 (conflito de restrições) e T04
 (ação de exclusão/anonimização, ainda ausente) podem exigir reestimativa quando o
 Software Architect responder.
+
+**Veredito desta revisão (2026-09-03, resolução de BLOCKER-004)**: `UX-SPEC.md`
+permanece completo e liberado para o Tech Lead. `BLOCKER-004` (escalado pelo
+Frontend durante `FE-02`) foi resolvido — a prosa da Seção 2 estava correta; o
+wireframe da Seção 2 e a tabela da Seção 6.2 é que estavam incompletos e foram
+corrigidos aqui para incluir "número de ausências" (RF-03.1). Essa correção depende,
+por sua vez, de um campo novo (`ausencias`) na view `app.ranking_publico`, que ainda
+não existe — escalado como `BLOCKER-005` a `software-architect`/`backend` (Seção
+7.2, item 4), reabrindo `BE-03`. A mudança em T02 está registrada em Seção 3.3
+(histórico de componente) com "Precisa reestimar: Sim" — `FE-02` (já `Concluída`)
+precisará de um incremento quando `BLOCKER-005` for resolvido, no mesmo padrão já
+usado para T04/anonimização.

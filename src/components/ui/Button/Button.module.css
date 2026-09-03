@@ -1,0 +1,124 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  min-height: var(--tap-target-min);
+  min-width: var(--tap-target-min);
+  padding: var(--spacing-2) var(--spacing-5);
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-easing),
+    border-color var(--motion-duration-base) var(--motion-easing),
+    color var(--motion-duration-base) var(--motion-easing);
+  white-space: nowrap;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.button:disabled,
+.button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* ---- primary ---- */
+.primary {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+.primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-primary-hover);
+}
+.primary:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-primary-active);
+}
+.primary:disabled,
+.primary[aria-disabled="true"] {
+  background: var(--color-neutral-300);
+  color: var(--color-neutral-500);
+}
+
+/* ---- secondary ---- */
+.secondary {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-primary-50);
+}
+.secondary:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-primary-100);
+}
+.secondary:disabled,
+.secondary[aria-disabled="true"] {
+  background: var(--color-bg);
+  color: var(--color-neutral-400);
+  border-color: var(--color-neutral-300);
+}
+
+/* ---- danger ---- */
+.danger {
+  background: var(--color-danger);
+  color: var(--color-danger-contrast);
+}
+.danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-danger-hover);
+}
+.danger:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-danger-active);
+}
+.danger:disabled,
+.danger[aria-disabled="true"] {
+  background: var(--color-neutral-300);
+  color: var(--color-neutral-500);
+}
+
+/* ---- ghost ---- */
+.ghost {
+  background: transparent;
+  color: var(--color-neutral-700);
+}
+.ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-neutral-100);
+}
+.ghost:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-neutral-200);
+}
+.ghost:disabled,
+.ghost[aria-disabled="true"] {
+  color: var(--color-neutral-400);
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin var(--motion-duration-slow) linear infinite;
+  flex-shrink: 0;
+}
+
+.spinnerStatic {
+  animation: none;
+  opacity: 0.6;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

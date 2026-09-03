@@ -1,0 +1,115 @@
+name: Supabase Health Check (tier gratuito)
+
+# Implementa GUARDRAILS.md regra 36: monitoramento de consumo/pausa do tier
+# gratuito do Supabase, com gatilho quantitativo objetivo, desde o primeiro
+# mês em produção (CTO, Gate 3 — CTO-REVIEW.md).
+#
+# Supabase pausa projetos em tier gratuito após ~7 dias de inatividade (sem
+# chamada de API, conexão de banco ou login no dashboard) — por isso a
+# checagem roda diariamente, com folga confortável antes da janela de pausa.
+#
+# STATUS NESTA FASE (preparação, sem deploy ainda): o workflow existe e está
+# pronto, mas fica em modo "no-op silencioso" enquanto os secrets abaixo não
+# forem configurados — porque as credenciais do projeto Supabase legado só
+# ficam disponíveis na fase de execução (SDD.md Seção 6.1, spike SPK-01).
+# Configurar os secrets é o gatilho para ativação real; nenhuma ação manual
+# adicional é necessária além disso.
+
+on:
+  schedule:
+    # Diariamente às 09:00 UTC — folga ampla frente à janela de pausa de ~7
+    # dias do tier gratuito.
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-supabase-project:
+    name: Verifica status e pausa do projeto Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pula se secrets ainda não configurados (fase de preparação)
+        id: precheck
+        run: |
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] || [ -z "${{ secrets.SUPABASE_PROD_PROJECT_REF }}" ]; then
+            echo "ativo=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_ACCESS_TOKEN/SUPABASE_PROD_PROJECT_REF ainda não configurados — monitoramento em modo pendente de ativação (esperado nesta fase de preparação, antes do SPK-01/deploy). Nada a fazer."
+          else
+            echo "ativo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Consulta status do projeto (Supabase Management API)
+        if: steps.precheck.outputs.ativo == 'true'
+        id: status
+        run: |
+          set -e
+          resp=$(curl -sS -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            "https://api.supabase.com/v1/projects/${{ secrets.SUPABASE_PROD_PROJECT_REF }}")
+          http_code=$(echo "$resp" | tail -n1)
+          body=$(echo "$resp" | sed '$d')
+          echo "http_code=$http_code" >> "$GITHUB_OUTPUT"
+          echo "body=$body" >> "$GITHUB_OUTPUT"
+          echo "$body" | jq -r '.status // "DESCONHECIDO"'
+
+      - name: Avalia gatilho de alerta
+        if: steps.precheck.outputs.ativo == 'true'
+        id: eval
+        run: |
+          status=$(echo '${{ steps.status.outputs.body }}' | jq -r '.status // "DESCONHECIDO"')
+          echo "Status retornado: $status"
+          # Gatilho quantitativo objetivo (GUARDRAILS.md regra 36): qualquer
+          # status diferente de saudável dispara alerta. Estados conhecidos do
+          # Supabase incluem ACTIVE_HEALTHY (ok) e variações de
+          # INACTIVE/PAUSED/RESTORING quando pausado ou em recuperação.
+          if [ "${{ steps.status.outputs.http_code }}" != "200" ]; then
+            echo "alerta=true" >> "$GITHUB_OUTPUT"
+            echo "motivo=Chamada à Management API falhou (HTTP ${{ steps.status.outputs.http_code }}) — projeto pode estar pausado, revogado ou credencial inválida." >> "$GITHUB_OUTPUT"
+          elif [ "$status" != "ACTIVE_HEALTHY" ]; then
+            echo "alerta=true" >> "$GITHUB_OUTPUT"
+            echo "motivo=Status do projeto é '$status', diferente de ACTIVE_HEALTHY — possível pausa por inatividade ou degradação." >> "$GITHUB_OUTPUT"
+          else
+            echo "alerta=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Abre issue de alerta (se necessário)
+        if: steps.precheck.outputs.ativo == 'true' && steps.eval.outputs.alerta == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "[ALERTA] Supabase (produção) fora de ACTIVE_HEALTHY";
+            const body = [
+              `Motivo: ${{ steps.eval.outputs.motivo }}`,
+              "",
+              "Ação exigida (GUARDRAILS.md regra 36): reavaliar imediatamente migração para tier pago do Supabase, ou investigar causa (pausa por inatividade, incidente de plataforma, credencial expirada).",
+              "",
+              "Referências: SDD.md Seção 6.2 (risco de pausa), CTO-REVIEW.md Gate 3, ADR-002 (Plano de Saída — Opção B, Postgres self-hosted/outro provedor).",
+            ].join("\n");
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "supabase-alerta",
+            });
+            if (existing.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["supabase-alerta", "guardrail-36"],
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Reincidência detectada em ${new Date().toISOString()}.\n\n${body}`,
+              });
+            }

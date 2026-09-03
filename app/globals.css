@@ -1,0 +1,64 @@
+@import "../src/design-system/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* WCAG 2.4.7 — foco visível em todo elemento interativo, nunca removido sem
+   substituto. `:focus-visible` evita o anel aparecer em clique de mouse,
+   mantendo-o sempre para navegação por teclado. */
+a,
+button,
+input,
+select,
+textarea,
+[tabindex] {
+  font-family: inherit;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Utilitário "somente leitor de tela" — usado por texto equivalente de
+   ícones (WCAG 1.1.1) e por anúncios de aria-live sem impacto visual. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

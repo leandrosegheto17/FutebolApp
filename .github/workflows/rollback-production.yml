@@ -1,0 +1,69 @@
+name: Rollback Production
+
+# Reatribui o alias de produção da Vercel ao deployment imediatamente
+# anterior. Deployments Vercel são imutáveis, então isso é O(segundos) e não
+# depende de rebuild. Este workflow PRECISA ser executado com sucesso pelo
+# menos uma vez (contra um deployment de teste) antes do primeiro deploy real
+# de produção — guardrail do DevOps ("rollback testado, não só documentado").
+#
+# Rollback de dado (Supabase) não é acionado por este workflow: a primeira
+# migração de produção é aditiva/não-destrutiva por desenho (ADR-008) — reverter
+# a aplicação já é suficiente. Migrations pós-go-live com bloco -- ROLLBACK:
+# (ver supabase/migrations/README.md) são revertidas manualmente pelo DevOps,
+# executando o SQL documentado nesse bloco — não automatizado aqui de
+# propósito (reversão de schema é sensível demais para um clique único sem
+# revisão humana do SQL específico da migration).
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: >-
+          URL do deployment Vercel para o qual reverter (o deployment
+          "bom" anterior ao problemático). Obtido em `vercel ls --prod` ou no
+          dashboard da Vercel.
+        required: true
+      motivo:
+        description: "Motivo do rollback (para registro em .md/DEPLOY.md)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback do alias de produção
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifica secrets obrigatórios
+        run: |
+          missing=0
+          for var in VERCEL_TOKEN; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Secret $var ausente."
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9.0"
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Executar rollback
+        run: vercel rollback "${{ github.event.inputs.deployment_url }}" --token="${{ secrets.VERCEL_TOKEN }}" --yes
+
+      - name: Registrar no sumário do workflow
+        run: |
+          echo "## Rollback executado" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Alvo: ${{ github.event.inputs.deployment_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Motivo: ${{ github.event.inputs.motivo }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Executado por: ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Lembrete**: registrar esta execução em .md/DEPLOY.md (deploy-report-drafting), incluindo se foi teste pré-produção ou rollback real pós-incidente." >> "$GITHUB_STEP_SUMMARY"

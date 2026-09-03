@@ -378,6 +378,97 @@ Notas de modelagem:
   o próprio log de auditoria — retido indefinidamente, RNF-06 — perpetue o
   dado que a operação existe para eliminar.
 
+### 5.1 Adendo (2026-09-03, resolução de `BLOCKER-005`) — Campo `ausencias` em `app.ranking_publico`
+
+**Contexto**: RF-03.1 exige exibir "número de ausências" por atleta no
+ranking público; a view `app.ranking_publico` (tarefa `BE-03`, já `Concluída`
+e aprovada pelo QA) expõe hoje `presencas` e `cartoes`, mas não `ausencias`,
+e o campo não é derivável no cliente (UX/UI abriu `BLOCKER-005` em
+`.md/BLOCKERS.md` após confirmar, na resolução de `BLOCKER-004`, que o
+requisito é firme, não resíduo de rascunho).
+
+**Caso de borda `participacao_rodada.status = 'lesionado'`**: releitura de
+RF-02.3 ("o sistema deve tratá-lo [o atleta lesionado] como presente para
+efeito da **pontuação** de presença") e de RN-05 ("Lesão = tratada como
+presença... para efeito de **pontos**") mostra que os dois requisitos amarram
+`lesionado` apenas ao cálculo de **pontos** — não à métrica de **exibição**
+"número de presenças"/"número de ausências" de RF-03.1, que é um conceito
+distinto. A própria view já aprovada em `BE-03` trata `presencas` como
+contagem estrita de `status = 'presente'` (excluindo explicitamente
+`lesionado`), conforme a migration `20260902101300_create_public_views.sql`
+e `API-CONTRACT.yaml` (`RankingPublicoItem.presencas`); essa decisão já foi
+validada pelo QA e **não é reaberta** por este adendo.
+
+Dado esse precedente já aceito, a fórmula sugerida pelo UX/UI
+(`total_rodadas_lancadas - presencas`) é **rejeitada**: como `presencas` já
+exclui `lesionado`, subtrair `presencas` de um total de rodadas contaria toda
+rodada em que o atleta esteve lesionado como se fosse uma ausência — o que
+contradiz RN-05 (lesão nunca é penalizada, e é tratada como categoria própria
+de `status`, distinta de `ausente`) e tornaria `presencas + ausencias`
+diferente do total real de participações do atleta, uma inconsistência
+visível a quem comparar os dois números na área pública.
+
+**Decisão final**: `ausencias` é uma contagem direta e simétrica a
+`presencas`, lida diretamente do status explícito já gravado em
+`participacao_rodada.status = 'ausente'`, sem subtração — mesmo padrão de
+subquery já usado por `presenca`/`cartao` na view existente:
+
+```sql
+coalesce(ausencia.total_ausencias, 0) as ausencias
+-- ...
+left join (
+  select pr.atleta_id, count(*) as total_ausencias
+  from app.participacao_rodada pr
+  join app.rodada r on r.id = pr.rodada_id
+  where pr.status = 'ausente'
+    and r.status = 'lancada'
+  group by pr.atleta_id
+) ausencia on ausencia.atleta_id = a.id
+```
+
+`lesionado` permanece uma terceira categoria, **não contabilizada nem em
+`presencas` nem em `ausencias`** nesta view — consistente com o tratamento já
+aprovado de `presencas` e com a distinção de três status que RN-05/RF-02 já
+fazem (presença, ausência e lesão são valores mutuamente exclusivos de
+`participacao_rodada.status`; apenas o efeito em **pontos** da lesão é
+equiparado ao da presença, RF-02.3/RN-05 — o efeito na **contagem exibida**
+não é). Um contador visível específico de lesões não é exigido por RF-03.1
+hoje; se o organizador solicitar isso no futuro, é requisito novo, não
+correção deste adendo.
+
+**Onde a coluna é calculada**: como coluna computada via subquery/CTE na
+própria view `app.ranking_publico` (mesmo padrão de `presenca`/`cartao` já
+existentes), **não** como tabela ou coluna auxiliar nova. Mantém a mesma
+garantia do [ADR-005](adr/005-fronteira-de-exposicao-publica-via-rls-e-views.md):
+a view nunca seleciona `contato`/`data_nascimento` de `app.atleta`, e a nova
+subquery não introduz nenhuma coluna sensível nem novo `GRANT`.
+
+**Migration**: **nova migration aditiva** (ex.:
+`supabase/migrations/<timestamp>_add_ausencias_to_ranking_publico.sql`), e
+não edição da migration já aplicada e aprovada `20260902101300_create_public_views.sql`
+— preserva o histórico de migration já executado. A nova migration deve usar
+`CREATE OR REPLACE VIEW app.ranking_publico AS ...`, reproduzindo
+integralmente a definição atual da view (colunas `atleta_id`,
+`nome_exibicao`, `pontuacao_acumulada`, `presencas`, `cartoes`, na mesma
+ordem e mesmos tipos) e acrescentando `ausencias` como nova coluna ao final
+do `SELECT`. O Postgres preserva os `GRANT`s já concedidos a `anon`/
+`service_role` (`BE-03`) em `CREATE OR REPLACE VIEW`, desde que nomes, ordem
+e tipos das colunas existentes não mudem — portanto **não é necessário
+reemitir** `grant select on app.ranking_publico to anon/service_role` nesta
+nova migration. Nenhuma tabela auxiliar é criada. **Não gera novo ADR** — é
+detalhe de implementação de uma view já coberta por
+[ADR-005](adr/005-fronteira-de-exposicao-publica-via-rls-e-views.md) (Seção 4).
+
+**Consumidores desta especificação (fora da autoridade deste agente para
+executar)**:
+- **Backend**: implementar a migration acima; atualizar `API-CONTRACT.yaml`
+  (`RankingPublicoItem.ausencias`, tipo `integer`, mesma descrição de
+  derivação desta seção; incrementar `info.version` e registrar no
+  Changelog do próprio arquivo, conforme convenção já existente nele).
+- **Frontend**: pequeno incremento em `FE-02` para consumir e exibir
+  `ausencias` — o wireframe e a Seção 6.2 de `UX-SPEC.md` já foram corrigidos
+  para exibi-lo na resolução de `BLOCKER-004`.
+
 ---
 
 ## 6. Riscos Técnicos e Dívida Técnica Aceita

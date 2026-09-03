@@ -1,0 +1,15 @@
+# Ferramental de código (Prettier formata TS/TSX/CSS/JSON/YAML do projeto).
+# Artefatos de pipeline (.md/, .claude/) e infraestrutura de outros times
+# (infra/) não são "código" no sentido de TASK.md Seção 1 — não passam por
+# este formatter, para não gerar diff em conteúdo que não é deste time.
+node_modules
+.next
+out
+build
+coverage
+.md/
+.claude/
+infra/
+supabase/migrations
+**/*.md
+package-lock.json

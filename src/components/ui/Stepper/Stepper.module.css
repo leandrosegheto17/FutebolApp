@@ -1,0 +1,36 @@
+.header {
+  margin-bottom: var(--spacing-6);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-2);
+}
+
+.track {
+  display: flex;
+  gap: var(--spacing-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-neutral-200);
+}
+
+.stepDone,
+.stepCurrent {
+  background: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-6);
+}

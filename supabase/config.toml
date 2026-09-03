@@ -1,0 +1,38 @@
+# Configuração do Supabase CLI — Turma do Rola / Comary
+#
+# Este arquivo controla o stack local (`supabase start`), usado em
+# desenvolvimento individual e no ambiente efêmero de CI (ver
+# `infra/README.md` Seção 2). Não contém nenhum segredo — credenciais reais
+# de staging/produção são secrets do GitHub Actions/Vercel, nunca aqui.
+#
+# Para conectar a um projeto remoto (staging ou, mais adiante, o legado de
+# produção `ipnbdrejlikrmqyxggsp`), usa-se `supabase link --project-ref <ref>`
+# no momento do deploy — o link em si não é versionado (é uma ação de CLI,
+# resolvida via secret `SUPABASE_*_PROJECT_REF` no pipeline).
+
+project_id = "turma-do-rola-comary"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "app"]
+extra_search_path = ["public", "app"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+# Auth nativo do Supabase não é usado pela área interna (ADR-004 — autenticação
+# custom de senha única). Mantido habilitado apenas porque o CLI local exige a
+# seção; nenhuma tabela `auth.*` é referenciada pelo schema `app` do projeto.
+enabled = true
+site_url = "http://localhost:3000"
+
+[analytics]
+enabled = false

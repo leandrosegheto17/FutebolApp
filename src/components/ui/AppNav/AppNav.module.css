@@ -1,0 +1,97 @@
+/* ---- BottomTabBar (mobile, < sm) ------------------------------------- */
+.bottomTabBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--elevation-2);
+  z-index: 900;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (min-width: 640px) {
+  .bottomTabBar {
+    display: none;
+  }
+}
+
+.bottomTabItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-1);
+  min-height: var(--tap-target-min);
+  padding: var(--spacing-2) var(--spacing-1);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.bottomTabItem[aria-current="page"] {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.bottomIcon {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---- TopNav (desktop/tablet, >= sm) ----------------------------------- */
+.topNav {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .topNav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-3) var(--spacing-6);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+  }
+}
+
+.topNavLinks {
+  display: flex;
+  gap: var(--spacing-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.topNavItem {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.topNavItem:hover {
+  background: var(--color-neutral-100);
+  color: var(--color-text);
+}
+
+.topNavItem[aria-current="page"] {
+  color: var(--color-primary);
+  background: var(--color-primary-50);
+}
+
+.brand {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  text-decoration: none;
+}

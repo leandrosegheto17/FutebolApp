@@ -1,0 +1,107 @@
+name: CI
+
+# Estágios: Build/Lint/Teste (job build-and-test, BE-01) + Scan de segurança
+# (segredos/dependências) + Verificação de convenção de rollback de migrations
+# — cicd-pipeline-configuration Core Framework #1 (cada estágio falha o
+# pipeline, não segue "mesmo assim").
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9.0"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Valores fake, só para o build conseguir validar o schema de env
+          # (src/lib/config/env.ts) sem exigir segredo real em CI — nenhum
+          # destes valores é usado para acessar um Supabase real neste job.
+          NEXT_PUBLIC_SUPABASE_URL: "https://ci-placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "ci-placeholder-anon-key"
+          NEXT_PUBLIC_APP_BASE_URL: "http://localhost:3000"
+          SUPABASE_SERVICE_ROLE_KEY: "ci-placeholder-service-role-key"
+          SESSION_COOKIE_SECRET: "ci-placeholder-session-secret"
+
+  security-scan:
+    name: Scan de segurança (segredos + dependências)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan de segredos (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+        # Ferramenta open-source, sem custo (RNF-04/Guardrail 25). Garante que
+        # nenhum segredo (chave de serviço Supabase, seed de hash) seja
+        # commitado, mesmo por engano (Guardrail 26).
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9.0"
+          cache: "npm"
+
+      - name: Auditoria de dependências (npm audit)
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  migration-convention-check:
+    name: Convenção de rollback de migrations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Verifica bloco -- ROLLBACK: em migrations destrutivas"
+        shell: bash
+        run: |
+          set -e
+          MIGDIR="supabase/migrations"
+          fail=0
+          shopt -s nullglob
+          for f in "$MIGDIR"/*.sql; do
+            if grep -Eiq '(DROP |ALTER .*DROP|ALTER .*ALTER COLUMN)' "$f"; then
+              if ! grep -q -- '-- ROLLBACK:' "$f"; then
+                echo "::error file=$f::Migration destrutiva sem bloco -- ROLLBACK: documentado (ver supabase/migrations/README.md)."
+                fail=1
+              fi
+            fi
+          done
+          exit $fail

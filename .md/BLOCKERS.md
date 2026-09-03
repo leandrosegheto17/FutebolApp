@@ -111,6 +111,125 @@ aplicável (ex.: UX-SPEC.md).
 
 ---
 
+## BLOCKER-004
+
+- **Data**: 2026-09-03
+- **Origem**: frontend
+- **Escalado para**: ux-ui
+- **Artefato afetado**: `UX-SPEC.md`, Seção 2 (T02 — Ranking Público, parágrafo
+  logo após o wireframe ASCII) vs. Seção 6.2 (tabela de adaptações
+  responsivas, linha "T02 Ranking") — e, por consequência, `API-CONTRACT.yaml`
+  (schema `RankingPublicoItem`, endpoint `/ranking_publico`, BE-03).
+- **Descrição**: `PRD-TECNICO.md` RF-03.1 exige explicitamente exibir, para
+  cada atleta na área pública, "nome de exibição, pontuação acumulada, número
+  de presenças **e número de ausências**". O `UX-SPEC.md`, Seção 2, repete
+  essa mesma lista em prosa ("nome de exibição (RN-06), pontuação, presenças,
+  **ausências**"). Porém: (a) o wireframe ASCII imediatamente acima, na mesma
+  Seção 2, só mostra "12 presenças · 1 cartão" — sem nenhum campo de
+  ausências; (b) a Seção 6.2 (tabela de adaptações responsivas, citada
+  literalmente no critério de aceite de `FE-02` do `TASK.md`: "vira `<table>`
+  real em `lg`") lista as colunas de T02 como "posição, nome, pontos,
+  presenças, cartões" — também sem ausências; (c) a view `app.ranking_publico`
+  publicada por `BE-03`/`API-CONTRACT.yaml` (schema `RankingPublicoItem`) não
+  expõe nenhum campo de contagem de ausências, e não há como derivá-lo no
+  cliente a partir dos campos existentes (não há um total de rodadas por
+  atleta disponível nesta view nem em `presenca_mensal_publica` — esta última
+  só lista quem esteve presente por rodada, não o universo de quem deveria
+  estar). Ou seja, três das quatro fontes relevantes (wireframe, Seção 6.2,
+  contrato de dado real) concordam em *não* incluir ausências; só a prosa da
+  Seção 2 (ecoando RF-03.1) diverge.
+- **Impacto se não resolvido**: `FE-02` foi implementado seguindo o wireframe
+  + Seção 6.2 + o contrato de dado real hoje disponível (as três fontes
+  consistentes entre si), sem o campo de ausências — o critério de aceite
+  literal de `FE-02` no `TASK.md` está 100% satisfeito (não cita ausências).
+  Se a intenção confirmada for manter RF-03.1 como está (ausências é
+  requisito firme, não um resíduo de rascunho), falta um novo campo na view
+  `app.ranking_publico` (ex.: `ausencias`, provavelmente `total_rodadas -
+  presencas` por atleta) — mudança de contrato de dado, não decisão de
+  Frontend, e exigiria nova versão de `API-CONTRACT.yaml` (Backend) e um
+  pequeno ajuste de `FE-02` para exibir a coluna adicional depois.
+- **Sugestão**: confirmar qual das duas leituras é a correta — (1) a prosa da
+  Seção 2 está desatualizada/é um resíduo de outra versão do wireframe, e deve
+  ser corrigida para bater com a Seção 6.2 (nesse caso, nenhuma mudança de
+  contrato é necessária, `FE-02` já está correto como está); ou (2) RF-03.1 é
+  para valer e a Seção 6.2/wireframe é que estão incompletos, caso em que
+  `ux-ui` atualiza a Seção 6.2/wireframe e sinaliza a `software-architect`/
+  `backend` a necessidade do campo novo na view.
+- **Status**: Resolvido
+- **Resolução (2026-09-03, ux-ui)**: leitura (2) confirmada — RF-03.1
+  (`PRD-TECNICO.md`, EARS: "o sistema deve sempre exibir... número de presenças
+  e número de ausências") e o fluxo 4.3 (diagrama Mermaid, nó D:
+  "presenças/ausências") repetem o requisito em dois pontos independentes do
+  documento do BA, sem nenhuma interpretação registrada na Seção 7 do
+  `PRD-TECNICO.md` que o revogue — não é resíduo de rascunho. A prosa da Seção
+  2 do `UX-SPEC.md` estava correta; o wireframe ASCII de T02 e a tabela da
+  Seção 6.2 estavam incompletos e foram corrigidos para incluir "ausências"
+  (`UX-SPEC.md`, Seção 2 — wireframe T02 — e Seção 6.2, linha "T02 Ranking").
+  Mudança registrada como visível em `UX-SPEC.md` Seção 3.3 (histórico de
+  componente), marcada "Precisa reestimar: Sim" para `FE-02`. Como o campo
+  `ausencias` não existe hoje na view `app.ranking_publico`/`API-CONTRACT.yaml`
+  (BE-03), esta correção de UX-SPEC.md não é auto-suficiente — depende de um
+  campo novo no contrato de dado real, fora da autoridade do UX/UI para
+  resolver sozinho. Novo bloqueio aberto para isso: `BLOCKER-005`, escalado a
+  `software-architect`/`backend`. `FE-02` (já `Concluída`) permanece
+  implementado sem a coluna de ausências até `BLOCKER-005` ser resolvido — a
+  divergência está documentada em `UX-SPEC.md`, não escondida.
+
+---
+
+## BLOCKER-005
+
+- **Data**: 2026-09-03
+- **Origem**: ux-ui
+- **Escalado para**: software-architect
+- **Artefato afetado**: `API-CONTRACT.yaml` (schema `RankingPublicoItem`, endpoint
+  `/ranking_publico`), view `app.ranking_publico` (`BE-03`, já `Concluída`/aprovada
+  pelo QA) — e, por consequência, `UX-SPEC.md` Seção 2 (T02) e Seção 6.2, já
+  corrigidas nesta data para assumir a existência futura do campo (ver resolução de
+  `BLOCKER-004` acima).
+- **Descrição**: RF-03.1 do `PRD-TECNICO.md` exige exibir "número de ausências" por
+  atleta na área pública (T02 — Ranking Público), confirmado como requisito firme
+  na resolução de `BLOCKER-004` acima (não um resíduo de rascunho). A view
+  `app.ranking_publico`, publicada por `BE-03`, expõe hoje `presencas` e `cartoes`
+  mas não expõe nenhum campo de contagem de ausências, e o campo não é derivável no
+  cliente a partir do que já está disponível (não há um total de rodadas por atleta
+  exposto nesta view nem em `presenca_mensal_publica` — esta última lista apenas
+  quem esteve presente por rodada, não o universo de quem deveria estar presente).
+- **Impacto se não resolvido**: T02 (`FE-02`, já `Concluída`) permanece sem a
+  coluna/linha de ausências no ranking público, apesar do wireframe/Seção 6.2 do
+  `UX-SPEC.md` já a exibirem desde a resolução de `BLOCKER-004` — divergência entre
+  especificação e implementação real, visível e rastreada, mas não fechada.
+- **Sugestão**: adicionar um campo `ausencias` (ou nome equivalente) à view
+  `app.ranking_publico`, provavelmente `total_rodadas_lancadas - presencas` por
+  atleta (exata definição de "rodadas lançadas" e se `status='lesionado'` conta como
+  presença ou ausência para este fim é decisão de modelo de dados do Software
+  Architect/Backend, não do UX/UI). Nova versão de `API-CONTRACT.yaml` (incrementar
+  `info.version`, registrar no Changelog do próprio arquivo, conforme já convencionado
+  nele) e pequeno incremento em `FE-02` para consumir e exibir a nova coluna depois.
+- **Status**: Resolvido
+- **Resolução (2026-09-03, software-architect)**: fórmula sugerida pelo UX/UI
+  (`total_rodadas_lancadas - presencas`) **rejeitada** — como a view já aprovada
+  em `BE-03` conta `presencas` estritamente por `status = 'presente'` (excluindo
+  `lesionado`), aquela subtração contaria toda rodada com lesão como se fosse
+  ausência, contradizendo RN-05 (lesão nunca é penalizada e é categoria própria
+  de `status`, distinta de `ausente`) e quebraria a soma `presencas + ausencias`
+  em relação ao total real de participações. Releitura de RF-02.3/RN-05 confirma
+  que "lesionado conta como presente" vale apenas para **pontuação**, não para a
+  métrica de **exibição** de RF-03.1. Decisão: `ausencias` é contagem direta de
+  `participacao_rodada.status = 'ausente'` (mesmo padrão de subquery já usado por
+  `presenca`/`cartao` na view), com `lesionado` permanecendo terceira categoria,
+  não contada nem em `presencas` nem em `ausencias`. Especificação exata (coluna
+  computada via subquery na própria view, sem tabela auxiliar; nova migration
+  aditiva via `CREATE OR REPLACE VIEW`, preservando a migration já aplicada de
+  `BE-03` e os `GRANT`s existentes; sem novo ADR, detalhe de implementação já
+  coberto por `ADR-005`) registrada em `SDD.md`, Seção 5.1 (novo adendo). Backend
+  deve implementar a migration e atualizar `API-CONTRACT.yaml`
+  (`RankingPublicoItem.ausencias`); Frontend deve incrementar `FE-02` para
+  consumir e exibir a nova coluna — ambas as tarefas a serem redisparadas em
+  seguida, fora do escopo deste agente.
+
+---
+
 ## Notas
 
 - O ponto de "redação da base legal diferenciada (adulto vs. menor) na Seção 7.6 do

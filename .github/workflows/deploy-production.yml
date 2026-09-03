@@ -1,0 +1,161 @@
+name: Deploy Production
+
+# Deploy em produção é SEMPRE manual (workflow_dispatch) — nunca automático a
+# partir de push, mesmo em main (cicd-pipeline-configuration Core Framework
+# #3). Gate de dupla aprovação (QA + DevSecOps) verificado mecanicamente,
+# lendo .md/QA-REPORT.md e .md/SECURITY-REVIEW.md do commit sendo deployado —
+# não é suficiente alguém "achar" que está aprovado.
+#
+# Este workflow existe nesta fase de preparação, mas NÃO deve ser acionado
+# ainda: não há build implementado, não há QA-REPORT.md/SECURITY-REVIEW.md, e
+# o rollback (rollback-production.yml) ainda não foi testado uma única vez
+# sequer. Acionamento real é responsabilidade de `deployment-execution`
+# (DevOps), só depois que os três itens acima existirem.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: >-
+          Digite exatamente CONFIRMO-DUPLA-APROVACAO para prosseguir. Isso
+          declara que você (DevOps, executando deployment-execution) já
+          verificou manualmente que QA-REPORT.md e SECURITY-REVIEW.md deste
+          commit estão aprovados para o MESMO build.
+        required: true
+      rollback_testado:
+        description: >-
+          Digite exatamente ROLLBACK-TESTADO se a estratégia de rollback
+          (rollback-production.yml) já foi executada com sucesso contra este
+          ambiente pelo menos uma vez antes deste deploy.
+        required: true
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  gate-dupla-aprovacao:
+    name: Verifica dupla aprovação (QA + DevSecOps)
+    runs-on: ubuntu-latest
+    outputs:
+      liberado: ${{ steps.gate.outputs.liberado }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirmações manuais do operador
+        run: |
+          if [ "${{ github.event.inputs.confirmacao }}" != "CONFIRMO-DUPLA-APROVACAO" ]; then
+            echo "::error::Confirmação de dupla aprovação não informada corretamente. Abortando."
+            exit 1
+          fi
+          if [ "${{ github.event.inputs.rollback_testado }}" != "ROLLBACK-TESTADO" ]; then
+            echo "::error::Rollback não confirmado como testado. Abortando (guardrail: nunca deploy sem rollback testado)."
+            exit 1
+          fi
+
+      - name: "Gate automático: QA-REPORT.md e SECURITY-REVIEW.md"
+        id: gate
+        shell: bash
+        run: |
+          set -e
+          fail=0
+
+          if [ ! -f ".md/QA-REPORT.md" ]; then
+            echo "::error::.md/QA-REPORT.md não existe. Deploy bloqueado."
+            fail=1
+          elif ! grep -Eiq 'Veredito.*Aprovado' ".md/QA-REPORT.md"; then
+            echo "::error::.md/QA-REPORT.md não contém um veredito 'Aprovado'/'Aprovado com ressalvas'. Deploy bloqueado."
+            fail=1
+          elif grep -Eiq 'Veredito.*Reprovado' ".md/QA-REPORT.md"; then
+            echo "::error::.md/QA-REPORT.md contém veredito 'Reprovado'. Deploy bloqueado."
+            fail=1
+          fi
+
+          if [ ! -f ".md/SECURITY-REVIEW.md" ]; then
+            echo "::error::.md/SECURITY-REVIEW.md não existe. Deploy bloqueado."
+            fail=1
+          elif ! grep -Eiq 'Aprovado' ".md/SECURITY-REVIEW.md"; then
+            echo "::error::.md/SECURITY-REVIEW.md não contém status 'Aprovado'/'Aprovado com débito registrado'. Deploy bloqueado."
+            fail=1
+          elif grep -Eiq 'bloqueia deploy' ".md/SECURITY-REVIEW.md"; then
+            echo "::error::.md/SECURITY-REVIEW.md sinaliza achado que bloqueia deploy. Deploy bloqueado."
+            fail=1
+          fi
+
+          if [ "$fail" -eq 1 ]; then
+            echo "liberado=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "liberado=true" >> "$GITHUB_OUTPUT"
+        # Nota: este grep depende de QA-REPORT.md/SECURITY-REVIEW.md conterem a
+        # palavra "Veredito"/"Aprovado" de forma reconhecível. Convenção
+        # combinada com QA/DevSecOps (ver infra/README.md) — falha fechado
+        # (bloqueia) se o formato não for reconhecido, nunca libera por omissão.
+
+  deploy-production:
+    name: Deploy para Produção
+    needs: gate-dupla-aprovacao
+    if: needs.gate-dupla-aprovacao.outputs.liberado == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verifica secrets obrigatórios
+        run: |
+          missing=0
+          for var in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID SUPABASE_ACCESS_TOKEN SUPABASE_PROD_PROJECT_REF SUPABASE_PROD_DB_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Secret $var ausente."
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROD_PROJECT_REF: ${{ secrets.SUPABASE_PROD_PROJECT_REF }}
+          SUPABASE_PROD_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Aplicar migrations no projeto de produção (legado, ADR-002/008)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROD_PROJECT_REF }}" --password "${{ secrets.SUPABASE_PROD_DB_PASSWORD }}"
+          supabase db push
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9.0"
+          cache: "npm"
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build (ambiente produção)
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}" && vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy (produção)
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "deployment-url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Registrar versão implantada
+        run: |
+          echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Lembrete: registrar esta execução em .md/DEPLOY.md (deploy-report-drafting) e iniciar a janela de observação pós-deploy (padrão 24h)." >> "$GITHUB_STEP_SUMMARY"

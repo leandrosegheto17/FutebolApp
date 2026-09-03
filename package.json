@@ -1,0 +1,52 @@
+{
+  "name": "turma-do-rola-comary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de Ranking \"Turma do Rola - Comary\" — Next.js (App Router, TypeScript strict). Setup do projeto (BE-01). Frontend: fundação do Design System (FE-00).",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "senha:redefinir": "tsx scripts/redefinir-senha-interna.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.0",
+    "@supabase/supabase-js": "2.114.0",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "6.4.8",
+    "@testing-library/react": "16.0.0",
+    "@testing-library/user-event": "14.5.2",
+    "@types/jest-axe": "3.5.9",
+    "@types/node": "20.14.15",
+    "@types/pg": "8.23.1",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.1",
+    "dotenv": "17.4.2",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5",
+    "eslint-config-prettier": "10.1.8",
+    "jest-axe": "9.0.0",
+    "jsdom": "24.1.1",
+    "pg": "8.23.0",
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "typescript": "5.5.4",
+    "vitest": "2.0.5"
+  }
+}

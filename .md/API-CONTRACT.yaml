@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: Turma do Rola - Comary — Contrato de API
+  version: 0.3.0
+  description: >-
+    Contrato publicado incrementalmente, endpoint a endpoint, assim que cada
+    contrato fica estável (TASK.md Seção 1.7 / GUARDRAILS.md regra implícita
+    de rastreabilidade de API) — não é preciso esperar a tarefa de Backend
+    inteira terminar. Frontend/Mobile começam a consumir assim que um
+    endpoint aparece aqui, mesmo que a implementação completa da tarefa
+    ainda esteja em andamento. Mudar um contrato já publicado é permitido,
+    mas nunca silenciosamente — toda mudança de contrato incompatível
+    incrementa `info.version` e é registrada na seção "Changelog" no final
+    deste arquivo.
+
+    Duas famílias de endpoint neste sistema:
+      1. **PostgREST autogerado pelo Supabase** sobre as views públicas
+         curadas (`ranking_publico`, `presenca_mensal_publica`) — consumido
+         **diretamente** pelo Frontend com a chave `anon` do Supabase, sem
+         passar pela camada de API própria (SDD.md Seção 7.5, ADR-005). É o
+         único caso em que o Frontend fala com o Supabase sem intermediação
+         de um Route Handler — decisão já tomada no SDD.md, não uma exceção
+         nova. Documentado aqui (paths desta seção) porque também é
+         superfície pública real, exposta à internet.
+      2. **Route Handlers do Next.js (App Router)**, publicados a partir de
+         BE-04 em diante — toda escrita e toda leitura autenticada da área
+         interna. Nesta versão (ainda 0.1.0 — mudança puramente aditiva,
+         nenhum contrato já publicado foi alterado de forma incompatível,
+         `api-contract-design`): `POST /api/auth/login` e
+         `POST /api/auth/logout` (BE-04). Toda rota de escrita futura desta
+         família (BE-06 em diante) reutiliza a resposta `401` reutilizável
+         `#/components/responses/SessaoInvalida` definida aqui, emitida pelo
+         middleware de sessão (`middleware.ts`) antes mesmo de a rota
+         específica ser alcançada.
+servers:
+  - url: "{supabaseUrl}/rest/v1"
+    description: >-
+      API autogerada do Supabase (PostgREST) — usada apenas pelas views
+      públicas curadas desta versão do contrato (família 1 acima).
+    variables:
+      supabaseUrl:
+        default: "https://<project-ref>.supabase.co"
+        description: URL do projeto Supabase (variável de ambiente do Frontend).
+tags:
+  - name: publico
+    description: >-
+      Endpoints acessíveis sem autenticação (T02/T03 do UX-SPEC.md) — nunca
+      retornam `contato`/`data_nascimento` do atleta, garantido no banco
+      (ADR-005), não apenas por omissão do payload aqui documentado.
+  - name: interno
+    description: >-
+      Endpoints da área interna (senha única compartilhada, ADR-004,
+      RN-12 — sem conta individual, sem hierarquia). Protegidos pelo
+      middleware de sessão (`middleware.ts`, BE-04) em toda rota de escrita,
+      exceto os dois endpoints de ciclo de vida da própria autenticação
+      (`/api/auth/login`, `/api/auth/logout`), que precisam ser alcançáveis
+      mesmo sem sessão válida.
+components:
+  securitySchemes:
+    supabaseAnonKey:
+      type: apiKey
+      in: header
+      name: apikey
+      description: >-
+        Chave pública (`anon`) do Supabase — único credential usado pelas
+        páginas públicas (T02/T03). Nunca a `service role` (TASK.md Seção
+        1.2/1.7, GUARDRAILS.md regra 7).
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sessao_interna
+      description: >-
+        Cookie de sessão emitido por `POST /api/auth/login` (`httpOnly`,
+        `Secure`, `SameSite=Strict`, TTL 8-12h — ADR-004, BE-04). Único
+        mecanismo de autenticação da área interna (modelo binário, sem
+        RBAC — SDD.md Seção 7.2): sessão válida = acesso total. Toda rota
+        de escrita futura desta área (BE-06 em diante) deve declarar este
+        esquema de segurança.
+  responses:
+    SessaoInvalida:
+      description: >-
+        Sem sessão válida (`middleware.ts`, BE-04, GUARDRAILS.md regra 17) —
+        toda rota de escrita da área interna, exceto `/api/auth/login` e
+        `/api/auth/logout`, retorna isto quando o cookie `sessao_interna`
+        está ausente, expirado ou com assinatura inválida. Resposta
+        reutilizável — toda rota de escrita futura (BE-06 em diante) deve
+        referenciar `#/components/responses/SessaoInvalida` para o caso
+        401, em vez de redefinir o formato.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErroSessaoInvalida"
+  schemas:
+    RankingPublicoItem:
+      type: object
+      description: >-
+        Uma linha da view `app.ranking_publico` (BE-03, migration
+        `20260902101300_create_public_views.sql`). Nunca inclui `contato`
+        ou `data_nascimento` (RN-01/ADR-005/TASK.md Seção 1.5) — garantido
+        no próprio banco (RLS + GRANT restrito às colunas desta view), não
+        apenas pela ausência destes campos neste schema.
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        nome_exibicao:
+          type: string
+          description: "`apelido_exibicao` do atleta (RN-06)."
+        pontuacao_acumulada:
+          type: number
+          description: >-
+            `pontuacao_inicial` (RN-10) + soma de `pontos_delta` de
+            `lancamento_pontos` (ledger append-only, ADR-006).
+        presencas:
+          type: integer
+          description: >-
+            Contagem de participações com `status = 'presente'` em rodada
+            com `status = 'lancada'` (rodada excluída/soft-deleted não conta).
+        cartoes:
+          type: integer
+          description: >-
+            Soma de `quantidade` de `evento_jogo` do tipo
+            `cartao_amarelo`/`cartao_vermelho`, mesma restrição de rodada
+            `lancada` acima.
+        ausencias:
+          type: integer
+          description: >-
+            Campo adicionado na resolução de `BLOCKER-005` (SDD.md Seção
+            5.1, migration `20260903091500_add_ausencias_to_ranking_publico.sql`).
+            Contagem direta e simétrica de participações com
+            `status = 'ausente'` em rodada com `status = 'lancada'` (mesma
+            restrição de rodada `lancada` de `presencas`/`cartoes` acima) —
+            NUNCA por subtração (`total_rodadas - presencas`, fórmula
+            explicitamente rejeitada, ver SDD.md Seção 5.1). `status =
+            'lesionado'` é uma terceira categoria de
+            `participacao_rodada.status`, mutuamente exclusiva de
+            `presente`/`ausente`, e não é contado nem aqui nem em
+            `presencas` (RF-02.3/RN-05 amarram `lesionado` apenas ao
+            cálculo de pontos, não a esta métrica de exibição).
+      required:
+        [
+          atleta_id,
+          nome_exibicao,
+          pontuacao_acumulada,
+          presencas,
+          cartoes,
+          ausencias,
+        ]
+      additionalProperties: false
+    PresencaMensalPublicaItem:
+      type: object
+      description: >-
+        Uma linha da view `app.presenca_mensal_publica` (BE-03) por rodada
+        com `status = 'lancada'`. Nunca inclui `contato`/`data_nascimento`.
+      properties:
+        ano:
+          type: integer
+          description: Ano civil (Gregoriano) da rodada — RN-09.
+        mes:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Mês civil (1-12, Gregoriano) da rodada — RN-09.
+        rodada_id:
+          type: string
+          format: uuid
+        rodada_data:
+          type: string
+          format: date
+        total_presentes:
+          type: integer
+          description: Só conta atleta ativo (RN-01/ADR-011 — anonimizado nunca aparece).
+        nomes_presentes:
+          type: array
+          items:
+            type: string
+          description: >-
+            Lista de `apelido_exibicao` (RN-06) dos atletas ativos
+            presentes nesta rodada, ordenada alfabeticamente.
+      required:
+        [ano, mes, rodada_id, rodada_data, total_presentes, nomes_presentes]
+      additionalProperties: false
+    LoginRequest:
+      type: object
+      description: Corpo de `POST /api/auth/login` (BE-04).
+      properties:
+        senha:
+          type: string
+          minLength: 1
+      required: [senha]
+      additionalProperties: false
+    AuthErroGenerico:
+      type: object
+      description: >-
+        Corpo de erro `401` de `POST /api/auth/login` — SEMPRE a mesma
+        mensagem, esteja a falha por senha incorreta ou por bloqueio de
+        rate limiting (RF-07.3, GUARDRAILS.md regra 15). Nenhum campo
+        adicional (ex.: tempo restante de bloqueio) diferencia os dois
+        casos — o cliente nunca consegue distinguir um do outro pela
+        resposta.
+      properties:
+        error:
+          type: string
+          example: "Senha incorreta."
+      required: [error]
+      additionalProperties: false
+    ErroRequisicaoInvalida:
+      type: object
+      description: >-
+        Corpo de erro `400` para requisição malformada (ex.: campo `senha`
+        ausente/vazio) — classe de erro diferente de "senha incorreta"/
+        "bloqueado" (RF-07.3 só rege esses dois casos, não validação básica
+        de input).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+      required: [error]
+      additionalProperties: false
+    ErroSessaoInvalida:
+      type: object
+      description: >-
+        Corpo de erro `401` emitido pelo middleware de sessão
+        (`middleware.ts`, BE-04) para qualquer rota de escrita sem sessão
+        válida — formato distinto do erro de login (contexto diferente:
+        aqui é "sessão válida ou não", não "senha certa ou errada").
+      properties:
+        error:
+          type: string
+          example: "Sessão inválida ou expirada."
+      required: [error]
+      additionalProperties: false
+paths:
+  /ranking_publico:
+    get:
+      tags: [publico]
+      summary: Ranking público de atletas (T02)
+      description: >-
+        Lista todos os atletas ativos, ordenada pela cascata de desempate
+        completa de RN-08: `pontuacao_acumulada` desc, `presencas` desc,
+        `cartoes` asc, `nome_exibicao` asc (ordem já garantida pela própria
+        definição da view — nenhum parâmetro `order` é necessário para obter
+        a ordem correta, mas o PostgREST aceita `order=` se o Frontend
+        precisar reforçar explicitamente).
+      operationId: getRankingPublico
+      security:
+        - supabaseAnonKey: []
+      responses:
+        "200":
+          description: Lista de atletas no ranking público, já na ordem final de exibição.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingPublicoItem"
+        "401":
+          description: >-
+            Chave `anon` ausente/inválida no header `apikey` (comportamento
+            padrão do PostgREST, não um caso de erro definido pela
+            aplicação).
+  /presenca_mensal_publica:
+    get:
+      tags: [publico]
+      summary: Presença mensal pública por rodada (T03)
+      description: >-
+        Uma linha por rodada lançada; o Frontend agrupa por `ano`/`mes`
+        (mês civil, RN-09) no cliente para montar a navegação mês a mês de
+        T03. Pode ser filtrada via querystring do PostgREST, ex.:
+        `?ano=eq.2026&mes=eq.9`.
+      operationId: getPresencaMensalPublica
+      security:
+        - supabaseAnonKey: []
+      parameters:
+        - name: ano
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Filtro PostgREST por igualdade: `?ano=eq.2026`."
+        - name: mes
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Filtro PostgREST por igualdade: `?mes=eq.9`."
+      responses:
+        "200":
+          description: Lista de rodadas do período com contagem e nomes de presentes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PresencaMensalPublicaItem"
+        "401":
+          description: Chave `anon` ausente/inválida no header `apikey`.
+  /api/auth/login:
+    post:
+      tags: [interno]
+      summary: Login com a senha única compartilhada (T01, ADR-004, BE-04)
+      description: >-
+        Único endpoint de escrita isento do middleware de sessão — é por
+        aqui que uma sessão é obtida pela primeira vez. Rate limiting de 5
+        tentativas erradas por IP em 15 minutos, com backoff exponencial
+        (tabela `app.tentativa_login`, RNF-03/RNF-04) — a resposta de erro é
+        idêntica (mesmo status HTTP, mesmo corpo) esteja a falha por senha
+        incorreta ou por bloqueio de rate limiting (RF-07.3, GUARDRAILS.md
+        regra 15).
+      operationId: postAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: >-
+            Senha correta — sessão emitida via cookie `sessao_interna`
+            (`httpOnly`, `SameSite=Strict`, `Max-Age` entre 8h e 12h;
+            `Secure` reflete o protocolo real da requisição — sempre `true`
+            em produção via Vercel/HTTPS, `false` apenas em `next dev` local
+            sobre HTTP, decisão de detalhe documentada em
+            `src/modules/autenticacao/session-cookie.ts`).
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: >-
+                  sessao_interna=<token>; Max-Age=36000; Path=/; HttpOnly;
+                  SameSite=Strict; Secure
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required: [status]
+                additionalProperties: false
+        "400":
+          description: >-
+            Corpo malformado (ex.: campo `senha` ausente/vazio) — classe de
+            erro diferente de "senha incorreta"/"bloqueado".
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRequisicaoInvalida"
+        "401":
+          description: >-
+            Senha incorreta OU bloqueado por rate limiting — resposta
+            idêntica nos dois casos (RF-07.3).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErroGenerico"
+  /api/auth/logout:
+    post:
+      tags: [interno]
+      summary: Logout (BE-04, ADR-004)
+      description: >-
+        Isento do middleware de sessão — idempotente, limpa o cookie mesmo
+        se a sessão já estiver expirada/inválida (o cliente nunca fica
+        "preso" sem conseguir encerrar uma sessão morta). Não toca a camada
+        de dados (sem `service role`).
+      operationId: postAuthLogout
+      responses:
+        "200":
+          description: Cookie de sessão limpo (`Max-Age=0`).
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "sessao_interna=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict; Secure"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required: [status]
+                additionalProperties: false
+# Changelog — toda mudança de contrato incompatível (ou, como neste caso,
+# uma mudança aditiva que o SDD.md pede para versionar explicitamente,
+# SDD.md Seção 5.1) incrementa `info.version` acima e ganha uma entrada
+# aqui (convenção referenciada em `info.description`; `x-changelog` é
+# extensão válida do OpenAPI 3.x para conteúdo fora do schema formal).
+x-changelog:
+  - version: 0.1.0
+    data: "2026-09-02"
+    tarefa: BE-03
+    mudanca: >-
+      Primeira publicação: endpoints PostgREST `/ranking_publico` e
+      `/presenca_mensal_publica` (schemas `RankingPublicoItem`,
+      `PresencaMensalPublicaItem`).
+  - version: 0.2.0
+    data: "2026-09-03"
+    tarefa: BE-04
+    mudanca: >-
+      `POST /api/auth/login` e `POST /api/auth/logout` (schemas
+      `LoginRequest`/`AuthErroGenerico`/`ErroRequisicaoInvalida`/
+      `ErroSessaoInvalida`, resposta reutilizável `SessaoInvalida`).
+  - version: 0.3.0
+    data: "2026-09-03"
+    tarefa: "BE-03 (adendo, resolução de BLOCKER-005)"
+    mudanca: >-
+      Campo `ausencias` (tipo `integer`) adicionado a
+      `RankingPublicoItem` — contagem direta e simétrica de
+      `participacao_rodada.status = 'ausente'` em rodada `lancada`,
+      simétrica a `presencas`; `status = 'lesionado'` não conta em
+      nenhuma das duas (SDD.md Seção 5.1). Mudança aditiva (nenhum campo
+      existente removido/renomeado/retipado) — consumidor que já lia
+      `RankingPublicoItem` continua funcionando sem ajuste; Frontend
+      (`FE-02`) passa a exibir a nova coluna em incremento próprio.

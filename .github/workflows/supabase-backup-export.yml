@@ -1,0 +1,140 @@
+name: Supabase Backup Export (exportação lógica externa)
+
+# Implementa ADR-009 (SDD.md): PITR nativo do Supabase + exportação lógica
+# agendada para um destino EXTERNO à plataforma Supabase — cobre o cenário
+# que o PITR, por definição, não cobre (indisponibilidade/pausa/perda do
+# próprio projeto Supabase). Destino escolhido: GitHub Releases do próprio
+# repositório (armazenamento de objeto gratuito, fora do controle do
+# Supabase — suficiente para o requisito de independência de fornecedor
+# único; nenhum serviço de terceiro pago introduzido, RNF-04/Guardrail 25).
+#
+# ADR-009 exige explicitamente que este job "falhe de forma visível" — nunca
+# em silêncio (a redundância externa não pode parar de existir sem que
+# ninguém perceba). Falha do job já dispara notificação nativa do GitHub
+# Actions por e-mail para quem tem acesso ao repositório (gratuito); reforça
+# ainda com uma Issue de alerta, mesmo padrão do monitoramento de tier
+# (supabase-health-check.yml).
+#
+# STATUS NESTA FASE: pronto, em modo pendente de ativação — depende de
+# SUPABASE_PROD_DB_URL (connection string Postgres), disponível só após
+# SPK-01 (SDD.md Seção 6.1) na fase de execução.
+
+on:
+  schedule:
+    # Semanal (domingo, 08:00 UTC) — complementar ao PITR nativo, que cobre a
+    # granularidade fina do dia a dia; volume de dados baixo (grupo amador)
+    # não justifica frequência maior nesta fase.
+    - cron: "0 8 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  backup-export:
+    name: Exportação lógica (pg_dump) para GitHub Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pula se secret ainda não configurado (fase de preparação)
+        id: precheck
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROD_DB_URL }}" ]; then
+            echo "ativo=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_PROD_DB_URL ainda não configurado — backup externo em modo pendente de ativação (esperado antes do SPK-01/deploy real). Nada a fazer."
+          else
+            echo "ativo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar cliente PostgreSQL
+        if: steps.precheck.outputs.ativo == 'true'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Executar pg_dump
+        if: steps.precheck.outputs.ativo == 'true'
+        id: dump
+        run: |
+          set -e
+          ts=$(date -u +%Y%m%d-%H%M%S)
+          filename="backup-${ts}.sql.gz"
+          pg_dump "${{ secrets.SUPABASE_PROD_DB_URL }}" --no-owner --no-privileges | gzip > "$filename"
+          size=$(stat -c%s "$filename")
+          if [ "$size" -lt 1024 ]; then
+            echo "::error::Dump gerado é suspeito de vazio (${size} bytes) — abortando upload para não mascarar falha silenciosa."
+            exit 1
+          fi
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
+          echo "tag=backup-${ts}" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar como GitHub Release (destino externo ao Supabase)
+        if: steps.precheck.outputs.ativo == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.dump.outputs.tag }}
+          name: "Backup lógico ${{ steps.dump.outputs.tag }}"
+          body: |
+            Exportação lógica automática (pg_dump) do projeto Supabase de
+            produção, complementar ao PITR nativo (ADR-009). Gerado por
+            `.github/workflows/supabase-backup-export.yml`.
+          prerelease: true
+          files: ${{ steps.dump.outputs.filename }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Aplicar retenção (mantém últimos 12 backups semanais, ~3 meses)
+        if: steps.precheck.outputs.ativo == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Retenção limitada por desenho, não "para sempre": SDD.md Seção 6.2
+          # reconhece que backups já feitos antes de um pedido de anonimização
+          # (LGPD Art. 18, ADR-011) continuam com o dado pessoal original até
+          # expirarem pela política de retenção — esta é essa política,
+          # documentada e aplicada automaticamente (não deixada "em aberto").
+          keep=12
+          all_tags=$(gh release list --repo "${{ github.repository }}" --limit 100 | awk '{print $1}' | grep '^backup-' | sort -r)
+          i=0
+          for tag in $all_tags; do
+            i=$((i+1))
+            if [ "$i" -gt "$keep" ]; then
+              echo "Removendo backup expirado: $tag"
+              gh release delete "$tag" --repo "${{ github.repository }}" --yes --cleanup-tag || true
+            fi
+          done
+
+      - name: Alerta em caso de falha do job
+        if: failure() && steps.precheck.outputs.ativo == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "[ALERTA] Falha no backup lógico externo do Supabase";
+            const body = [
+              "O job supabase-backup-export.yml falhou — a redundância externa ao Supabase (ADR-009) pode estar inativa.",
+              "Verificar logs da execução e corrigir antes da próxima janela agendada.",
+            ].join("\n");
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "backup-alerta",
+            });
+            if (existing.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["backup-alerta", "adr-009"],
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Reincidência em ${new Date().toISOString()}.`,
+              });
+            }

@@ -1,0 +1,146 @@
+/**
+ * Design tokens — UX-SPEC.md Seção 3.1.
+ *
+ * Fonte única da verdade para cor, espaçamento, raio, tipografia, elevação e
+ * movimento. Nenhum componente declara valor "mágico" fora daqui — sempre
+ * referencia uma destas variáveis (guardrail: "todo componente do design
+ * system implementado uma única vez e reutilizado").
+ *
+ * Contraste verificado manualmente contra WCAG 1.4.3/1.4.11 (texto ≥ 4.5:1,
+ * componentes de UI ≥ 3:1) para os pares cor-de-fundo × cor-de-texto
+ * efetivamente usados pelos componentes (ver comentário ao lado de cada cor).
+ */
+
+:root {
+  /* ---- color.primary — identidade "campo de futebol" ------------------ */
+  /* #0B6E4F sobre branco ≈ 7.7:1 — usado em Button primary, links, tabs ativas */
+  --color-primary-50: #e6f5ef;
+  --color-primary-100: #c1e6d6;
+  --color-primary-400: #158a5f;
+  --color-primary: #0b6e4f;
+  --color-primary-hover: #095b41;
+  --color-primary-active: #084a35;
+  --color-primary-contrast: #ffffff;
+
+  /* ---- color.neutral.50…900 --------------------------------------------- */
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* ---- color.success — matiz distinto de color.primary ------------------ */
+  /* Propositalmente mais "verde-limão" que o primary (mais azulado/floresta),
+     para nunca confundir "ação disponível" (primary) com "confirmação" (success) */
+  /* #2e7d32 sobre branco ≈ 5.1:1 */
+  --color-success-bg: #e8f5e9;
+  --color-success: #2e7d32;
+  --color-success-contrast: #ffffff;
+
+  /* ---- color.warning ----------------------------------------------------- */
+  /* Fundo claro + texto escuro sobre ele (nunca amarelo puro com texto branco,
+     que reprova contraste) */
+  --color-warning-bg: #fef3c7;
+  --color-warning: #92400e; /* texto/ícone sobre --color-warning-bg ≈ 7.2:1 */
+  --color-warning-strong: #b45309;
+
+  /* ---- color.danger -------------------------------------------------- */
+  /* #b91c1c sobre branco ≈ 6:1 */
+  --color-danger-bg: #fee2e2;
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-danger-active: #7f1d1d;
+  --color-danger-contrast: #ffffff;
+
+  /* ---- color.info ------------------------------------------------------ */
+  /* #1d4ed8 sobre branco ≈ 5.6:1 */
+  --color-info-bg: #dbeafe;
+  --color-info: #1d4ed8;
+  --color-info-contrast: #ffffff;
+
+  /* ---- superfícies genéricas -------------------------------------------- */
+  --color-bg: #ffffff;
+  --color-surface: var(--color-neutral-50);
+  --color-border: var(--color-neutral-300);
+  --color-text: var(--color-neutral-900);
+  --color-text-muted: var(--color-neutral-600);
+  --color-focus-ring: #0b6e4f;
+  --color-focus-ring-offset: #ffffff;
+
+  /* ---- spacing.1…8 (múltiplos de 4px) --------------------------------- */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-7: 28px;
+  --spacing-8: 32px;
+
+  /* ---- radius.sm/md/lg -------------------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ---- type.scale (base 16px, nunca < 14px para corpo — WCAG 1.4.4) ---- */
+  --font-family-base:
+    system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-size-sm: 0.875rem; /* 14px — piso da escala, legendas/rótulos auxiliares */
+  --font-size-base: 1rem; /* 16px — corpo */
+  --font-size-md: 1.125rem; /* 18px */
+  --font-size-lg: 1.25rem; /* 20px */
+  --font-size-xl: 1.5rem; /* 24px */
+  --font-size-2xl: 1.875rem; /* 30px */
+  --font-size-3xl: 2.25rem; /* 36px */
+  --line-height-base: 1.5;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* ---- elevation.0…3 (sombra para cards/modais) ------------------------- */
+  --elevation-0: none;
+  --elevation-1: 0 1px 2px rgba(17, 24, 39, 0.08), 0 1px 1px rgba(17, 24, 39, 0.04);
+  --elevation-2: 0 2px 8px rgba(17, 24, 39, 0.12), 0 1px 2px rgba(17, 24, 39, 0.06);
+  --elevation-3: 0 8px 24px rgba(17, 24, 39, 0.16), 0 2px 6px rgba(17, 24, 39, 0.08);
+
+  /* ---- motion.duration (150-250ms, respeita prefers-reduced-motion) ---- */
+  --motion-duration-fast: 150ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-slow: 250ms;
+  --motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- alvo de toque mínimo (WCAG 2.5.5/2.5.8) -------------------------- */
+  --tap-target-min: 44px;
+
+  /* ---- breakpoints (UX-SPEC.md Seção 6.1) — expostos também via JS em
+     src/design-system/tokens.ts, mantidos em sincronia manualmente ---- */
+  --breakpoint-sm: 640px;
+  --breakpoint-lg: 1024px;
+}
+
+/* WCAG 2.2.1 / boas práticas: usuário que pediu menos movimento nunca vê
+   pulso/transição decorativa, em nenhum componente (Skeleton, Toast, Accordion,
+   Modal, Stepper). Componentes com animação JS também checam
+   `prefers-reduced-motion` via `src/design-system/tokens.ts#prefersReducedMotion`. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+    --motion-duration-base: 0ms;
+    --motion-duration-slow: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

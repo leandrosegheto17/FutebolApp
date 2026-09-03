@@ -1,0 +1,45 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-2);
+  text-align: center;
+}
+
+.brand {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4) var(--spacing-6);
+}
+
+.footer {
+  padding: var(--spacing-4);
+  text-align: center;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Link discreto (UX-SPEC.md Seção 1.2: "não um CTA competindo com o
+   ranking"), nunca escondido do teclado/leitor de tela. */
+.loginLink {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+}
+
+@media (min-width: 1024px) {
+  .content {
+    max-width: 960px;
+  }
+}
