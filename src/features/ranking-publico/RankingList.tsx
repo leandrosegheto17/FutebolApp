@@ -11,13 +11,7 @@ import {
 import { cn } from "@/lib/cn";
 import { fetchRankingPublico } from "./rankingApi";
 import type { RankingPublicoItem } from "./types";
-import {
-  formatCartoes,
-  formatOrdinal,
-  formatPontos,
-  formatPresencas,
-  formatUpdatedAt,
-} from "./format";
+import { formatOrdinal, formatPontos, formatUpdatedAt } from "./format";
 import styles from "./RankingList.module.css";
 
 type LoadState =
@@ -120,20 +114,6 @@ export function RankingList() {
             >
               Pontos
             </th>
-            <th
-              role="columnheader"
-              scope="col"
-              className={cn(styles.cell, styles.headerCell)}
-            >
-              Presenças
-            </th>
-            <th
-              role="columnheader"
-              scope="col"
-              className={cn(styles.cell, styles.headerCell)}
-            >
-              Cartões
-            </th>
           </tr>
         </thead>
         <tbody role="rowgroup" className={styles.tbody}>
@@ -159,12 +139,6 @@ export function RankingList() {
                 </td>
                 <td role="cell" className={cn(styles.cell, styles.pointsCell)}>
                   {formatPontos(item.pontuacao_acumulada)}
-                </td>
-                <td role="cell" className={cn(styles.cell, styles.presencasCell)}>
-                  {formatPresencas(item.presencas)}
-                </td>
-                <td role="cell" className={cn(styles.cell, styles.cartoesCell)}>
-                  {formatCartoes(item.cartoes)}
                 </td>
               </tr>
             );

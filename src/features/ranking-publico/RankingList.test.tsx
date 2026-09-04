@@ -97,11 +97,14 @@ describe("RankingList", () => {
     expect(screen.queryByText(/contato/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/nascimento/i)).not.toBeInTheDocument();
 
-    // Pontuação/presença/cartões com concordância singular/plural.
+    // Pontuação com concordância singular/plural. Colunas de presenças e
+    // cartões removidas da tela principal a pedido do organizador
+    // (divergência documentada de RF-03.1/UX-SPEC.md Seção 2/6.2, que ainda
+    // pedem presenças/ausências visíveis — decisão de produto do organizador
+    // prevalece sobre a especificação formal).
     expect(within(rows[0]!).getByText("42 pts")).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("12 presenças")).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("1 cartão")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("0 cartões")).toBeInTheDocument();
+    expect(screen.queryByText(/presenç/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/cart(ão|ões)/i)).not.toBeInTheDocument();
 
     // Timestamp de atualização visível.
     expect(screen.getByText(/Atualizado em: \d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument();
