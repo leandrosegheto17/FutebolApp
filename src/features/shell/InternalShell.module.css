@@ -1,0 +1,21 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  /* Espaço para o BottomTabBar fixo (mobile, < sm) não sobrepor o
+     conteúdo — o próprio BottomTabBar soma seu padding de safe-area, este
+     valor é generoso o bastante para a altura real dos itens de navegação. */
+  padding-bottom: calc(var(--tap-target-min) + var(--spacing-6));
+}
+
+@media (min-width: 640px) {
+  .content {
+    /* TopNav (>= sm) não é fixo por padrão na base do componente — sem
+       necessidade de padding extra além do que o próprio conteúdo já usa. */
+    padding-bottom: 0;
+  }
+}

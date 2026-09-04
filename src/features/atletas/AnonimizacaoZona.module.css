@@ -1,0 +1,23 @@
+.zone {
+  margin-top: var(--spacing-6);
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  align-items: flex-start;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-danger);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text);
+}

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Turma do Rola - Comary — Contrato de API
-  version: 0.3.0
+  version: 0.12.0
   description: >-
     Contrato publicado incrementalmente, endpoint a endpoint, assim que cada
     contrato fica estável (TASK.md Seção 1.7 / GUARDRAILS.md regra implícita
@@ -24,14 +24,58 @@ info:
          superfície pública real, exposta à internet.
       2. **Route Handlers do Next.js (App Router)**, publicados a partir de
          BE-04 em diante — toda escrita e toda leitura autenticada da área
-         interna. Nesta versão (ainda 0.1.0 — mudança puramente aditiva,
-         nenhum contrato já publicado foi alterado de forma incompatível,
-         `api-contract-design`): `POST /api/auth/login` e
-         `POST /api/auth/logout` (BE-04). Toda rota de escrita futura desta
-         família (BE-06 em diante) reutiliza a resposta `401` reutilizável
-         `#/components/responses/SessaoInvalida` definida aqui, emitida pelo
-         middleware de sessão (`middleware.ts`) antes mesmo de a rota
-         específica ser alcançada.
+         interna. `POST /api/auth/login`/`POST /api/auth/logout` (BE-04),
+         `GET/POST /api/atletas` e `GET/PUT /api/atletas/{id}` (BE-06),
+         `POST /api/atletas/{id}/anonimizar` (BE-07, ADR-011),
+         `POST /api/rodadas` (BE-08, RF-02 — lançamento de rodada/presença/
+         eventos e cálculo automático de pontos, RN-05), `DELETE
+         /api/rodadas/{id}` + `PATCH
+         /api/rodadas/{id}/participacoes/{atletaId}` (BE-09, RF-04.1/
+         RF-04.2 — correção/exclusão com reversão automática de pontos via
+         funções PL/pgSQL `app.excluir_rodada`/
+         `app.corrigir_participacao_rodada`) + `GET /api/log-auditoria`
+         (BE-09, RF-04.5) e, a partir desta versão (0.8.0), `POST
+         /api/rodadas/{id}/participacoes/{atletaId}/simular-correcao`
+         (BE-10, RF-04.2 — preview read-only de correção, TASK.md Seção 6.2
+         item 2, função PL/pgSQL `app.simular_correcao_rodada`, que nunca
+         grava nenhuma linha em nenhuma tabela) e, a partir desta versão
+         (0.9.0), `GET/POST /api/restricoes` + `PUT /api/restricoes/{id}` +
+         `POST /api/restricoes/{id}/desativar` +
+         `POST /api/restricoes/{id}/reativar` (BE-12, RF-05.5/RN-11 — CRUD
+         de restrições obrigatórias entre pares de atletas, soft-delete
+         nunca exclusão física, sem hierarquia de sessão RN-12) e, a partir
+         desta versão (0.10.0), `POST /api/times/sugestao` (BE-11, RF-05.1 a
+         RF-05.3 — heurística determinística de duas fases, ADR-007/
+         ADR-010, para sugestão de divisão de times; nunca persiste
+         `app.time`/`app.time_atleta`, sempre uma sugestão ajustável, RF-05.4)
+         e, a partir desta versão (0.11.0), `POST /api/rodadas/{id}/times`
+         (escopo AMPLIADO de BE-13, decisão explícita do usuário — resolve
+         o GAP de persistência sinalizado por BE-11, aciona
+         `app.confirmar_times_rodada` via RPC) e
+         `GET/POST /api/rodadas/{id}/substituicoes` (BE-13, RF-06 —
+         registro de fidelidade histórica vinculado a rodada/time, sem
+         nenhum efeito em pontuação) e, a partir desta versão (0.12.0),
+         `GET /api/rodadas` + `GET /api/rodadas/{id}` (BE-16 — lacuna
+         estrutural deixada por BE-08/BE-09/BE-10, nenhuma das três cobria
+         LEITURA de listagem/detalhe de rodada; fechada por decisão
+         explícita do usuário ao identificar o bloqueio de `FE-06`/`FE-07`,
+         leitura pura, sem função PL/pgSQL nova) — mudanças puramente
+         aditivas, nenhum contrato já publicado foi alterado de forma
+         incompatível, `api-contract-design`.
+         Toda rota de escrita desta família reutiliza
+         a resposta `401` reutilizável `#/components/responses/SessaoInvalida`
+         definida aqui, emitida pelo middleware de sessão (`middleware.ts`)
+         antes mesmo de a rota específica ser alcançada — a partir de BE-06,
+         isso vale também para `GET /api/atletas`/`GET /api/atletas/{id}`
+         (leitura interna que devolve dado sensível —
+         `contato`/`data_nascimento` — então o middleware exige sessão em
+         `GET` também para este prefixo específico, não só em escrita) e, a
+         partir de BE-09, também para `GET /api/log-auditoria` (não devolve
+         dado pessoal sensível, mas é feature exclusiva da área interna,
+         RF-07.1) e, a partir de BE-12, também para `GET /api/restricoes`
+         (mesmo racional de `/api/log-auditoria` — feature exclusiva da
+         área interna, T10 do `UX-SPEC.md`); ver `middleware.ts`,
+         `INTERNAL_READ_PROTECTED_PREFIXES`.
 servers:
   - url: "{supabaseUrl}/rest/v1"
     description: >-
@@ -54,7 +98,19 @@ tags:
       middleware de sessão (`middleware.ts`, BE-04) em toda rota de escrita,
       exceto os dois endpoints de ciclo de vida da própria autenticação
       (`/api/auth/login`, `/api/auth/logout`), que precisam ser alcançáveis
-      mesmo sem sessão válida.
+      mesmo sem sessão válida. A partir de BE-06, `GET /api/atletas` e
+      `GET /api/atletas/{id}` também exigem sessão válida (não só a escrita)
+      — devolvem `contato`/`data_nascimento`, que nunca podem ser lidos sem
+      sessão (RN-01/GUARDRAILS.md regra 19), mesmo em método `GET`. A partir
+      de BE-09, `GET /api/log-auditoria` também exige sessão válida em
+      `GET` — não devolve dado pessoal sensível, mas é feature exclusiva da
+      área interna (RF-07.1 lista "histórico/correção" entre as ações que
+      exigem a senha interna). A partir de BE-16, `GET /api/rodadas`/
+      `GET /api/rodadas/{id}` também exigem sessão válida em `GET`, mesmo
+      racional — `/api/rodadas` já estava em
+      `INTERNAL_READ_PROTECTED_PREFIXES` desde BE-13 (por causa de
+      `GET .../substituicoes`), então nenhuma mudança em `middleware.ts` foi
+      necessária para estes dois endpoints novos.
 components:
   securitySchemes:
     supabaseAnonKey:
@@ -230,6 +286,1371 @@ components:
           example: "Sessão inválida ou expirada."
       required: [error]
       additionalProperties: false
+    AtletaBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/atletas` e `PUT /api/atletas/{id}` (BE-06).
+        Campos em `snake_case`, mesma convenção já usada pelas respostas de
+        `RankingPublicoItem`/`PresencaMensalPublicaItem` no restante deste
+        contrato (decisão de consistência, TASK.md Seção 1.0 — documentada
+        na nota de status de BE-06 do `TASK.md`, não escalada).
+      properties:
+        nome_completo:
+          type: string
+          minLength: 1
+        apelido_exibicao:
+          type: string
+          minLength: 1
+          description: >-
+            Opcional — quando ausente/em branco, o Backend deriva o primeiro
+            "token" de `nome_completo` (RF-01.2/RN-06).
+        contato:
+          type: string
+          minLength: 1
+          nullable: true
+        data_nascimento:
+          type: string
+          format: date
+          description: >-
+            Obrigatório neste formulário (RF-01.1, UX-SPEC.md T04 marca com
+            `*`) — não pode ser no futuro. Coluna correspondente em
+            `app.atleta` é `nullable` no banco só para acomodar registro
+            migrado do legado sem essa informação (RF-08.3/BE-15), não para
+            tornar o campo opcional aqui.
+        consentimento_responsavel_obtido:
+          type: boolean
+          default: false
+          description: >-
+            Obrigatoriamente `true` quando `data_nascimento` resultar em
+            idade < 18 anos na data da requisição — caso contrário a API
+            recusa com `400` (RF-01.3/RN-02).
+        pontuacao_inicial:
+          type: number
+          minimum: 0
+        confirmar_duplicidade:
+          type: boolean
+          default: false
+          description: >-
+            Quando `nome_completo` coincide (normalizado — trim/espaço/caixa)
+            com o de outro atleta ativo e este campo não vier `true`, a API
+            recusa com `409` (alerta de duplicidade, RF-01.5) em vez de
+            gravar. O Frontend reenvia a mesma requisição com
+            `confirmar_duplicidade: true` depois que o organizador confirmar
+            no modal (UX-SPEC.md T04) — nunca um bloqueio definitivo, não há
+            `UNIQUE` em `nome_completo` no schema (BE-02).
+      required: [nome_completo, data_nascimento, pontuacao_inicial]
+      additionalProperties: false
+    AtletaResponse:
+      type: object
+      description: >-
+        Resposta de `GET/POST /api/atletas` (lista/criação) e
+        `GET/PUT /api/atletas/{id}` (BE-06). Nunca devolvida a cliente sem
+        sessão válida (RN-01/GUARDRAILS.md regra 19, ver tag `interno`).
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome_completo:
+          type: string
+        apelido_exibicao:
+          type: string
+        contato:
+          type: string
+          nullable: true
+        data_nascimento:
+          type: string
+          format: date
+          nullable: true
+        consentimento_responsavel_obtido:
+          type: boolean
+        pontuacao_inicial:
+          type: number
+        ativo:
+          type: boolean
+        anonimizado_em:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            Preenchido pela função `anonimizar_atleta` (ADR-011, BE-07) —
+            ver `POST /api/atletas/{id}/anonimizar`.
+        criado_em:
+          type: string
+          format: date-time
+        nivel_tecnico:
+          type: number
+          description: >-
+            RN-03 — média de pontos de eventos de jogo (gol/cartão) por
+            rodada com presença (`app.atleta_nivel_tecnico`, migration
+            BE-06). Fallback = `pontuacao_inicial` para atleta sem nenhuma
+            presença registrada. Nunca um campo de entrada do formulário
+            (RF-01.4 — sempre derivado).
+        rodadas_presentes:
+          type: integer
+          description: Denominador usado no cálculo de `nivel_tecnico` acima.
+      required:
+        [
+          id,
+          nome_completo,
+          apelido_exibicao,
+          contato,
+          data_nascimento,
+          consentimento_responsavel_obtido,
+          pontuacao_inicial,
+          ativo,
+          anonimizado_em,
+          criado_em,
+          nivel_tecnico,
+          rodadas_presentes,
+        ]
+      additionalProperties: false
+    ErroValidacaoAtleta:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST/PUT /api/atletas*` — corpo malformado ou
+        que falha `AtletaBody` (inclui o bloqueio de RF-01.3: menor de 18 sem
+        `consentimento_responsavel_obtido`, reportado como um item de
+        `detalhes` com `path: ["consentimento_responsavel_obtido"]`).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroDuplicidadeAtleta:
+      type: object
+      description: >-
+        Corpo de erro `409` de `POST/PUT /api/atletas*` (RF-01.5) — emitido
+        quando `nome_completo` (normalizado) coincide com o de outro atleta
+        ativo e a requisição não trouxe `confirmar_duplicidade: true`.
+      properties:
+        error:
+          type: string
+          example: "duplicidade"
+        atletas_duplicados:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              nome_completo:
+                type: string
+            required: [id, nome_completo]
+      required: [error, atletas_duplicados]
+      additionalProperties: false
+    ErroAtletaNaoEncontrado:
+      type: object
+      description: Corpo de erro `404` de `GET/PUT /api/atletas/{id}` para um id inexistente.
+      properties:
+        error:
+          type: string
+          example: "Atleta não encontrado."
+      required: [error]
+      additionalProperties: false
+    ErroAtletaJaAnonimizado:
+      type: object
+      description: >-
+        Corpo de erro `409` de `POST /api/atletas/{id}/anonimizar` (BE-07) —
+        emitido quando o atleta já foi anonimizado anteriormente
+        (`anonimizado_em` já preenchido). A operação é irreversível por
+        desenho (ADR-011, sem função inversa): a função PL/pgSQL
+        `app.anonimizar_atleta` recusa reprocessar o mesmo atleta em vez de
+        sobrescrever de novo silenciosamente.
+      properties:
+        error:
+          type: string
+          example: "Este atleta já foi anonimizado anteriormente."
+      required: [error]
+      additionalProperties: false
+    EventoJogoBody:
+      type: object
+      description: >-
+        Um evento de gol/cartão dentro de uma participação de
+        `LancarRodadaBody` (BE-08, RF-02.4/RF-02.5).
+      properties:
+        tipo:
+          type: string
+          enum: [gol, cartao_amarelo, cartao_vermelho]
+        quantidade:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >-
+            Número de ocorrências deste tipo de evento para o atleta nesta
+            rodada (ex.: 2 gols na mesma rodada = um item com
+            `quantidade: 2`, não dois itens separados).
+      required: [tipo]
+      additionalProperties: false
+    ParticipacaoRodadaBody:
+      type: object
+      description: >-
+        Presença de um atleta em uma rodada (BE-08, RF-02.1/RF-02.2/RF-02.3).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+        eventos:
+          type: array
+          default: []
+          items:
+            $ref: "#/components/schemas/EventoJogoBody"
+          description: >-
+            Sempre vazio quando `status: "ausente"` — bloqueado com `400`
+            (RF-02.6) se vier não vazio; permitido tanto para `presente`
+            quanto para `lesionado` (RF-02.3/RF-02.4/RF-02.5).
+      required: [atleta_id, status]
+      additionalProperties: false
+    LancarRodadaBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/rodadas` (BE-08, RF-02). `confirmar_duplicidade`:
+        mesmo contrato já usado por `POST/PUT /api/atletas` (RF-01.5/BE-06) —
+        quando já existe uma rodada `lancada` com a mesma `data` e este
+        campo não vem `true`, a escrita é recusada com `409` (RF-02.8).
+      properties:
+        data:
+          type: string
+          format: date
+          description: Data civil da rodada (AAAA-MM-DD).
+        confirmar_duplicidade:
+          type: boolean
+          default: false
+        participacoes:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ParticipacaoRodadaBody"
+          description: >-
+            Uma entrada por atleta que participou (ou não) da rodada — cada
+            `atleta_id` só pode aparecer uma vez (mesma restrição de
+            `UNIQUE(rodada_id, atleta_id)` de `app.participacao_rodada`,
+            BE-02, refletida aqui como erro `400`).
+      required: [data, participacoes]
+      additionalProperties: false
+    ParticipacaoRodadaResponse:
+      type: object
+      description: >-
+        Participação de um atleta já lançada, com o resultado do cálculo
+        automático de pontos (RN-05) — parte de `RodadaResponse`.
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+        eventos:
+          type: array
+          items:
+            type: object
+            properties:
+              tipo:
+                type: string
+                enum: [gol, cartao_amarelo, cartao_vermelho]
+              quantidade:
+                type: integer
+            required: [tipo, quantidade]
+        pontos_delta:
+          type: number
+          description: >-
+            Valor já gravado em `app.lancamento_pontos` (`origem:
+            "lancamento"`) para este atleta nesta rodada — soma de
+            presença/ausência + todos os eventos de jogo do atleta,
+            calculada a partir do valor vigente em
+            `app.configuracao_pontuacao` na data da rodada (RN-05).
+      required: [atleta_id, status, eventos, pontos_delta]
+      additionalProperties: false
+    RodadaResponse:
+      type: object
+      description: Resposta de sucesso (`201`) de `POST /api/rodadas` (BE-08).
+      properties:
+        id:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [lancada, excluida]
+          description: Sempre `"lancada"` na resposta deste endpoint (soft-delete, BE-02/BE-09).
+        criado_em:
+          type: string
+          format: date-time
+        participacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipacaoRodadaResponse"
+      required: [id, data, status, criado_em, participacoes]
+      additionalProperties: false
+    ErroValidacaoRodada:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST /api/rodadas` — corpo malformado ou que
+        falha `LancarRodadaBody` (inclui o bloqueio de RF-02.6: evento de
+        jogo para atleta ausente, reportado como um item de `detalhes` com
+        `path: ["participacoes", <índice>, "eventos"]`).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroDuplicidadeRodada:
+      type: object
+      description: >-
+        Corpo de erro `409` de `POST /api/rodadas` (RF-02.8) — emitido
+        quando já existe uma rodada `lancada` com a mesma `data` e a
+        requisição não trouxe `confirmar_duplicidade: true`.
+      properties:
+        error:
+          type: string
+          example: "duplicidade"
+        rodadas_duplicadas:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              data:
+                type: string
+                format: date
+              status:
+                type: string
+                enum: [lancada, excluida]
+            required: [id, data, status]
+      required: [error, rodadas_duplicadas]
+      additionalProperties: false
+    RodadaExcluidaResponse:
+      type: object
+      description: >-
+        Resposta de sucesso (`200`) de `DELETE /api/rodadas/{id}` (BE-09,
+        RF-04.1). `atletas_afetados` é a contagem de atletas com
+        participação nesta rodada, todos com 100% dos pontos daquela rodada
+        já revertidos via novos lançamentos de estorno (ledger append-only)
+        no momento em que esta resposta é enviada.
+      properties:
+        id:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [lancada, excluida]
+          description: Sempre `"excluida"` na resposta deste endpoint.
+        atletas_afetados:
+          type: integer
+      required: [id, data, status, atletas_afetados]
+      additionalProperties: false
+    ErroRodadaNaoEncontrada:
+      type: object
+      description: >-
+        Corpo de erro `404` de `DELETE /api/rodadas/{id}`,
+        `PATCH /api/rodadas/{id}/participacoes/{atletaId}` (BE-09) e
+        `POST .../participacoes/{atletaId}/simular-correcao` (BE-10) —
+        nenhuma rodada com este id.
+      properties:
+        error:
+          type: string
+          example: "Rodada não encontrada."
+      required: [error]
+      additionalProperties: false
+    ErroRodadaJaExcluida:
+      type: object
+      description: >-
+        Corpo de erro `409` (BE-09) — a rodada já está com
+        `status: "excluida"`. Em `DELETE /api/rodadas/{id}`: reprocessar uma
+        exclusão já confirmada (idempotência, `errcode` PL/pgSQL `RD001`)
+        nunca gera um segundo conjunto de estornos/segunda entrada de log.
+        Em `PATCH .../participacoes/{atletaId}`: uma rodada já excluída não
+        pode ser corrigida (o organizador só pode excluir uma rodada uma
+        vez, mesmo `errcode`). Em
+        `POST .../participacoes/{atletaId}/simular-correcao` (BE-10): mesmo
+        `errcode`, pelo mesmo motivo — não faz sentido prever o impacto de
+        uma correção sobre uma rodada cujo estorno já foi aplicado.
+      properties:
+        error:
+          type: string
+          example: "Esta rodada já foi excluída anteriormente."
+      required: [error]
+      additionalProperties: false
+    CorrigirParticipacaoBody:
+      type: object
+      description: >-
+        Corpo de `PATCH /api/rodadas/{id}/participacoes/{atletaId}` (BE-09,
+        RF-04.2). `eventos` SUBSTITUI por completo a lista de eventos atual
+        da participação (não é incremental) — mesmo contrato de
+        `p_novos_eventos` da função PL/pgSQL
+        `app.corrigir_participacao_rodada`. Reaproveitado, sem nenhuma
+        alteração de forma, como corpo de
+        `POST .../participacoes/{atletaId}/simular-correcao` (BE-10) — o
+        "valor hipotético novo" do preview é exatamente este mesmo par
+        `(status, eventos)` (decisão de detalhe: nenhum schema duplicado
+        para o mesmo formato de dado).
+      properties:
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+        eventos:
+          type: array
+          default: []
+          items:
+            $ref: "#/components/schemas/EventoJogoBody"
+          description: >-
+            Sempre vazio quando `status: "ausente"` — bloqueado com `400`
+            (RF-02.6) se vier não vazio, mesma regra de `LancarRodadaBody`.
+      required: [status]
+      additionalProperties: false
+    ParticipacaoCorrigidaResponse:
+      type: object
+      description: >-
+        Resposta de sucesso (`200`) de
+        `PATCH /api/rodadas/{id}/participacoes/{atletaId}` (BE-09, RF-04.2).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+        eventos:
+          type: array
+          items:
+            type: object
+            properties:
+              tipo:
+                type: string
+                enum: [gol, cartao_amarelo, cartao_vermelho]
+              quantidade:
+                type: integer
+            required: [tipo, quantidade]
+        pontos_delta:
+          type: number
+          description: >-
+            Total LÍQUIDO já refletido em `app.lancamento_pontos` para este
+            atleta nesta rodada, após a correção (soma de todos os
+            lançamentos — original + ajuste de correção, nunca só o valor
+            do ajuste isolado). O ajuste em si (`novo_total -
+            total_anterior`) é o que foi de fato gravado como um NOVO
+            lançamento (`origem: "correcao"`) — RF-04.2 ("aplica somente a
+            diferença") — consultável em detalhe via `GET
+            /api/log-auditoria` (`valores_depois.ajuste_aplicado`).
+      required: [atleta_id, status, eventos, pontos_delta]
+      additionalProperties: false
+    ErroValidacaoCorrecaoParticipacao:
+      type: object
+      description: >-
+        Corpo de erro `400` de `PATCH .../participacoes/{atletaId}` (BE-09)
+        e de `POST .../participacoes/{atletaId}/simular-correcao` (BE-10,
+        mesmo `CorrigirParticipacaoBody`) — corpo malformado ou que falha a
+        validação (inclui o bloqueio de RF-02.6, reportado como um item de
+        `detalhes` com `path: ["eventos"]`).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroParticipacaoNaoEncontrada:
+      type: object
+      description: >-
+        Corpo de erro `404` de `PATCH .../participacoes/{atletaId}` (BE-09)
+        e de `POST .../participacoes/{atletaId}/simular-correcao` (BE-10) —
+        o `atletaId` informado não tem nenhuma `app.participacao_rodada`
+        para a rodada `id` informada (nunca participou desta rodada).
+      properties:
+        error:
+          type: string
+          example: "Este atleta não participou desta rodada."
+      required: [error]
+      additionalProperties: false
+    PreviewCorrecaoParticipacaoResponse:
+      type: object
+      description: >-
+        Resposta de sucesso (`200`) de
+        `POST /api/rodadas/{id}/participacoes/{atletaId}/simular-correcao`
+        (BE-10, TASK.md Seção 6.2 item 2). Calculada por
+        `app.simular_correcao_rodada` — a MESMA função/query que
+        `app.corrigir_participacao_rodada` (BE-09) usa para gravar, então
+        `pontos_delta` aqui é exatamente o valor que seria gravado em
+        `app.lancamento_pontos.pontos_delta` (`origem: "correcao"`) se este
+        mesmo `(status, eventos)` fosse de fato aplicado via
+        `PATCH .../participacoes/{atletaId}`. ESTRITAMENTE READ-ONLY —
+        chamar este endpoint nunca grava nenhuma linha em nenhuma tabela,
+        mesmo quando o cenário simulado seria aceito por uma correção real.
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        status_atual:
+          type: string
+          enum: [presente, ausente, lesionado]
+          description: Status da participação ANTES de qualquer correção.
+        eventos_atuais:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventoJogoBody"
+          description: Eventos de jogo da participação ANTES de qualquer correção.
+        novo_status:
+          type: string
+          enum: [presente, ausente, lesionado]
+          description: Eco do `status` hipotético informado no corpo da requisição.
+        novos_eventos:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventoJogoBody"
+          description: Eco dos `eventos` hipotéticos informados no corpo da requisição.
+        pontos_antes:
+          type: number
+          description: >-
+            Total líquido de pontos já gravado em `app.lancamento_pontos`
+            para este atleta nesta rodada (soma de todos os lançamentos
+            existentes), antes de qualquer correção.
+        pontos_depois:
+          type: number
+          description: >-
+            Novo total hipotético sob `(novo_status, novos_eventos)`,
+            calculado lendo `app.configuracao_pontuacao` vigente NA DATA DA
+            RODADA (nunca "agora"/na data da simulação) — mesma leitura que
+            `POST /api/rodadas` e `PATCH .../participacoes/{atletaId}` usam.
+        pontos_delta:
+          type: number
+          description: >-
+            `pontos_depois - pontos_antes` — o delta de pontos calculado
+            (critério de aceite literal de BE-10). É exatamente o valor que
+            `PATCH .../participacoes/{atletaId}` gravaria como um NOVO
+            `lancamento_pontos` (`origem: "correcao"`) se este cenário fosse
+            de fato aplicado.
+      required:
+        [
+          atleta_id,
+          status_atual,
+          eventos_atuais,
+          novo_status,
+          novos_eventos,
+          pontos_antes,
+          pontos_depois,
+          pontos_delta,
+        ]
+      additionalProperties: false
+    LogAuditoriaItem:
+      type: object
+      description: >-
+        Uma entrada de `app.log_auditoria` (BE-09, RF-04.4/RF-04.5) — grava
+        toda correção/exclusão de rodada (BE-09) e toda anonimização de
+        atleta (BE-07, ADR-011). NUNCA inclui campo de autor individual
+        (RN-12/GUARDRAILS.md regra 18) — a própria tabela não tem essa
+        coluna. `valores_antes`/`valores_depois` são objetos livres (jsonb)
+        cujo formato depende de `tipo_evento`: para `"correcao"`, contêm
+        `status`/`eventos`/`pontos_acumulados` (e `ajuste_aplicado` só em
+        `valores_depois`) da participação corrigida; para `"estorno"`,
+        contêm `status` da rodada e, em `valores_depois`,
+        `atletas_afetados`/`pontos_revertidos`/`substituicoes_vinculadas`;
+        para `"anonimizacao"` (BE-07), `valores_antes` contém SOMENTE
+        marcadores redigidos (`"[REDACTED]"`), nunca o dado pessoal real.
+      properties:
+        id:
+          type: string
+          format: uuid
+        rodada_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Preenchido para `tipo_evento` `correcao`/`estorno`; nulo para `anonimizacao`.
+        atleta_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Preenchido para `tipo_evento` `correcao`/`anonimizacao`; nulo para `estorno` (afeta a rodada inteira).
+        tipo_evento:
+          type: string
+          enum: [correcao, estorno, anonimizacao]
+        ocorrido_em:
+          type: string
+          format: date-time
+        valores_antes: {}
+        valores_depois: {}
+      required:
+        [id, rodada_id, atleta_id, tipo_evento, ocorrido_em, valores_antes, valores_depois]
+      additionalProperties: false
+    ErroConsultaLogAuditoria:
+      type: object
+      description: >-
+        Corpo de erro `400` de `GET /api/log-auditoria` — `limit` inválido
+        (não numérico, ≤ 0, ou acima do teto máximo de 200).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    RestricaoBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/restricoes` e `PUT /api/restricoes/{id}` (BE-12,
+        RF-05.5). Sem campo de "motivo" (`UX-SPEC.md` T10 — "sem campo de
+        motivo obrigatório no PRD-TECNICO... fora de escopo desta release").
+      properties:
+        atleta_a_id:
+          type: string
+          format: uuid
+        atleta_b_id:
+          type: string
+          format: uuid
+          description: >-
+            Deve ser diferente de `atleta_a_id` — `400` caso contrário
+            (`restricao_obrigatoria_atletas_distintos_check` no banco,
+            BE-02, replicado aqui como validação de API).
+      required: [atleta_a_id, atleta_b_id]
+      additionalProperties: false
+    RestricaoObrigatoriaResponse:
+      type: object
+      description: >-
+        Resposta de todos os endpoints de `/api/restricoes*` (BE-12).
+        `atleta_a_nome`/`atleta_b_nome` (via `apelido_exibicao`, RN-06)
+        espelham de propósito os mesmos nomes de campo do contrato
+        `restricoes_conflitantes` do ADR-010 — `BE-11` consome
+        `app.restricao_obrigatoria` para montar aquele contrato a partir da
+        mesma tabela.
+      properties:
+        id:
+          type: string
+          format: uuid
+        atleta_a_id:
+          type: string
+          format: uuid
+        atleta_a_nome:
+          type: string
+          description: "`apelido_exibicao` (RN-06) do atleta em `atleta_a_id`."
+        atleta_b_id:
+          type: string
+          format: uuid
+        atleta_b_nome:
+          type: string
+          description: "`apelido_exibicao` (RN-06) do atleta em `atleta_b_id`."
+        ativo:
+          type: boolean
+        desativado_em:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            Preenchido na primeira desativação (RN-11) — nunca sobrescrito
+            por chamadas repetidas de `POST .../desativar` (idempotência,
+            preserva o registro histórico real); volta a `null` depois de
+            `POST .../reativar`.
+        criado_em:
+          type: string
+          format: date-time
+      required:
+        [
+          id,
+          atleta_a_id,
+          atleta_a_nome,
+          atleta_b_id,
+          atleta_b_nome,
+          ativo,
+          desativado_em,
+          criado_em,
+        ]
+      additionalProperties: false
+    ErroValidacaoRestricao:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST/PUT /api/restricoes*` — corpo
+        malformado, `uuid` inválido, ou `atleta_a_id === atleta_b_id`.
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroAtletaReferenciadoNaoEncontrado:
+      type: object
+      description: >-
+        Corpo de erro `404` de `POST/PUT /api/restricoes*` quando
+        `atleta_a_id`/`atleta_b_id` não corresponde a nenhum `app.atleta`
+        existente — devolvido pela API em vez de deixar a `FK` do banco
+        (`references app.atleta (id)`, BE-02) estourar como erro genérico
+        `23503`.
+      properties:
+        error:
+          type: string
+          example: "Atleta não encontrado."
+        atleta_id:
+          type: string
+          format: uuid
+          description: id do atleta que não foi encontrado (o primeiro dos dois, se ambos faltarem).
+      required: [error, atleta_id]
+      additionalProperties: false
+    ErroRestricaoNaoEncontrada:
+      type: object
+      description: >-
+        Corpo de erro `404` de `PUT /api/restricoes/{id}`,
+        `POST /api/restricoes/{id}/desativar` e
+        `POST /api/restricoes/{id}/reativar` para um id inexistente.
+      properties:
+        error:
+          type: string
+          example: "Restrição obrigatória não encontrada."
+      required: [error]
+      additionalProperties: false
+    SugestaoTimesBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/times/sugestao` (BE-11, RF-05.1/RF-05.3). `N`
+        (`quantidade_times`) é parametrizável de verdade no backend (ADR-010/
+        TASK.md Seção 1.4) mesmo a interface desta release só enviando `2`
+        (TASK.md Seção 6.2 item 1). Não referencia `rodada_id` — BE-11 não
+        depende de BE-08 (TASK.md Seção 4.1) — a lista de presentes é
+        informada diretamente aqui, não derivada de uma rodada já lançada.
+      properties:
+        atletas_ids:
+          type: array
+          minItems: 2
+          items:
+            type: string
+            format: uuid
+          description: Presentes desta montagem (RF-05.1) — sem ids repetidos.
+        quantidade_times:
+          type: integer
+          minimum: 2
+          maximum: 10
+          description: >-
+            `N` — quantidade de times a gerar. Não pode ser maior que o
+            tamanho de `atletas_ids`. Teto de 10 é decisão de detalhe (não
+            escalada, sem limite literal em RF-05.1/ADR-010).
+      required: [atletas_ids, quantidade_times]
+      additionalProperties: false
+    AtletaMontadoResponse:
+      type: object
+      description: Um atleta dentro de um time sugerido (`SugestaoTimesOkResponse`).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        apelido_exibicao:
+          type: string
+        nivel_tecnico:
+          type: number
+          description: RN-03, via `app.atleta_nivel_tecnico` (mesma view de BE-06).
+        idade:
+          type: integer
+          nullable: true
+          description: >-
+            `null` quando o atleta não tem `data_nascimento` cadastrado
+            (registro migrado do legado, RF-08.3) — excluído do cálculo de
+            `idade_media` do time, nunca tratado como `0`.
+      required: [atleta_id, apelido_exibicao, nivel_tecnico, idade]
+      additionalProperties: false
+    TimeMontadoResponse:
+      type: object
+      description: Um time sugerido, dentro de `SugestaoTimesOkResponse.times`.
+      properties:
+        indice:
+          type: integer
+          minimum: 0
+          description: 0-based — sem significado próprio além do rótulo ("Time A" = índice 0 no Frontend).
+        atletas:
+          type: array
+          items:
+            $ref: "#/components/schemas/AtletaMontadoResponse"
+        nivel_tecnico_medio:
+          type: number
+          description: Média de `nivel_tecnico` dos atletas do time (RF-05.3), arredondada a 2 casas.
+        idade_media:
+          type: number
+          nullable: true
+          description: >-
+            Média de idade dos atletas do time com `data_nascimento`
+            conhecido (RF-05.3), arredondada a 1 casa — `null` se nenhum
+            atleta do time tiver `data_nascimento`.
+      required: [indice, atletas, nivel_tecnico_medio, idade_media]
+      additionalProperties: false
+    SugestaoTimesOkResponse:
+      type: object
+      description: >-
+        Resposta de sucesso de `POST /api/times/sugestao` — a divisão
+        respeita 100% das restrições obrigatórias ativas entre os
+        presentes (RF-05.1); nível técnico + idade usados como soft
+        constraint (RF-05.3, ADR-007 Fase 2 — busca local, "boa o
+        suficiente", não necessariamente ótima global). É sempre uma
+        SUGESTÃO (RF-05.4 — o organizador pode ajustar manualmente antes de
+        confirmar); esta API não persiste nada em `app.time`/`app.time_atleta`.
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        quantidade_times_solicitada:
+          type: integer
+        times:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeMontadoResponse"
+      required: [status, quantidade_times_solicitada, times]
+      additionalProperties: false
+    RestricaoConflitanteItem:
+      type: object
+      description: >-
+        Um par em conflito, contrato EXATO do ADR-010 — um item por aresta
+        do componente conexo que falhou a coloração em `N` times (nenhum
+        formato simplificado, ADR-010 Opção B foi rejeitada).
+      properties:
+        restricao_id:
+          type: string
+          format: uuid
+        atleta_a_id:
+          type: string
+          format: uuid
+        atleta_a_nome:
+          type: string
+          description: "`apelido_exibicao` (RN-06) — mesmo campo já publicado em `RestricaoObrigatoriaResponse` (BE-12)."
+        atleta_b_id:
+          type: string
+          format: uuid
+        atleta_b_nome:
+          type: string
+        motivo:
+          type: string
+          enum: [restricao_obrigatoria_ativa]
+        grupo_conflito:
+          type: integer
+          minimum: 1
+          description: 1-based — agrupa pares do mesmo componente conexo (ADR-010).
+      required:
+        [
+          restricao_id,
+          atleta_a_id,
+          atleta_a_nome,
+          atleta_b_id,
+          atleta_b_nome,
+          motivo,
+          grupo_conflito,
+        ]
+      additionalProperties: false
+    GrupoConflitoItem:
+      type: object
+      description: Um componente conexo sem coloração válida em `N` times (ADR-010).
+      properties:
+        grupo_conflito:
+          type: integer
+          minimum: 1
+        atletas_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        quantidade_times_solicitada:
+          type: integer
+        mensagem:
+          type: string
+          example: >-
+            Com 2 time(s) disponível(is), não é possível separar os 3
+            atletas deste grupo sem que alguma restrição obrigatória fique
+            violada.
+      required: [grupo_conflito, atletas_ids, quantidade_times_solicitada, mensagem]
+      additionalProperties: false
+    SugestaoTimesConflitoResponse:
+      type: object
+      description: >-
+        Resposta de `POST /api/times/sugestao` quando nenhuma divisão em `N`
+        times satisfaz 100% das restrições obrigatórias ativas (RF-05.2) —
+        contrato EXATO do ADR-010 (`restricoes_conflitantes`/
+        `grupos_conflito`), decomposto por componente conexo do grafo de
+        restrições (union-find). Um resultado VÁLIDO do algoritmo, não um
+        erro técnico — por isso HTTP `200`, igual ao caso `status: "ok"`
+        (RF-05.2: "informar, não travar").
+      properties:
+        status:
+          type: string
+          enum: [conflito]
+        restricoes_conflitantes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RestricaoConflitanteItem"
+        grupos_conflito:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrupoConflitoItem"
+      required: [status, restricoes_conflitantes, grupos_conflito]
+      additionalProperties: false
+    ErroValidacaoSugestaoTimes:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST /api/times/sugestao` — corpo
+        malformado, `uuid` inválido, `atletas_ids` com menos de 2 itens ou
+        com id repetido, `quantidade_times` fora de `[2, 10]` ou maior que
+        `atletas_ids.length`.
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroFalhaTecnicaMontagemTimes:
+      type: object
+      description: >-
+        Corpo de erro `500` de `POST /api/times/sugestao` — a execução do
+        algoritmo (backtracking, ADR-007) excedeu o orçamento de tempo
+        configurado (`TIMEOUT_MONTAGEM_MS`, 8s — TASK.md Seção 6.2 item 3,
+        margem de segurança abaixo do limite prático de execução serverless
+        do tier gratuito/hobby da Vercel). Nunca um resultado parcial/
+        incompleto — nem `"ok"` nem `"conflito"` — porque a Fase 1 não teve
+        tempo de provar nenhum dos dois. Reaproveitado pelo estado genérico
+        de "falha técnica real" já previsto pelo `UX-SPEC.md` para T09
+        (Seção 4), sem tela nova.
+      properties:
+        error:
+          type: string
+          enum: [falha_tecnica]
+        message:
+          type: string
+      required: [error, message]
+      additionalProperties: false
+    TimeConfirmadoInput:
+      type: object
+      description: >-
+        Um time dentro do corpo de `POST /api/rodadas/{id}/times` (escopo
+        AMPLIADO desta execução de BE-13, decisão explícita do usuário — ver
+        TASK.md, nota de status de BE-13/BE-11). Formato de entrada
+        equivalente ao item de `SugestaoTimesOkResponse.times`
+        (`POST /api/times/sugestao`, BE-11) depois de ajustado manualmente
+        pelo organizador (RF-05.4) — só `atletas_ids` é necessário; os
+        demais campos daquela resposta (`indice`, `nivel_tecnico_medio`,
+        `idade_media`, dados agregados de cada atleta), se reenviados, são
+        ignorados por este endpoint.
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: >-
+            Opcional — default "Time <letra>" (`Time A`, `Time B`, ...),
+            gerado pela API a partir da posição no array quando ausente
+            (mesmo texto do wireframe T09 do `UX-SPEC.md`).
+        atletas_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      required: [atletas_ids]
+      additionalProperties: true
+    ConfirmarTimesBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/rodadas/{id}/times`. Cada atleta pertence a
+        exatamente um time (`400` se o mesmo id aparecer em mais de um
+        `atletas_ids`, ou repetido dentro do mesmo time).
+      properties:
+        times:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/TimeConfirmadoInput"
+      required: [times]
+      additionalProperties: false
+    AtletaConfirmadoResponse:
+      type: object
+      description: Um atleta dentro de um time já persistido (`TimeConfirmadoResponse`).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        apelido_exibicao:
+          type: string
+      required: [atleta_id, apelido_exibicao]
+      additionalProperties: false
+    TimeConfirmadoResponse:
+      type: object
+      description: Um time já persistido em `app.time`/`app.time_atleta`, dentro de `TimesConfirmadosResponse.times`.
+      properties:
+        time_id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        atletas:
+          type: array
+          items:
+            $ref: "#/components/schemas/AtletaConfirmadoResponse"
+      required: [time_id, label, atletas]
+      additionalProperties: false
+    TimesConfirmadosResponse:
+      type: object
+      description: >-
+        Resposta de sucesso (`200`) de `POST /api/rodadas/{id}/times` — a
+        divisão de times já gravada em `app.time`/`app.time_atleta` para
+        esta rodada (substitui qualquer divisão anterior da mesma rodada,
+        salvo bloqueio por `app.substituicao` já registrada — ver `409`
+        abaixo).
+      properties:
+        rodada_id:
+          type: string
+          format: uuid
+        times:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeConfirmadoResponse"
+      required: [rodada_id, times]
+      additionalProperties: false
+    ErroValidacaoConfirmarTimes:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST /api/rodadas/{id}/times` — corpo
+        malformado, menos de 2 times, time com `atletas_ids` vazio, `uuid`
+        inválido, id repetido dentro do mesmo time, ou o mesmo atleta
+        aparecendo em mais de um time.
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroSubstituicaoExistenteBloqueiaReconfirmacao:
+      type: object
+      description: >-
+        Corpo de erro `409` de `POST /api/rodadas/{id}/times` — já existe
+        `app.substituicao` registrada contra a divisão de times atual desta
+        rodada; reconfirmar (substituir a divisão) é bloqueado para
+        preservar a fidelidade histórica das substituições já registradas
+        (RF-06.1, `errcode` PL/pgSQL `TM001` — ver migration
+        `20260903160000_create_confirmar_times_rodada_function.sql`).
+      properties:
+        error:
+          type: string
+          enum: [substituicao_existente]
+        message:
+          type: string
+      required: [error, message]
+      additionalProperties: false
+    SubstituicaoBody:
+      type: object
+      description: >-
+        Corpo de `POST /api/rodadas/{id}/substituicoes` (BE-13, RF-06.1).
+        `time_id` precisa pertencer à rodada da URL (`404` caso contrário).
+      properties:
+        time_id:
+          type: string
+          format: uuid
+        atleta_sai_id:
+          type: string
+          format: uuid
+        atleta_entra_id:
+          type: string
+          format: uuid
+          description: >-
+            Precisa ser diferente de `atleta_sai_id` — critério de aceite
+            literal de BE-13: "tentar usar o mesmo atleta em 'sai' e 'entra'
+            é bloqueado com mensagem clara".
+      required: [time_id, atleta_sai_id, atleta_entra_id]
+      additionalProperties: false
+    SubstituicaoResponse:
+      type: object
+      description: >-
+        Uma substituição registrada (`app.substituicao`) — puro registro de
+        fidelidade histórica (RF-06.1/RF-06.3), sem nenhum campo de autor
+        individual (RN-12) e sem nenhum efeito sobre
+        `app.lancamento_pontos`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        rodada_id:
+          type: string
+          format: uuid
+        time_id:
+          type: string
+          format: uuid
+        atleta_sai_id:
+          type: string
+          format: uuid
+        atleta_sai_nome:
+          type: string
+          description: "`apelido_exibicao` (RN-06) do atleta em `atleta_sai_id`."
+        atleta_entra_id:
+          type: string
+          format: uuid
+        atleta_entra_nome:
+          type: string
+          description: "`apelido_exibicao` (RN-06) do atleta em `atleta_entra_id`."
+        criado_em:
+          type: string
+          format: date-time
+      required:
+        [
+          id,
+          rodada_id,
+          time_id,
+          atleta_sai_id,
+          atleta_sai_nome,
+          atleta_entra_id,
+          atleta_entra_nome,
+          criado_em,
+        ]
+      additionalProperties: false
+    ErroValidacaoSubstituicao:
+      type: object
+      description: >-
+        Corpo de erro `400` de `POST /api/rodadas/{id}/substituicoes` —
+        corpo malformado, `uuid` inválido, ou `atleta_sai_id === atleta_entra_id`
+        (critério de aceite literal de BE-13, mensagem clara no
+        array `detalhes`).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ErroTimeNaoEncontradoNaRodada:
+      type: object
+      description: >-
+        Corpo de erro `404` de `POST /api/rodadas/{id}/substituicoes` —
+        `time_id` inexistente ou pertencente a outra rodada (não a `id` da
+        URL).
+      properties:
+        error:
+          type: string
+          example: "Time não encontrado nesta rodada."
+      required: [error]
+      additionalProperties: false
+    RodadaResumoItem:
+      type: object
+      description: >-
+        Um item de `GET /api/rodadas` (BE-16, T06 do `UX-SPEC.md` —
+        "Histórico de Rodadas"). Lacuna deixada por BE-08/BE-09/BE-10
+        (nenhuma tarefa anterior cobria LEITURA de listagem de rodada — BE-08
+        documentou a omissão explicitamente na época; BE-09/BE-10 cobriram
+        só log de auditoria e preview de correção, nunca a listagem em si) —
+        fechada nesta versão por decisão explícita do usuário ao identificar
+        o bloqueio de `FE-06`. `presentes` é o único campo além dos já
+        publicados por `RodadaResponse`/`RodadaExcluidaResponse`
+        (`id`/`data`/`status`/`criado_em`), literal do wireframe T06
+        ("19/09/2026 · 18 presentes").
+      properties:
+        id:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [lancada, excluida]
+          description: >-
+            Rodada `excluida` (soft-delete) aparece normalmente na lista,
+            com o status visível — NUNCA escondida silenciosamente (decisão
+            de detalhe, mesmo racional já usado para `restricao_obrigatoria`
+            desativada em `RestricaoObrigatoriaResponse`/T10, BE-12: o
+            histórico permanece visível, quem decide o que fazer com uma
+            rodada excluída na tela é o Frontend, não uma omissão do
+            Backend).
+        criado_em:
+          type: string
+          format: date-time
+        presentes:
+          type: integer
+          description: >-
+            Contagem de `participacao_rodada.status = "presente"` desta
+            rodada (nunca inclui `lesionado`/`ausente` — mesma restrição já
+            usada por `RankingPublicoItem.presencas`, BE-03/BLOCKER-005,
+            embora aqui sem o filtro de `status = "lancada"` da rodada, já
+            que rodada `excluida` também aparece nesta listagem).
+      required: [id, data, status, criado_em, presentes]
+      additionalProperties: false
+    ErroConsultaRodadas:
+      type: object
+      description: >-
+        Corpo de erro `400` de `GET /api/rodadas` — `limit` inválido (não
+        numérico, ≤ 0, ou acima do teto máximo de 200), mesmo formato de
+        `ErroConsultaLogAuditoria` (BE-09).
+      properties:
+        error:
+          type: string
+          example: "Requisição inválida."
+        detalhes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items: {}
+              message:
+                type: string
+            required: [path, message]
+      required: [error]
+      additionalProperties: false
+    ParticipacaoDetalheItem:
+      type: object
+      description: >-
+        Uma participação dentro do detalhe de `GET /api/rodadas/{id}` (BE-16,
+        T07 do `UX-SPEC.md` — consumido pela tela de Correção/Estorno para
+        montar o formulário de campo único por atleta, com preview inline
+        via `POST .../simular-correcao`, BE-10).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        apelido_exibicao:
+          type: string
+          description: >-
+            RN-06 — resolvido pelo próprio endpoint (mesmo padrão de
+            `atleta_a_nome`/`atleta_b_nome` em `RestricaoObrigatoriaResponse`,
+            BE-12), para a tela de correção exibir "Carlinhos" sem uma
+            segunda chamada a `GET /api/atletas`.
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+        eventos:
+          type: array
+          items:
+            type: object
+            properties:
+              tipo:
+                type: string
+                enum: [gol, cartao_amarelo, cartao_vermelho]
+              quantidade:
+                type: integer
+            required: [tipo, quantidade]
+        pontos_delta:
+          type: number
+          description: >-
+            Total LÍQUIDO já gravado em `app.lancamento_pontos` para este
+            atleta nesta rodada — soma de TODOS os lançamentos existentes
+            (`origem: "lancamento"` + `"correcao"` + `"estorno"`, ledger
+            append-only, ADR-006), nunca só o lançamento original. Mesma
+            semântica já publicada em `ParticipacaoCorrigidaResponse.pontos_delta`
+            (BE-09): para uma rodada nunca corrigida/excluída, é exatamente
+            o valor gravado por `app.lancar_rodada`; para uma rodada já
+            corrigida, reflete o ajuste aplicado; para uma rodada excluída,
+            é sempre `0` (100% estornado).
+      required: [atleta_id, apelido_exibicao, status, eventos, pontos_delta]
+      additionalProperties: false
+    RodadaDetalheResponse:
+      type: object
+      description: >-
+        Resposta de sucesso (`200`) de `GET /api/rodadas/{id}` (BE-16, T07
+        do `UX-SPEC.md`). Rodada `status: "excluida"` é consultável
+        normalmente (mesma decisão de detalhe de `RodadaResumoItem` acima) —
+        só `id` inexistente devolve `404`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [lancada, excluida]
+        criado_em:
+          type: string
+          format: date-time
+        participacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipacaoDetalheItem"
+      required: [id, data, status, criado_em, participacoes]
+      additionalProperties: false
 paths:
   /ranking_publico:
     get:
@@ -384,6 +1805,1084 @@ paths:
                     example: ok
                 required: [status]
                 additionalProperties: false
+  /api/atletas:
+    get:
+      tags: [interno]
+      summary: Lista atletas (BE-06, RF-01)
+      description: >-
+        Exige sessão válida mesmo sendo leitura (ver tag `interno`) —
+        devolve `contato`/`data_nascimento`. Cada item inclui o nível
+        técnico (RN-03) já calculado (`nivel_tecnico`/`rodadas_presentes`).
+        Sem paginação nesta versão (porte do grupo — dezenas de atletas, não
+        milhares, TASK.md Seção 1.0).
+      operationId: getAtletas
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Lista de atletas, ordenada por `nome_completo` asc.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AtletaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+    post:
+      tags: [interno]
+      summary: Cadastra um atleta (BE-06, RF-01.1)
+      description: >-
+        Inicializa o saldo acumulado do atleta com `pontuacao_inicial`
+        (RF-01.1/RN-10). Bloqueia com `400` se `data_nascimento` resultar em
+        idade < 18 anos e `consentimento_responsavel_obtido` não vier `true`
+        (RF-01.3/RN-02). Alerta de duplicidade de `nome_completo` (RF-01.5)
+        — ver `409` abaixo.
+      operationId: postAtletas
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AtletaBody"
+      responses:
+        "201":
+          description: Atleta criado. `nivel_tecnico` = `pontuacao_inicial` (nenhuma presença ainda, fallback RN-03).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AtletaResponse"
+        "400":
+          description: >-
+            Corpo malformado/inválido — inclui o bloqueio de RF-01.3 (menor
+            de 18 sem consentimento marcado) como um item de `detalhes` com
+            `path: ["consentimento_responsavel_obtido"]`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoAtleta"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "409":
+          description: >-
+            `nome_completo` (normalizado) coincide com o de outro atleta
+            ativo e a requisição não trouxe `confirmar_duplicidade: true`
+            (RF-01.5) — nenhum registro foi criado. Reenviar a mesma
+            requisição com `confirmar_duplicidade: true` para confirmar e
+            criar mesmo assim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroDuplicidadeAtleta"
+  /api/atletas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [interno]
+      summary: Busca um atleta por id (BE-06)
+      description: >-
+        Exige sessão válida mesmo sendo leitura (ver tag `interno`) — mesmo
+        motivo de `GET /api/atletas`.
+      operationId: getAtletaPorId
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Atleta encontrado, com nível técnico (RN-03) calculado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AtletaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: Nenhum atleta com este id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaNaoEncontrado"
+    put:
+      tags: [interno]
+      summary: Atualiza um atleta já cadastrado (BE-06, RF-01.6)
+      description: >-
+        Substitui os campos editáveis (mesmo corpo de `POST /api/atletas`) —
+        nunca altera `ativo`/`anonimizado_em` (mecanismo próprio de BE-07,
+        `anonimizar_atleta`, ADR-011, fora do escopo desta rota). Reaplica a
+        mesma checagem de idade/consentimento (RF-01.3) e de duplicidade de
+        nome (RF-01.5) usada na criação, excluindo o próprio id da checagem
+        de duplicidade.
+      operationId: putAtletaPorId
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AtletaBody"
+      responses:
+        "200":
+          description: Atleta atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AtletaResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoAtleta"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: Nenhum atleta com este id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaNaoEncontrado"
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroDuplicidadeAtleta"
+  /api/atletas/{id}/anonimizar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [interno]
+      summary: Anonimiza dado pessoal do atleta a pedido do titular (BE-07, ADR-011, LGPD Art. 18)
+      description: >-
+        Aciona a função PL/pgSQL `app.anonimizar_atleta`, que roda dentro de
+        uma única transação: sobrescreve `nome_completo` (sempre
+        `"Atleta anonimizado"`), `apelido_exibicao` (sempre
+        `"Atleta #" + primeiros 8 caracteres do id`), `contato` e
+        `data_nascimento` (sempre `null`), marca `ativo=false` e
+        `anonimizado_em`, desativa toda `restricao_obrigatoria` (RF-05.5)
+        onde o atleta seja `atleta_a_id`/`atleta_b_id`, e grava uma entrada
+        em `log_auditoria` (`tipo_evento="anonimizacao"`) com `valores_antes`
+        contendo **apenas marcadores redigidos** (`"[REDACTED]"`), nunca o
+        dado pessoal real (GUARDRAILS.md regra 20). Nunca altera
+        `lancamento_pontos`/`participacao_rodada`/`time_atleta`/
+        `substituicao` — o saldo/histórico agregado do atleta permanece
+        íntegro e consultável pelo mesmo id. Ação **irreversível por
+        desenho** (ADR-011, sem função inversa) — nenhum corpo de
+        requisição é exigido; a confirmação de dupla etapa
+        (`TypedConfirmationModal`, "digite ANONIMIZAR") é responsabilidade
+        de fluxo do Frontend (UX-SPEC.md T04), não um contrato desta API.
+      operationId: postAnonimizarAtleta
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: >-
+            Atleta anonimizado. Resposta reflete os campos já sobrescritos
+            (`contato`/`data_nascimento` nulos, `ativo=false`,
+            `anonimizado_em` preenchido) — `nivel_tecnico`/
+            `rodadas_presentes` inalterados (histórico preservado).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AtletaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: Nenhum atleta com este id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaNaoEncontrado"
+        "409":
+          description: Atleta já anonimizado anteriormente (irreversível, ADR-011).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaJaAnonimizado"
+  /api/rodadas:
+    get:
+      tags: [interno]
+      summary: Lista rodadas em ordem cronológica decrescente (BE-16, T06 do UX-SPEC.md)
+      description: >-
+        Lacuna deixada por BE-08/BE-09/BE-10 (nenhuma delas cobria LEITURA de
+        listagem de rodada — BE-08 documentou a omissão explicitamente na
+        época) — fechada nesta versão por decisão explícita do usuário ao
+        identificar o bloqueio de `FE-06`. Lista `app.rodada` ordenada por
+        `data desc` e, em caso de empate (duas rodadas na mesma data civil,
+        cenário válido via `confirmar_duplicidade`, RF-02.8), por
+        `criado_em desc` como desempate. NUNCA filtra por `status` — rodada
+        `excluida` (soft-delete) aparece normalmente, com o status visível
+        (ver `RodadaResumoItem`). Leitura interna protegida por sessão mesmo
+        sendo `GET` (mesmo racional já usado por `GET /api/log-auditoria`,
+        BE-09) — `middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES`
+        (`/api/rodadas` já estava na lista desde BE-13, nenhuma mudança
+        necessária nesta tarefa).
+      operationId: getRodadas
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: >-
+            Teto de linhas retornadas (decisão de detalhe, TASK.md Seção
+            1.0 — não exigido literalmente pelo critério de aceite; mesmo
+            racional/mesmos valores de `GET /api/log-auditoria`, BE-09:
+            `app.rodada` cresce indefinidamente ao longo das temporadas, sem
+            expurgo automático).
+      responses:
+        "200":
+          description: Lista ordenada do mais recente ao mais antigo.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RodadaResumoItem"
+        "400":
+          description: "`limit` inválido (não numérico, ≤ 0, ou acima de 200)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroConsultaRodadas"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+    post:
+      tags: [interno]
+      summary: Lança uma rodada — presença, eventos de jogo e cálculo automático de pontos (BE-08, RF-02)
+      description: >-
+        Aciona a função PL/pgSQL `app.lancar_rodada`, que roda dentro de uma
+        única transação (TASK.md Seção 1.2): grava `app.rodada`, uma
+        `app.participacao_rodada` por atleta, `app.evento_jogo` por evento
+        de gol/cartão e exatamente um `app.lancamento_pontos` por atleta
+        (ledger append-only, ADR-006) com o saldo já calculado. Uma
+        exceção em qualquer ponto do processamento reverte 100% do que já
+        tinha sido gravado nesta chamada (RNF-10 — nunca estado parcial
+        visível). Valor de pontos de cada evento sempre lido do vigente em
+        `app.configuracao_pontuacao` na data da rodada (RN-05: presença
+        `+2`, ausência `0`, lesionado pontua como presença, gol `+3`,
+        cartão amarelo `-1`, cartão vermelho `-3`) — nunca hardcoded.
+        Bloqueia com `400` se qualquer participação com `status: "ausente"`
+        trouxer `eventos` não vazio (RF-02.6) — validado na própria camada
+        de API (`zod`) e repetido como defesa em profundidade estrutural
+        dentro da função PL/pgSQL. Alerta de rodada duplicada (RF-02.8) —
+        ver `409` abaixo; rodada com `status: "excluida"` (soft-delete,
+        BE-02) na mesma `data` nunca dispara esse alerta. Substituições
+        (RF-06) não fazem parte deste endpoint — registradas depois, a
+        partir de times já definidos (BE-13, fora do escopo de BE-08).
+      operationId: postRodadas
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LancarRodadaBody"
+      responses:
+        "201":
+          description: >-
+            Rodada lançada. Cada item de `participacoes` inclui
+            `pontos_delta` — o valor já efetivamente gravado em
+            `app.lancamento_pontos` para aquele atleta nesta rodada (soma de
+            presença/ausência + todos os eventos de jogo do atleta).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RodadaResponse"
+        "400":
+          description: >-
+            Corpo malformado/inválido — inclui o bloqueio de RF-02.6 (evento
+            de jogo para atleta ausente) como um item de `detalhes` com
+            `path: ["participacoes", <índice>, "eventos"]`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoRodada"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "409":
+          description: >-
+            Já existe uma rodada `lancada` (nunca `excluida`) com a mesma
+            `data` e a requisição não trouxe `confirmar_duplicidade: true`
+            (RF-02.8) — nenhuma rodada foi criada. Reenviar a mesma
+            requisição com `confirmar_duplicidade: true` para confirmar e
+            lançar mesmo assim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroDuplicidadeRodada"
+  /api/rodadas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [interno]
+      summary: Detalhe de uma rodada — participações, eventos e pontos por atleta (BE-16, T07 do UX-SPEC.md)
+      description: >-
+        Lacuna deixada por BE-08/BE-09/BE-10 (nenhuma delas cobria LEITURA de
+        detalhe de rodada) — fechada nesta versão por decisão explícita do
+        usuário ao identificar o bloqueio de `FE-06`/`FE-07`. Consumido pela
+        tela de Correção/Estorno (T07) para montar o formulário de campo
+        único por atleta, com preview inline via
+        `POST .../simular-correcao` (BE-10). Devolve, por atleta:
+        `status` (presente/ausente/lesionado), `eventos` de jogo (gol/
+        cartão) e `pontos_delta` líquido já gravado (soma de todos os
+        lançamentos existentes, ver `ParticipacaoDetalheItem`). Rodada
+        `status: "excluida"` é consultável normalmente — só `id` inexistente
+        devolve `404`. Leitura pura, sem função PL/pgSQL nova (não altera
+        nenhuma tabela). Leitura interna protegida por sessão mesmo sendo
+        `GET` (`middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES` —
+        `/api/rodadas` já estava na lista desde BE-13, nenhuma mudança
+        necessária nesta tarefa).
+      operationId: getRodada
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Detalhe da rodada, com participações/eventos/pontos por atleta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RodadaDetalheResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: Nenhuma rodada com este id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRodadaNaoEncontrada"
+    delete:
+      tags: [interno]
+      summary: Exclui uma rodada, revertendo automaticamente 100% dos pontos (BE-09, RF-04.1)
+      description: >-
+        Aciona a função PL/pgSQL `app.excluir_rodada`, que roda dentro de
+        uma única transação (TASK.md Seção 1.2): para cada atleta com
+        participação nesta rodada, insere um NOVO lançamento de estorno em
+        `app.lancamento_pontos` (`origem: "estorno"`) igual ao NEGATIVO da
+        soma líquida já gravada para aquele atleta+rodada — nunca
+        UPDATE/DELETE em um lançamento já existente (ledger append-only,
+        ADR-006); marca `rodada.status = "excluida"` (soft-delete —
+        `app.participacao_rodada`/`app.evento_jogo` originais são
+        preservados como registro histórico, nunca apagados); e grava UMA
+        única entrada em `app.log_auditoria`
+        (`tipo_evento: "estorno"`) com o resumo da reversão
+        (`atletas_afetados`, `pontos_revertidos` por atleta,
+        `substituicoes_vinculadas` — RF-04.3, informativo, já que
+        substituição nunca gera pontuação própria, RF-06.3). Reprocessar
+        uma rodada já excluída é recusado (`409`, idempotência) em vez de
+        estornar/logar de novo.
+      operationId: deleteRodada
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Rodada excluída — 100% dos pontos revertidos para todos os atletas afetados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RodadaExcluidaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: Nenhuma rodada com este id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRodadaNaoEncontrada"
+        "409":
+          description: Rodada já excluída anteriormente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRodadaJaExcluida"
+  /api/rodadas/{id}/participacoes/{atletaId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: atletaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [interno]
+      summary: Corrige a participação de um atleta numa rodada já lançada, aplicando só a diferença (BE-09, RF-04.2)
+      description: >-
+        Aciona a função PL/pgSQL `app.corrigir_participacao_rodada`, que
+        roda dentro de uma única transação (TASK.md Seção 1.2): atualiza
+        `app.participacao_rodada.status` e substitui por completo os
+        `app.evento_jogo` desta participação pelo novo conjunto informado;
+        calcula o NOVO total de pontos (mesmo método de leitura de
+        `app.configuracao_pontuacao` vigente na DATA DA RODADA que
+        `POST /api/rodadas` usa — nunca o valor vigente "agora") e insere
+        um ÚNICO novo lançamento (`origem: "correcao"`) cujo `pontos_delta`
+        é exatamente a DIFERENÇA entre o novo total e o total líquido já
+        gravado (nunca substitui/edita o lançamento original — ledger
+        append-only, ADR-006; RF-04.2: "aplica somente a diferença", mesmo
+        para uma correção que resulte em diferença zero). Grava uma
+        entrada em `app.log_auditoria` (`tipo_evento: "correcao"`) com
+        `status`/`eventos`/`pontos_acumulados` antes e depois. Bloqueia com
+        `400` se `status: "ausente"` vier com `eventos` não vazio (RF-02.6,
+        mesma regra de `POST /api/rodadas`) e com `409` se a rodada já
+        estiver `status: "excluida"` (não é possível corrigir uma rodada
+        excluída).
+      operationId: patchCorrigirParticipacaoRodada
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorrigirParticipacaoBody"
+      responses:
+        "200":
+          description: Participação corrigida — `pontos_delta` reflete o novo total líquido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipacaoCorrigidaResponse"
+        "400":
+          description: >-
+            Corpo malformado/inválido — inclui o bloqueio de RF-02.6 como
+            um item de `detalhes` com `path: ["eventos"]`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoCorrecaoParticipacao"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            Rodada inexistente (`ErroRodadaNaoEncontrada`) ou atleta que
+            não participou desta rodada (`ErroParticipacaoNaoEncontrada`).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroRodadaNaoEncontrada"
+                  - $ref: "#/components/schemas/ErroParticipacaoNaoEncontrada"
+        "409":
+          description: Rodada já excluída — não é possível corrigir uma rodada excluída.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRodadaJaExcluida"
+  /api/rodadas/{id}/participacoes/{atletaId}/simular-correcao:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: atletaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [interno]
+      summary: >-
+        Preview read-only do impacto de uma correção — retorna o delta de
+        pontos sem gravar nada (BE-10, TASK.md Seção 6.2 item 2)
+      description: >-
+        Aciona a função PL/pgSQL `app.simular_correcao_rodada`, que delega
+        100% do cálculo ao mesmo helper (`app.calcular_correcao_participacao_rodada`)
+        que `app.corrigir_participacao_rodada` (BE-09) usa para gravar —
+        nunca uma query duplicada. ESTRITAMENTE READ-ONLY: nenhum
+        INSERT/UPDATE/DELETE acontece em nenhuma tabela, mesmo quando o
+        cenário simulado seria aceito por uma correção real (critério de
+        aceite literal de BE-10: "chamar a função com um valor hipotético
+        novo retorna o delta de pontos calculado sem gravar nenhuma linha
+        nova"). Usa a mesma leitura de `app.configuracao_pontuacao` vigente
+        NA DATA DA RODADA (nunca "agora") que a correção real usaria —
+        segunda parte do critério de aceite literal. Método `POST` (não
+        `GET`) porque o "valor hipotético novo" é um corpo estruturado —
+        mesmo contrato de `PATCH .../participacoes/{atletaId}` (BE-09,
+        `CorrigirParticipacaoBody`, reaproveitado aqui sem nenhuma
+        duplicação de schema). Bloqueia com `400` se `status: "ausente"`
+        vier com `eventos` não vazio (RF-02.6, mesma regra de
+        `PATCH .../participacoes/{atletaId}`) e com `409` se a rodada já
+        estiver `status: "excluida"`.
+      operationId: postSimularCorrecaoRodada
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorrigirParticipacaoBody"
+      responses:
+        "200":
+          description: >-
+            Preview calculado — `pontos_delta` é exatamente o que
+            `PATCH .../participacoes/{atletaId}` gravaria para o mesmo
+            cenário. Nenhuma linha nova gravada em nenhuma tabela.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewCorrecaoParticipacaoResponse"
+        "400":
+          description: >-
+            Corpo malformado/inválido — inclui o bloqueio de RF-02.6 como
+            um item de `detalhes` com `path: ["eventos"]`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoCorrecaoParticipacao"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            Rodada inexistente (`ErroRodadaNaoEncontrada`) ou atleta que
+            não participou desta rodada (`ErroParticipacaoNaoEncontrada`).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroRodadaNaoEncontrada"
+                  - $ref: "#/components/schemas/ErroParticipacaoNaoEncontrada"
+        "409":
+          description: >-
+            Rodada já excluída — não é possível simular uma correção sobre
+            uma rodada excluída.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRodadaJaExcluida"
+  /api/log-auditoria:
+    get:
+      tags: [interno]
+      summary: Consulta o log de auditoria de correções/exclusões e anonimizações (BE-09, RF-04.5)
+      description: >-
+        Lista `app.log_auditoria` ordenado do mais recente ao mais antigo
+        (`ocorrido_em desc`, RF-04.5) — grava toda correção/exclusão de
+        rodada (BE-09) e toda anonimização de atleta (BE-07, ADR-011).
+        NUNCA inclui campo de autor individual (RN-12/GUARDRAILS.md regra
+        18) — a própria tabela não tem essa coluna. Leitura interna
+        protegida por sessão mesmo sendo `GET` (RF-07.1 lista "histórico/
+        correção" entre as ações que exigem a senha interna) —
+        `middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES`, mesmo padrão
+        já usado por `GET /api/atletas` (BE-06).
+      operationId: getLogAuditoria
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: >-
+            Teto de linhas retornadas (decisão de detalhe, TASK.md Seção
+            1.0 — não exigido literalmente pelo critério de aceite; evita
+            crescimento não controlado da resposta, já que
+            `app.log_auditoria` é retido indefinidamente sem expurgo
+            automático, RNF-06).
+      responses:
+        "200":
+          description: Lista ordenada do mais recente ao mais antigo.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogAuditoriaItem"
+        "400":
+          description: "`limit` inválido (não numérico, ≤ 0, ou acima de 200)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroConsultaLogAuditoria"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+  /api/restricoes:
+    get:
+      tags: [interno]
+      summary: Lista restrições obrigatórias, ativas e desativadas (BE-12, RF-05.5)
+      description: >-
+        Exige sessão válida mesmo sendo leitura (mesmo racional de
+        `GET /api/log-auditoria` — feature exclusiva da área interna, T10 do
+        `UX-SPEC.md`; `middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES`).
+        Devolve TODAS as restrições, ativas e desativadas (RN-11 — histórico
+        nunca some da lista, apenas `ativo`/`desativado_em` mudam),
+        ordenadas com as ativas primeiro, mais recente para mais antiga
+        dentro de cada grupo (decisão de detalhe, não exigida literalmente
+        pelo critério de aceite). Cada item já vem com
+        `atleta_a_nome`/`atleta_b_nome` (RN-06) resolvidos, evitando
+        chamadas extras no Frontend (T10).
+      operationId: getRestricoes
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Lista de restrições.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RestricaoObrigatoriaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+    post:
+      tags: [interno]
+      summary: Cadastra uma restrição obrigatória entre dois atletas (BE-12, RF-05.5)
+      description: >-
+        Cria com `ativo=true`/`desativado_em=null`. Recusa com `400` se
+        `atleta_a_id === atleta_b_id`; com `404` se algum dos dois ids não
+        corresponder a um atleta existente. Sem verificação de duplicidade
+        de par já cadastrado (decisão de detalhe, TASK.md Seção 1.0 — não
+        exigida por RF-05.5/RN-11, diferente de RF-01.5 para
+        `nome_completo` de atleta; um par duplicado é inofensivo para o
+        grafo de conflito do ADR-010, aresta repetida não muda o resultado
+        da checagem por componente conexo). RN-12: qualquer sessão válida
+        pode chamar este endpoint — não há hierarquia nem campo de autor
+        individual em nenhum lugar deste contrato.
+      operationId: postRestricoes
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestricaoBody"
+      responses:
+        "201":
+          description: Restrição criada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestricaoObrigatoriaResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoRestricao"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: "`atleta_a_id` ou `atleta_b_id` não corresponde a nenhum atleta existente."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaReferenciadoNaoEncontrado"
+  /api/restricoes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [interno]
+      summary: Edita o par de atletas de uma restrição já cadastrada (BE-12, RF-05.5 — "editar")
+      description: >-
+        Substitui `atleta_a_id`/`atleta_b_id` — nunca altera
+        `ativo`/`desativado_em` (mecanismos próprios de
+        `POST .../desativar`/`POST .../reativar` abaixo). Mesmas validações
+        de `POST /api/restricoes` (par distinto, dois atletas existentes).
+      operationId: putRestricaoPorId
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestricaoBody"
+      responses:
+        "200":
+          description: Restrição atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestricaoObrigatoriaResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoRestricao"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            Restrição inexistente (`ErroRestricaoNaoEncontrada`) ou
+            `atleta_a_id`/`atleta_b_id` não corresponde a nenhum atleta
+            existente (`ErroAtletaReferenciadoNaoEncontrado`).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroRestricaoNaoEncontrada"
+                  - $ref: "#/components/schemas/ErroAtletaReferenciadoNaoEncontrado"
+  /api/restricoes/{id}/desativar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [interno]
+      summary: Desativa uma restrição — soft-delete, nunca exclusão física (BE-12, RF-05.5/RN-11)
+      description: >-
+        Marca `ativo=false`/`desativado_em=now()`. Reforçado
+        estruturalmente no banco por um trigger que bloqueia `DELETE`
+        incondicionalmente em `app.restricao_obrigatoria`, mesmo para
+        `service_role` (migration
+        `20260903150000_forbid_restricao_obrigatoria_delete.sql`).
+        Idempotente: chamar de novo para uma restrição já desativada
+        devolve `200` com a mesma linha, sem sobrescrever `desativado_em`
+        — preserva a data da primeira desativação como o registro
+        histórico real (RN-11). Sem corpo de requisição exigido.
+      operationId: postDesativarRestricao
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Restrição desativada (ou já estava desativada — idempotente).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestricaoObrigatoriaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRestricaoNaoEncontrada"
+  /api/restricoes/{id}/reativar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [interno]
+      summary: Reativa uma restrição desativada (BE-12)
+      description: >-
+        Marca `ativo=true`/`desativado_em=null` — inverso operacional de
+        `POST .../desativar`. Decisão de detalhe documentada na nota de
+        status de BE-12 (`TASK.md`): RF-05.5/RN-11 (`PRD-TECNICO.md`) citam
+        literalmente só "cadastrar, editar e desativar", mas o
+        `UX-SPEC.md` (T10, wireframe) já desenha um botão "Reativar" para
+        toda restrição desativada — diferente da anonimização de atleta
+        (ADR-011, explicitamente "irreversível por desenho, sem função
+        inversa"), RN-11 não descreve a desativação de restrição como
+        irreversível: reativar é simplesmente o inverso operacional do
+        mesmo toggle `ativo`. Idempotente pelo mesmo motivo de
+        `POST .../desativar`. Sem corpo de requisição exigido.
+      operationId: postReativarRestricao
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Restrição reativada (ou já estava ativa — idempotente).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestricaoObrigatoriaResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroRestricaoNaoEncontrada"
+  /api/times/sugestao:
+    post:
+      tags: [interno]
+      summary: >-
+        Gera uma sugestão de divisão de times para os presentes informados
+        (BE-11, RF-05.1 a RF-05.3, ADR-007/ADR-010)
+      description: >-
+        Heurística determinística de duas fases (ADR-007): (1) backtracking
+        com poda, por componente conexo do grafo de restrições obrigatórias
+        ativas (union-find, ADR-010), garantindo 100% das restrições
+        obrigatórias entre os presentes OU provando que nenhuma divisão em
+        `N` times as satisfaz simultaneamente (RF-05.1/RF-05.2); (2) busca
+        local (swap iterativo entre times) minimizando a diferença agregada
+        de nível técnico (RN-03) + idade entre os times (RF-05.3,
+        "melhor esforço", não necessariamente ótimo global). Não persiste
+        nada em `app.time`/`app.time_atleta` — devolve só a SUGESTÃO
+        (RF-05.4, "o organizador pode ajustar manualmente antes de
+        confirmar"); persistir a divisão confirmada é um gap desta
+        decomposição, sinalizado na nota de status de `BE-11` no `TASK.md`,
+        não coberto por este endpoint. Guard de timeout de 8s (TASK.md
+        Seção 6.2 item 3) — ver `500` abaixo.
+      operationId: postSugestaoTimes
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SugestaoTimesBody"
+      responses:
+        "200":
+          description: >-
+            Geração concluída dentro do orçamento de tempo — `status: "ok"`
+            (divisão válida, ver `SugestaoTimesOkResponse`) ou `status:
+            "conflito"` (nenhuma divisão em `N` times satisfaz 100% das
+            restrições obrigatórias, ver `SugestaoTimesConflitoResponse`).
+            Os dois são resultados VÁLIDOS do algoritmo (RF-05.2) — nunca um
+            erro HTTP.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SugestaoTimesOkResponse"
+                  - $ref: "#/components/schemas/SugestaoTimesConflitoResponse"
+                discriminator:
+                  propertyName: status
+                  mapping:
+                    ok: "#/components/schemas/SugestaoTimesOkResponse"
+                    conflito: "#/components/schemas/SugestaoTimesConflitoResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoSugestaoTimes"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            Algum item de `atletas_ids` não corresponde a nenhum atleta
+            existente — mesmo contrato de erro de `POST/PUT /api/restricoes*`
+            (BE-12), reaproveitado aqui por ser a mesma situação (id
+            referenciado em corpo de requisição que não existe em
+            `app.atleta`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroAtletaReferenciadoNaoEncontrado"
+        "500":
+          description: >-
+            Execução acima do timeout configurado (TASK.md Seção 6.2 item 3)
+            — falha técnica real, nunca a função serverless travada sem
+            resposta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroFalhaTecnicaMontagemTimes"
+  /api/rodadas/{id}/times:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: id da rodada (`app.rodada`) a que a divisão de times pertence.
+    post:
+      tags: [interno]
+      summary: >-
+        Confirma/persiste a divisão de times de uma rodada (RF-05.4) —
+        escopo AMPLIADO desta execução de BE-13, decisão explícita do
+        usuário
+      description: >-
+        Resolve o GAP estrutural sinalizado na nota de status de `BE-11`:
+        `POST /api/times/sugestao` nunca persiste `app.time`/
+        `app.time_atleta` (só devolve a SUGESTÃO, RF-05.4). Este endpoint
+        recebe a divisão já ajustada manualmente pelo organizador (formato
+        de entrada equivalente ao `status: "ok"` de
+        `POST /api/times/sugestao`, possivelmente reordenado/editado) e
+        grava definitivamente em `app.time`/`app.time_atleta`, TODOS os
+        times de uma rodada gravados juntos ou nenhum é (aciona
+        `app.confirmar_times_rodada` via RPC, uma única transação Postgres
+        — ver a migration
+        `20260903160000_create_confirmar_times_rodada_function.sql` para a
+        justificativa completa de usar uma função PL/pgSQL aqui, mesmo esta
+        operação não alterar saldo do atleta: é a única forma de garantir
+        atomicidade multi-tabela nesta stack baseada em PostgREST).
+        Reconfirmar (chamar de novo para a mesma rodada) SUBSTITUI a
+        divisão anterior por completo — salvo se já existir
+        `app.substituicao` registrada contra os times atuais, caso em que a
+        reconfirmação é bloqueada (`409`) para preservar a fidelidade
+        histórica das substituições já registradas (RF-06.1). Pré-requisito
+        para `POST /api/rodadas/{id}/substituicoes` (BE-13) ter um
+        `time_id` válido para vincular.
+      operationId: postConfirmarTimesRodada
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmarTimesBody"
+      responses:
+        "200":
+          description: >-
+            Divisão gravada (ou reconfirmada — substitui a anterior) com
+            sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesConfirmadosResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoConfirmarTimes"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            Rodada (`id` da URL) não encontrada (`ErroRodadaNaoEncontrada`,
+            já publicado por BE-09) ou algum item de `times[].atletas_ids`
+            não corresponde a nenhum atleta existente
+            (`ErroAtletaReferenciadoNaoEncontrado`, já publicado por
+            BE-12).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroRodadaNaoEncontrada"
+                  - $ref: "#/components/schemas/ErroAtletaReferenciadoNaoEncontrado"
+        "409":
+          description: >-
+            Rodada já excluída (`ErroRodadaJaExcluida`, já publicado por
+            BE-09, mesma condição de fundo `errcode RD001`) ou já existe
+            substituição registrada contra a divisão atual
+            (`ErroSubstituicaoExistenteBloqueiaReconfirmacao`, `errcode
+            TM001`, novo nesta versão).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroRodadaJaExcluida"
+                  - $ref: "#/components/schemas/ErroSubstituicaoExistenteBloqueiaReconfirmacao"
+  /api/rodadas/{id}/substituicoes:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: id da rodada (`app.rodada`) a que as substituições pertencem.
+    get:
+      tags: [interno]
+      summary: Lista as substituições registradas de uma rodada (BE-13, RF-06.2)
+      description: >-
+        Exige sessão válida mesmo sendo leitura — não devolve dado pessoal
+        sensível, mas é feature exclusiva da área interna (T11 do
+        `UX-SPEC.md`, "Substituições registradas"), mesmo racional já usado
+        para `GET /api/restricoes` (BE-12); `middleware.ts`,
+        `INTERNAL_READ_PROTECTED_PREFIXES` (`/api/rodadas` adicionado nesta
+        tarefa). Sem limite de quantidade (RF-06.2) — devolve todas,
+        ordenadas da mais antiga para a mais recente.
+      operationId: getSubstituicoesRodada
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Lista de substituições desta rodada (vazia se nenhuma foi registrada).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubstituicaoResponse"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+    post:
+      tags: [interno]
+      summary: Registra uma substituição vinculada a uma rodada/time (BE-13, RF-06.1)
+      description: >-
+        Registro puro de fidelidade histórica (RF-06.1) — nunca gera
+        pontuação própria (RF-06.3, critério de aceite literal: "registrar
+        substituição não altera saldo de nenhum atleta"; nenhuma escrita em
+        `app.lancamento_pontos`). Sem limite de quantidade por rodada
+        (RF-06.2, critério de aceite literal: "múltiplas substituições na
+        mesma rodada sem limite"). Recusa com `400` se
+        `atleta_sai_id === atleta_entra_id` (critério de aceite literal:
+        "tentar usar o mesmo atleta em 'sai' e 'entra' é bloqueado com
+        mensagem clara" — mesmo reforço estrutural já existente no banco,
+        constraint `substituicao_atletas_distintos_check`, BE-02). RN-12:
+        qualquer sessão válida pode chamar este endpoint — não há
+        hierarquia nem campo de autor individual em nenhum lugar deste
+        contrato. Depende de `POST /api/rodadas/{id}/times` já ter
+        persistido `app.time` para esta rodada (escopo ampliado desta mesma
+        execução de BE-13) — sem isso, nenhum `time_id` válido existiria
+        para `time_id` referenciar.
+      operationId: postSubstituicaoRodada
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubstituicaoBody"
+      responses:
+        "201":
+          description: Substituição registrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubstituicaoResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErroValidacaoSubstituicao"
+        "401":
+          $ref: "#/components/responses/SessaoInvalida"
+        "404":
+          description: >-
+            `time_id` inexistente ou pertencente a outra rodada
+            (`ErroTimeNaoEncontradoNaRodada`) ou `atleta_sai_id`/
+            `atleta_entra_id` não corresponde a nenhum atleta existente
+            (`ErroAtletaReferenciadoNaoEncontrado`, já publicado por
+            BE-12).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErroTimeNaoEncontradoNaRodada"
+                  - $ref: "#/components/schemas/ErroAtletaReferenciadoNaoEncontrado"
 # Changelog — toda mudança de contrato incompatível (ou, como neste caso,
 # uma mudança aditiva que o SDD.md pede para versionar explicitamente,
 # SDD.md Seção 5.1) incrementa `info.version` acima e ganha uma entrada
@@ -416,3 +2915,268 @@ x-changelog:
       existente removido/renomeado/retipado) — consumidor que já lia
       `RankingPublicoItem` continua funcionando sem ajuste; Frontend
       (`FE-02`) passa a exibir a nova coluna em incremento próprio.
+  - version: 0.4.0
+    data: "2026-09-03"
+    tarefa: BE-06
+    mudanca: >-
+      `GET/POST /api/atletas` e `GET/PUT /api/atletas/{id}` (Serviço de
+      Atletas — CRUD, RF-01), schemas `AtletaBody`/`AtletaResponse`/
+      `ErroValidacaoAtleta`/`ErroDuplicidadeAtleta`/`ErroAtletaNaoEncontrado`.
+      Mudança aditiva. Primeira rota de LEITURA interna própria do projeto —
+      `GET /api/atletas*` exige sessão válida (não só a escrita), documentado
+      na tag `interno` e no `middleware.ts` (`INTERNAL_READ_PROTECTED_PREFIXES`).
+  - version: 0.5.0
+    data: "2026-09-03"
+    tarefa: BE-07
+    mudanca: >-
+      `POST /api/atletas/{id}/anonimizar` (função PL/pgSQL
+      `app.anonimizar_atleta`, ADR-011, LGPD Art. 18) — schema
+      `ErroAtletaJaAnonimizado` (409, atleta já anonimizado
+      anteriormente, ação irreversível por desenho). Reaproveita
+      `AtletaResponse`/`ErroAtletaNaoEncontrado`/`SessaoInvalida` já
+      publicados. Mudança aditiva — nenhum contrato existente alterado;
+      descrição de `AtletaResponse.anonimizado_em` atualizada (não é mais
+      "sempre null até BE-07 existir").
+  - version: 0.6.0
+    data: "2026-09-03"
+    tarefa: BE-08
+    mudanca: >-
+      `POST /api/rodadas` (Serviço de Rodadas/Eventos — lançamento de
+      presença/eventos e cálculo automático de pontos, RF-02, RN-05, função
+      PL/pgSQL `app.lancar_rodada`), schemas `LancarRodadaBody`/
+      `ParticipacaoRodadaBody`/`EventoJogoBody`/`RodadaResponse`/
+      `ParticipacaoRodadaResponse`/`ErroValidacaoRodada`/
+      `ErroDuplicidadeRodada`. Mudança aditiva — nenhum contrato existente
+      alterado. Reaproveita `#/components/responses/SessaoInvalida` já
+      publicado; nenhuma rota `GET` introduzida nesta versão (decisão de
+      escopo, fora do critério de aceite literal de BE-08).
+  - version: 0.7.0
+    data: "2026-09-03"
+    tarefa: BE-09
+    mudanca: >-
+      `DELETE /api/rodadas/{id}` (Serviço de Correção/Estorno — exclusão de
+      rodada com reversão automática de 100% dos pontos para todos os
+      atletas afetados, RF-04.1, função PL/pgSQL `app.excluir_rodada`),
+      `PATCH /api/rodadas/{id}/participacoes/{atletaId}` (correção de uma
+      participação aplicando somente a diferença de pontos, RF-04.2, função
+      PL/pgSQL `app.corrigir_participacao_rodada`) e
+      `GET /api/log-auditoria` (consulta do log de auditoria ordenada do
+      mais recente ao mais antigo, RF-04.5) — schemas
+      `RodadaExcluidaResponse`/`ErroRodadaNaoEncontrada`/
+      `ErroRodadaJaExcluida`/`CorrigirParticipacaoBody`/
+      `ParticipacaoCorrigidaResponse`/`ErroValidacaoCorrecaoParticipacao`/
+      `ErroParticipacaoNaoEncontrada`/`LogAuditoriaItem`/
+      `ErroConsultaLogAuditoria`. Ambas as funções PL/pgSQL nunca fazem
+      UPDATE/DELETE em `lancamento_pontos` já gravado (ledger append-only,
+      ADR-006) — inserem sempre um novo lançamento de ajuste/estorno.
+      Mudança aditiva — nenhum contrato existente alterado. Reaproveita
+      `#/components/responses/SessaoInvalida`/`EventoJogoBody` já
+      publicados; `GET /api/log-auditoria` é a segunda rota de leitura
+      interna (depois de `GET /api/atletas*`, BE-06) a exigir sessão válida
+      mesmo em `GET` (`middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES`)
+      — não por dado pessoal sensível desta vez, mas por ser feature
+      exclusiva da área interna (RF-07.1).
+  - version: 0.8.0
+    data: "2026-09-03"
+    tarefa: BE-10
+    mudanca: >-
+      `POST /api/rodadas/{id}/participacoes/{atletaId}/simular-correcao`
+      (preview read-only do impacto de uma correção, RF-04.2, TASK.md Seção
+      6.2 item 2 — endpoint dedicado em vez de cálculo no cliente) — schema
+      `PreviewCorrecaoParticipacaoResponse`. Função PL/pgSQL nova,
+      `app.simular_correcao_rodada`, delega 100% do cálculo a um helper
+      novo, `app.calcular_correcao_participacao_rodada` (recomendação
+      explícita deixada por BE-09) — o mesmo helper é usado por
+      `app.corrigir_participacao_rodada` (redefinida via
+      `CREATE OR REPLACE FUNCTION`, mesmo comportamento observável, ver
+      `supabase/migrations/20260903140000_*`), então nenhuma query de
+      cálculo fica duplicada entre a rota que grava (BE-09) e a que só
+      previsualiza (BE-10). ESTRITAMENTE READ-ONLY — a função nunca contém
+      INSERT/UPDATE/DELETE, verificado por teste de integração dedicado
+      (nenhuma linha nova em nenhuma tabela após a chamada) e por
+      comparação direta do delta previsto contra o que
+      `PATCH .../participacoes/{atletaId}` de fato grava para o mesmo
+      cenário. Mudança aditiva — nenhum contrato existente alterado.
+      Reaproveita `#/components/responses/SessaoInvalida`/
+      `CorrigirParticipacaoBody`/`EventoJogoBody`/`ErroRodadaNaoEncontrada`/
+      `ErroRodadaJaExcluida`/`ErroParticipacaoNaoEncontrada`/
+      `ErroValidacaoCorrecaoParticipacao` já publicados (nenhum schema de
+      erro novo). Método `POST` (não `GET`) porque o corpo é estruturado —
+      já coberto pelo middleware de sessão padrão (`WRITE_METHODS`), sem
+      nenhuma mudança em `middleware.ts`/`INTERNAL_READ_PROTECTED_PREFIXES`.
+  - version: 0.9.0
+    data: "2026-09-03"
+    tarefa: BE-12
+    mudanca: >-
+      `GET/POST /api/restricoes`, `PUT /api/restricoes/{id}`,
+      `POST /api/restricoes/{id}/desativar` e
+      `POST /api/restricoes/{id}/reativar` (CRUD de Restrições Obrigatórias,
+      RF-05.5/RN-11 — criar/editar/desativar par de atletas, soft-delete
+      nunca exclusão física) — schemas `RestricaoBody`/
+      `RestricaoObrigatoriaResponse`/`ErroValidacaoRestricao`/
+      `ErroAtletaReferenciadoNaoEncontrado`/`ErroRestricaoNaoEncontrada`.
+      Nenhuma função/trigger PL/pgSQL dedicada de escrita (ao contrário de
+      BE-08/09/10) — operação simples de CRUD sobre uma única tabela, não
+      altera saldo acumulado nem histórico multi-tabela do atleta (TASK.md
+      Seção 1.2 só exige isso para operações que alteram saldo), mesmo
+      racional já aplicado ao CRUD de `app.atleta` (BE-06). Soft-delete
+      reforçado estruturalmente no banco por um trigger que bloqueia
+      `DELETE` incondicionalmente em `app.restricao_obrigatoria`, mesmo
+      para `service_role` (migration
+      `20260903150000_forbid_restricao_obrigatoria_delete.sql`), mesmo
+      padrão já usado em `app.atleta`/`app.lancamento_pontos`. `atleta_a_id`/
+      `atleta_b_id` inexistente devolve `404` (`ErroAtletaReferenciadoNaoEncontrado`)
+      em vez de deixar a `FK` do banco estourar como erro genérico. Decisão
+      de detalhe documentada, não escalada: `POST /api/restricoes/{id}/reativar`
+      é endpoint adicional além dos três verbos citados literalmente por
+      RF-05.5/RN-11 ("cadastrar, editar e desativar") — o `UX-SPEC.md` (T10,
+      wireframe) já desenha um botão "Reativar" para toda restrição
+      desativada, e RN-11 não descreve a desativação de restrição como
+      irreversível (diferente da anonimização de atleta, ADR-011); sem este
+      endpoint, `FE-10` (que depende de `BE-12`) ficaria sem suporte de API
+      para um botão já aprovado no `UX-SPEC.md`. `GET /api/restricoes` exige
+      sessão válida mesmo sendo leitura (mesmo racional de
+      `GET /api/log-auditoria`, BE-09 — feature exclusiva da área interna,
+      não dado pessoal sensível) — `middleware.ts`,
+      `INTERNAL_READ_PROTECTED_PREFIXES` atualizado nesta tarefa. Mudança
+      aditiva — nenhum contrato existente alterado.
+  - version: 0.10.0
+    data: "2026-09-03"
+    tarefa: BE-11
+    mudanca: >-
+      `POST /api/times/sugestao` (Serviço de Times, RF-05.1 a RF-05.3,
+      ADR-007/ADR-010) — heurística determinística de duas fases
+      (backtracking com poda por componente conexo do grafo de restrições
+      obrigatórias ativas, union-find, + busca local/swap iterativo
+      minimizando a diferença agregada de nível técnico/idade), nunca um
+      solver genérico nem uma heurística gulosa pura (TASK.md Seção 1.4).
+      Schemas novos `SugestaoTimesBody`/`SugestaoTimesOkResponse`/
+      `AtletaMontadoResponse`/`TimeMontadoResponse`/
+      `SugestaoTimesConflitoResponse`/`RestricaoConflitanteItem`/
+      `GrupoConflitoItem`/`ErroValidacaoSugestaoTimes`/
+      `ErroFalhaTecnicaMontagemTimes`. Reaproveita
+      `#/components/responses/SessaoInvalida` e
+      `#/components/schemas/ErroAtletaReferenciadoNaoEncontrado` (BE-12) já
+      publicados — mesma situação (id referenciado em corpo de requisição
+      que não existe em `app.atleta`), sem duplicar schema. Resposta `200`
+      cobre tanto `status: "ok"` quanto `status: "conflito"` — os dois são
+      resultados VÁLIDOS do algoritmo (RF-05.2: "informar, não travar", não
+      um erro HTTP); contrato de `SugestaoTimesConflitoResponse` é o
+      formato EXATO exigido pelo ADR-010 (`restricoes_conflitantes`/
+      `grupos_conflito`, um item por aresta/componente conexo — não o
+      formato simplificado "sem solução", Opção B do ADR-010, rejeitada).
+      Resposta `500` (`ErroFalhaTecnicaMontagemTimes`) documenta a guarda
+      de timeout de 8s (TASK.md Seção 6.2 item 3, decisão já registrada
+      pelo Tech Lead) — nunca um resultado parcial/incompleto, sempre
+      "falha técnica real", reaproveitado pelo estado genérico já previsto
+      no `UX-SPEC.md` para T09 sem tela nova. `POST /api/times/sugestao`
+      NÃO persiste `app.time`/`app.time_atleta` — devolve só a sugestão
+      (RF-05.4); persistir a divisão confirmada pelo organizador é um gap
+      desta decomposição (nenhuma tarefa do `TASK.md` cobre isso
+      literalmente), sinalizado explicitamente na nota de status de `BE-11`
+      no `TASK.md`, não uma lacuna silenciosa. Endpoint de escrita (`POST`)
+      — já coberto pelo middleware de sessão padrão (`WRITE_METHODS`), sem
+      nenhuma mudança em `middleware.ts`/`INTERNAL_READ_PROTECTED_PREFIXES`.
+      Mudança aditiva — nenhum contrato existente alterado.
+  - version: 0.11.0
+    data: "2026-09-03"
+    tarefa: BE-13
+    mudanca: >-
+      Duas partes, ambas nesta mesma execução — a segunda por decisão
+      EXPLÍCITA do usuário de ampliar o escopo original de `BE-13` (ver
+      TASK.md, nota de status de `BE-13`), não uma reinterpretação
+      unilateral: (1) `POST /api/rodadas/{id}/times` — resolve o GAP
+      estrutural sinalizado na nota de status de `BE-11` (aquele endpoint só
+      gera/devolve a SUGESTÃO de divisão de times, nunca persiste
+      `app.time`/`app.time_atleta`, RF-05.4); grava a divisão já ajustada
+      manualmente pelo organizador atomicamente (aciona
+      `app.confirmar_times_rodada` via RPC, uma única transação Postgres —
+      todos os times de uma rodada gravados juntos ou nenhum é); reconfirmar
+      substitui a divisão anterior por completo, salvo se já existir
+      `app.substituicao` registrada contra os times atuais (bloqueado com
+      `409`, `errcode` PL/pgSQL `TM001`, para preservar a fidelidade
+      histórica das substituições já registradas). (2) Serviço de
+      Substituições propriamente dito (`GET`/`POST
+      /api/rodadas/{id}/substituicoes`, RF-06): registro puro de fidelidade
+      histórica vinculado a rodada/time (RF-06.1), sem limite de quantidade
+      por rodada (RF-06.2), sem NENHUM efeito em pontuação (RF-06.3— nenhuma
+      escrita em `app.lancamento_pontos` em nenhum ponto deste módulo);
+      recusa com `400` quando `atleta_sai_id === atleta_entra_id` (critério
+      de aceite literal — "bloqueado com mensagem clara"), mesmo reforço já
+      existente no banco (`substituicao_atletas_distintos_check`, BE-02).
+      Schemas novos `TimeConfirmadoInput`/`ConfirmarTimesBody`/
+      `AtletaConfirmadoResponse`/`TimeConfirmadoResponse`/
+      `TimesConfirmadosResponse`/`ErroValidacaoConfirmarTimes`/
+      `ErroSubstituicaoExistenteBloqueiaReconfirmacao`/`SubstituicaoBody`/
+      `SubstituicaoResponse`/`ErroValidacaoSubstituicao`/
+      `ErroTimeNaoEncontradoNaRodada`. Reaproveita
+      `#/components/responses/SessaoInvalida`,
+      `#/components/schemas/ErroRodadaNaoEncontrada`/`ErroRodadaJaExcluida`
+      (BE-09) e `#/components/schemas/ErroAtletaReferenciadoNaoEncontrado`
+      (BE-12) já publicados — mesma situação/condição de fundo em cada caso,
+      sem duplicar schema. Nenhuma função/trigger PL/pgSQL foi usada para o
+      Serviço de Substituições em si (TASK.md Seção 1.2 só exige isso para
+      operação que altera saldo/histórico multi-tabela do atleta; uma
+      substituição é um `INSERT` único numa única tabela, já atômico por
+      natureza de uma única chamada HTTP ao PostgREST — mesmo racional já
+      aplicado ao CRUD de `app.restricao_obrigatoria`, BE-12); já a
+      confirmação de times (parte 1) PRECISOU de uma função PL/pgSQL
+      (`app.confirmar_times_rodada`) por um motivo diferente — não altera
+      saldo, mas é a única forma de garantir atomicidade multi-tabela nesta
+      stack baseada em PostgREST (o `service_role` deste projeto fala com o
+      Postgres só via PostgREST, sem transação client-side abrangendo
+      múltiplas chamadas HTTP separadas) — decisão de detalhe documentada
+      por completo na migration
+      `20260903160000_create_confirmar_times_rodada_function.sql`.
+      `GET /api/rodadas/{id}/substituicoes` exige sessão válida mesmo sendo
+      leitura (mesmo racional de `GET /api/restricoes`, BE-12 — feature
+      exclusiva da área interna, T11 do `UX-SPEC.md`, não dado pessoal
+      sensível) — `middleware.ts`, `INTERNAL_READ_PROTECTED_PREFIXES`
+      ganhou `/api/rodadas` nesta tarefa (primeiro caso de leitura interna
+      protegida sob este prefixo; as rotas de `/api/rodadas` já existentes
+      antes de `BE-13` eram só de escrita). Mudança aditiva — nenhum
+      contrato existente alterado de forma incompatível.
+  - version: 0.12.0
+    data: "2026-09-04"
+    tarefa: BE-16
+    mudanca: >-
+      `GET /api/rodadas` (listagem cronológica decrescente, T06 do
+      `UX-SPEC.md`) e `GET /api/rodadas/{id}` (detalhe — participações por
+      atleta, eventos de jogo, `pontos_delta` líquido já gravado, T07 do
+      `UX-SPEC.md`). Fecha uma lacuna estrutural da decomposição original do
+      `TASK.md`: as tarefas de rodada (`BE-08`/`BE-09`/`BE-10`) foram
+      desenhadas em torno de escrita (lançar/corrigir/excluir) e do log de
+      auditoria, mas nenhuma cobria LEITURA de listagem/detalhe de rodada —
+      `BE-08` documentou essa omissão explicitamente na própria nota de
+      status na época ("nenhuma rota GET introduzida nesta tarefa...
+      listagem/histórico de rodada ficam para BE-09/BE-10, lote L5"), e nem
+      `BE-09` (que cobriu só `GET /api/log-auditoria`) nem `BE-10` (que
+      cobriu só o preview de correção) fecharam essa promessa. A lacuna só
+      foi percebida ao implementar o Frontend em sequência: `FE-06`
+      (Histórico de Rodadas) ficou bloqueada sem nenhum endpoint de leitura
+      de rodadas publicado (ver `HistoricoIndisponivelError`/GAP documentado
+      em `src/features/historico/historicoApi.ts`), e `FE-07` (Correção/
+      Estorno) também dependeria do detalhe para montar a tela. Fechada
+      nesta versão por decisão explícita do usuário ao identificar esse
+      bloqueio, como tarefa nova (`BE-16`, lote `L5` — mesmo lote de
+      `BE-09`/`BE-10`, leitura relacionada a correção/histórico). Schemas
+      novos `RodadaResumoItem`/`ErroConsultaRodadas`/
+      `ParticipacaoDetalheItem`/`RodadaDetalheResponse`. Reaproveita
+      `#/components/responses/SessaoInvalida` e
+      `#/components/schemas/ErroRodadaNaoEncontrada` (BE-09) já publicados —
+      mesma situação/condição de fundo, sem duplicar schema. `GET
+      /api/rodadas` aceita `?limit=` opcional (mesmo padrão/mesmos valores
+      de `GET /api/log-auditoria`, BE-09 — decisão de detalhe, não exigida
+      literalmente pelo critério de aceite). Nenhuma das duas rotas exigiu
+      mudança em `middleware.ts` — `/api/rodadas` já estava em
+      `INTERNAL_READ_PROTECTED_PREFIXES` desde `BE-13` (por causa de
+      `GET .../substituicoes`), então `GET /api/rodadas`/
+      `GET /api/rodadas/{id}` já nasceram protegidos por sessão. Leitura
+      pura sobre `app.rodada`/`app.participacao_rodada`/`app.evento_jogo`/
+      `app.lancamento_pontos` — nenhuma função/trigger PL/pgSQL nova, nenhum
+      dado é alterado por nenhuma das duas rotas. Rodada `status: "excluida"`
+      (soft-delete) aparece normalmente em ambas as rotas, com o status
+      visível — nunca escondida silenciosamente (decisão de detalhe, mesmo
+      racional já usado para `restricao_obrigatoria` desativada em T10/
+      `BE-12`). Mudança puramente aditiva — nenhum contrato existente
+      alterado de forma incompatível.

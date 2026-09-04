@@ -1,11 +1,18 @@
 /**
- * Serviço de Migração (SDD.md Seção 2.1, ADR-008) — descoberta de schema
- * legado, transformação e carga não-destrutiva para a schema `app`,
- * relatório de conferência (RF-08.5). Scripts idempotentes e reexecutáveis.
+ * Serviço de Migração (SDD.md Seção 2.1, ADR-008) — transformação e carga
+ * não-destrutiva da schema legada (`LEGADO-SCHEMA.md`, SPK-01) para a schema
+ * `app`, gravação em `app.legado_migracao_registro` (idempotência) e
+ * relatório de conferência (RF-08.5). Implementado em BE-15.
  *
- * Placeholder de estrutura (BE-01). Implementação entra em BE-14 (trava
- * técnica) e BE-15 (scripts de migração, dependente de SPK-01) — ver
- * TASK.md Seção 3.1/Seção 2. Execução contra a schema legada real também
- * depende de GUARDRAILS.md regra 35 (plano de saída do ADR-002).
+ * `migrar.ts` é puro em termos de I/O (interfaces de `tipos.ts`, testável
+ * inteiramente com fixtures — `__tests__/fixtures.ts`). A implementação real
+ * das interfaces (`deps-supabase.ts`, Supabase legado + Supabase `app`) só é
+ * usada pelo CLI `scripts/migrar-legado.ts` — execução real contra a schema
+ * legada segue bloqueada por GUARDRAILS.md regra 35/BLOCKER-003 (ver
+ * `scripts/migrar-legado.ts` e runbook em `scripts/README.md`).
  */
-export {};
+export * from "./tipos";
+export * from "./transformar";
+export * from "./migrar";
+export * from "./relatorio";
+export * from "./governanca";

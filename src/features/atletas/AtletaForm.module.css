@@ -1,0 +1,85 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+}
+
+.errorWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+}
+
+/* Campos relacionados podem parear em duas colunas em sm/lg — UX-SPEC.md
+   Seção 6.2 ("T04/T07/T10 Formulários... campos relacionados podem parear
+   em duas colunas"), sem alterar a ordem de tabulação lógica (a ordem no
+   DOM não muda, só o layout visual). */
+.pairRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .pairRow {
+    flex-direction: row;
+  }
+
+  .pairRow > * {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.consentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-warning-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  min-height: var(--tap-target-min);
+  cursor: pointer;
+}
+
+.checkboxRow input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.nivelTecnico {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.readOnlyTag {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.preservedNote {
+  margin: 0;
+  padding: var(--spacing-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}

@@ -34,4 +34,24 @@ describe("getSafeRedirectTarget", () => {
   it("recusa caminho que não começa com uma única barra e cai no padrão", () => {
     expect(getSafeRedirectTarget("rodadas/nova")).toBe(ROUTES.lancamentoRodada);
   });
+
+  it("recusa vetor de barra invertida (BUG-QA-FE01-01) e cai no padrão", () => {
+    // `new URL("/\\evil.example.com", origemInterna)` resolve para a origem
+    // de `evil.example.com` (esquemas especiais tratam `\` como `/` no
+    // parsing) — é exatamente assim que o `next/navigation` resolve o
+    // `href` antes de decidir se a navegação é interna ou externa.
+    expect(getSafeRedirectTarget("/\\evil.example.com")).toBe(ROUTES.lancamentoRodada);
+  });
+
+  it("recusa variante com barra dupla após a barra invertida e cai no padrão", () => {
+    expect(getSafeRedirectTarget("/\\/evil.example.com")).toBe(ROUTES.lancamentoRodada);
+  });
+
+  it("aceita barra invertida codificada como caminho interno legítimo (não é bypass)", () => {
+    // `%5c` permanece codificado no componente de caminho (não é
+    // renormalizado para host pelo parser de URL), então resolve para a
+    // mesma origem interna — não é o vetor de open redirect, é apenas um
+    // caractere incomum dentro de um path relativo.
+    expect(getSafeRedirectTarget("/%5cevil.example.com")).toBe("/%5cevil.example.com");
+  });
 });

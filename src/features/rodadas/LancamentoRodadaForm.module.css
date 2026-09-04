@@ -1,0 +1,81 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+}
+
+.errorWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.atletaList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.atletaRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.atletaNome {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+/* T05/T09 são densas (UX-SPEC.md Seção 6.2) — em `lg`, presença e eventos
+   podem ganhar mais respiro horizontal sem deixar de funcionar 100% em
+   mobile (o wireframe permanece uma coluna, só o espaçamento muda). */
+@media (min-width: 1024px) {
+  .atletaRow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.eventosRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.bloqueioTexto {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.contadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.resumoTitulo {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}

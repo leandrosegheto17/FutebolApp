@@ -1,0 +1,47 @@
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.data {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.badge {
+  flex-shrink: 0;
+}
+
+.presentes {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* >= lg (UX-SPEC.md Seção 6.1): mais respiro horizontal — mesmo racional já
+   usado por T05 (LancamentoRodadaForm.module.css) para telas sem linha
+   própria na tabela da Seção 6.2 (T06 não tem linha explícita ali; Seção
+   3.2 já cobre `Card` "substitui tabela densa em mobile... em telas largas
+   pode virar tabela" para T02/T06/T09 — aqui a lista permanece `Card`, só
+   com mais espaçamento, decisão de detalhe documentada, não escalada). */
+@media (min-width: 1024px) {
+  .item {
+    padding: var(--spacing-4) var(--spacing-6);
+  }
+
+  .info {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--spacing-4);
+  }
+}

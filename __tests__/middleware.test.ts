@@ -90,9 +90,98 @@ describe("middleware (BE-04, verificação de sessão em rota de escrita)", () =
     expect(response.status).toBe(401);
   });
 
-  it("nunca bloqueia GET (nenhuma rota de leitura própria nesta versão)", async () => {
+  it("nunca bloqueia GET fora de INTERNAL_READ_PROTECTED_PREFIXES", async () => {
     const response = await middleware(
       buildRequest({ method: "GET", path: "/api/health" }),
+    );
+    expect(deixaPassar(response)).toBe(true);
+  });
+
+  // BE-12 — GET /api/restricoes é leitura interna (T10 do UX-SPEC.md, mesmo
+  // racional já aplicado a GET /api/atletas (BE-06) e GET /api/log-auditoria
+  // (BE-09)): entrou em INTERNAL_READ_PROTECTED_PREFIXES nesta tarefa, então
+  // também exige sessão válida mesmo em GET.
+  it("retorna 401 em GET /api/restricoes sem sessão válida", async () => {
+    const response = await middleware(
+      buildRequest({ method: "GET", path: "/api/restricoes" }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("permite GET /api/restricoes com sessão válida", async () => {
+    const { token } = await createSessionToken();
+    const response = await middleware(
+      buildRequest({
+        method: "GET",
+        path: "/api/restricoes",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      }),
+    );
+    expect(deixaPassar(response)).toBe(true);
+  });
+
+  // BE-13 — GET /api/rodadas/{id}/substituicoes é leitura interna (T11 do
+  // UX-SPEC.md, mesmo racional já aplicado a GET /api/restricoes (BE-12)):
+  // /api/rodadas entrou em INTERNAL_READ_PROTECTED_PREFIXES nesta tarefa.
+  it("retorna 401 em GET /api/rodadas/123/substituicoes sem sessão válida", async () => {
+    const response = await middleware(
+      buildRequest({ method: "GET", path: "/api/rodadas/123/substituicoes" }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("permite GET /api/rodadas/123/substituicoes com sessão válida", async () => {
+    const { token } = await createSessionToken();
+    const response = await middleware(
+      buildRequest({
+        method: "GET",
+        path: "/api/rodadas/123/substituicoes",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      }),
+    );
+    expect(deixaPassar(response)).toBe(true);
+  });
+
+  // BE-16 — GET /api/rodadas (listagem) e GET /api/rodadas/{id} (detalhe)
+  // são leitura interna (T06/T07 do UX-SPEC.md): já cobertas
+  // genericamente pelo prefixo `/api/rodadas` (entrou em
+  // INTERNAL_READ_PROTECTED_PREFIXES em BE-13, para
+  // GET .../substituicoes) — casos explícitos aqui só para rastreabilidade
+  // desta tarefa, nenhuma mudança em middleware.ts foi necessária.
+  it("retorna 401 em GET /api/rodadas sem sessão válida", async () => {
+    const response = await middleware(
+      buildRequest({ method: "GET", path: "/api/rodadas" }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("permite GET /api/rodadas com sessão válida", async () => {
+    const { token } = await createSessionToken();
+    const response = await middleware(
+      buildRequest({
+        method: "GET",
+        path: "/api/rodadas",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      }),
+    );
+    expect(deixaPassar(response)).toBe(true);
+  });
+
+  it("retorna 401 em GET /api/rodadas/123 sem sessão válida", async () => {
+    const response = await middleware(
+      buildRequest({ method: "GET", path: "/api/rodadas/123" }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("permite GET /api/rodadas/123 com sessão válida", async () => {
+    const { token } = await createSessionToken();
+    const response = await middleware(
+      buildRequest({
+        method: "GET",
+        path: "/api/rodadas/123",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      }),
     );
     expect(deixaPassar(response)).toBe(true);
   });

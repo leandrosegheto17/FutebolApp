@@ -1,0 +1,74 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.nome {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+}
+
+.pontosAtuais {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.bloqueioTexto {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.contadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.preview:empty {
+  display: none;
+}
+
+.previewResult {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.previewLoading {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.previewTitle {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.previewTotal {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+/* >= lg (UX-SPEC.md Seção 6.2, "T04/T07/T10 Formulários": campos empilhados
+   em mobile, respiro extra em telas maiores sem alterar ordem de tabulação). */
+@media (min-width: 1024px) {
+  .row {
+    padding: var(--spacing-5) var(--spacing-6);
+  }
+}

@@ -1,0 +1,45 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+}
+
+.groupList,
+.pairList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.pairRow {
+  padding-left: var(--spacing-4);
+  position: relative;
+  color: var(--color-text);
+}
+
+.pairRow::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--color-danger);
+}
+
+.groupMessage {
+  margin: 0;
+  padding-left: var(--spacing-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

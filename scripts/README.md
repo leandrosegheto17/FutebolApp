@@ -117,3 +117,123 @@ curl -i -X POST <base-url>/api/auth/login \
 Deve retornar `200` com `Set-Cookie: sessao_interna=...; HttpOnly; SameSite=strict`.
 Repetir com a senha antiga deve retornar `401` com o corpo genérico
 `{"error":"Senha incorreta."}` (RF-07.3).
+
+---
+
+# Runbook — Migração do Legado (BE-15, RF-08)
+
+**Dono**: Backend.
+**Origem**: `TASK.md` Seção 3.1 (`BE-15`), `ADR-008`, mapeamento campo a campo
+em `LEGADO-SCHEMA.md` (SPK-01). Este documento é o runbook do CLI exigido
+pelo item 3 do "Ao terminar" de `BE-15`.
+
+## ⚠️ Bloqueio de governança (GUARDRAILS.md regra 35 / BLOCKERS.md BLOCKER-003)
+
+**Este script não roda contra a schema legada real por padrão.** Ele exige a
+variável de ambiente `LEGADO_MIGRACAO_AUTORIZACAO` definida com o valor exato
+`AUTORIZO-EXECUCAO-REAL-CONTRA-LEGADO-REGRA-35-SATISFEITA`
+(`src/modules/migracao/governanca.ts`) — sem ela, o script imprime o
+bloqueio e encerra **antes** de ler `LEGACY_SUPABASE_URL`/
+`LEGACY_SUPABASE_SERVICE_ROLE_KEY`, sem abrir nenhuma conexão.
+
+Essa variável só deve ser definida depois de confirmação **formal e
+explícita** do Tech Lead/Software Architect/CTO de que a condição da regra 35
+está satisfeita — nunca por conta própria do Backend. Na execução de BE-15
+que produziu este runbook, essa confirmação **não** foi obtida nesta rodada
+de trabalho (instrução explícita recebida para esta execução: tratar a regra
+35/`BLOCKER-003` como ainda bloqueante e implementar/testar exclusivamente
+contra fixtures) — o script e toda a lógica de transformação (`src/modules/
+migracao/migrar.ts`) foram implementados e testados inteiramente contra
+fixtures em memória (`src/modules/migracao/__tests__/`, reproduzindo a
+estrutura real documentada em `LEGADO-SCHEMA.md`, incluindo as sete
+divergências D1-D7 e ênfase em D1 — 24% de presenças órfãs de rodada), nunca
+contra o projeto Supabase legado real (`ipnbdrejlikrmqyxggsp`). As
+credenciais `LEGACY_SUPABASE_*` em `.env.local` continuam reservadas
+exclusivamente para o uso read-only já feito por `SPK-01`.
+
+**Nota de discrepância, registrada por transparência (não uma lacuna
+silenciosa)**: no estado atual de `BLOCKERS.md`, `BLOCKER-003` já aparece com
+`Status: Resolvido` (o Software Architect já adicionou o parágrafo de "plano
+de saída" ao `ADR-002`, conforme `GUARDRAILS.md` regra 35 prevê: "a regra 35
+se extingue automaticamente quando o adendo do ADR-002 for aceito"). Mesmo
+assim, esta execução de `BE-15` seguiu a instrução explícita recebida de
+tratar o bloqueio como vigente e não realizar nenhuma execução real — o
+Backend não decide sozinho reinterpretar esse estado (guardrail deste agente:
+nunca reinterpretar ADR/guardrail por conta própria). **Antes de definir
+`LEGADO_MIGRACAO_AUTORIZACAO` num ambiente real, o Tech Lead/Software
+Architect/CTO precisam confirmar formalmente, num próximo ciclo, se a
+condição da regra 35 está de fato satisfeita** — este runbook não faz essa
+chamada.
+
+## Quando usar (depois de autorizado)
+
+Uma única vez, na janela de execução formal da migração do legado — não é
+uma operação recorrente da área interna.
+
+## Pré-requisitos
+
+- Tudo que `scripts/redefinir-senha-interna.ts` já exige (Node.js, variáveis
+  do projeto Supabase principal via `.env.local` ou shell).
+- `LEGACY_SUPABASE_URL`/`LEGACY_SUPABASE_SERVICE_ROLE_KEY` do projeto
+  Supabase legado (mesmas credenciais já usadas, só leitura, por `SPK-01`).
+- `LEGADO_MIGRACAO_AUTORIZACAO` definida conforme a seção de bloqueio acima.
+- `BE-14` (trava técnica contra `DROP`/`ALTER` destrutivo na schema legada)
+  já aplicada no projeto Supabase legado — pré-requisito de dependência do
+  próprio `TASK.md` (BE-14 → BE-15), não verificado automaticamente por este
+  script.
+
+## Procedimento
+
+1. `npm install` (se ainda não instalado).
+2. `npm run legado:migrar`.
+3. Confirme a operação quando solicitado (`[s/N]`) — qualquer resposta
+   diferente de `s` cancela sem ler/escrever nada.
+4. O script imprime o **relatório de conferência** (RF-08.5) no terminal:
+   resumo por tabela (migrados/divergências/erros), toda divergência
+   individual (D1 e defensivas D0) com motivo, o catálogo fixo de
+   divergências estruturais (D2-D7, sempre listado, pendente de confirmação
+   do organizador), as decisões de detalhe já aplicadas, e a validação de
+   saldo por atleta (`pontuacao_atual` do legado vs. ledger migrado).
+5. **Revise o relatório manualmente** (organizador + Tech Lead) antes de
+   qualquer passo seguinte — nenhuma divergência é decidida automaticamente
+   pelo script (RF-08.3).
+6. Reexecutar (`npm run legado:migrar` de novo) é seguro a qualquer momento —
+   o script é idempotente (ADR-008): linhas já migradas não são duplicadas,
+   `lancamento_pontos` (ledger append-only) não dobra pontos.
+7. A gravação da flag de validação explícita
+   (`app.legado_migracao_validacao`, RF-08.5/RF-08.6, que libera a trava de
+   `BE-14` para arquivar a schema legada) **não é automática** — é um passo
+   manual e deliberado, feito só depois de o organizador confirmar o
+   relatório, via acesso direto ao banco (decisão de detalhe já registrada na
+   migration de `BE-14`, `20260903170000_travar_schema_legada_ate_validacao.sql`).
+
+## O que o script NÃO faz (importante)
+
+- **Não migra `app.time`/`app.time_atleta`/`app.substituicao`** (Divergência
+  D7) — cobertura de dado real baixa demais (~2,9%) para gerar composição de
+  time automaticamente sem inventar dado; times precisam ser remontados na
+  área nova quando necessário.
+- **Não migra os atributos de habilidade** (`visao_jogo`, `passe`, etc.) nem
+  `posicoes_preferidas` (Divergência D4) — sem campo correspondente em
+  `app.atleta` (decisão de produto já registrada no `PRD-TECNICO.md`).
+- **Nunca recalcula pontuação** — `pontos_delta` migrado é sempre o
+  `pontos_ganhos` legado literal, nunca lido de `app.configuracao_pontuacao`
+  (RN-13).
+- **Nunca escreve na schema legada** — só leitura (`SELECT`, via PostgREST),
+  reforçado pela trava de `BE-14` no próprio banco.
+- **Não grava a flag de validação (RF-08.5/RF-08.6)** — passo manual
+  separado, ver item 7 acima.
+
+## Como funciona por baixo (para quem for dar manutenção)
+
+- Lógica testável (leitura de fixtures → transformação → relatório) em
+  `src/modules/migracao/` (`migrar.ts`, `transformar.ts`, `relatorio.ts`,
+  `governanca.ts`) — coberta por teste unitário em
+  `src/modules/migracao/__tests__/` (idempotência, D1-D7, RN-13, bloqueio de
+  governança), sem depender de I/O real.
+- Wiring de I/O real (Supabase legado + Supabase `app`) em
+  `src/modules/migracao/deps-supabase.ts`/`legado-client.ts` — sem teste
+  automatizado próprio (depende de rede/schema legada real), mesmo padrão já
+  aplicado a `scripts/redefinir-senha-interna.ts`.
+- `app.legado_migracao_registro` (`UNIQUE(tabela_origem, id_origem)`, BE-02)
+  é a chave de idempotência — `gravar()` sempre faz `UPSERT` por essa chave.

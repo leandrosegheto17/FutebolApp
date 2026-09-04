@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EmptyState, Tabs } from "@/components/ui";
+import { Tabs } from "@/components/ui";
 import { RankingList } from "./RankingList";
+import { PresencaMensal } from "@/features/presenca-mensal/PresencaMensal";
 import styles from "./PublicHomeShell.module.css";
 
 /**
@@ -11,14 +12,11 @@ import styles from "./PublicHomeShell.module.css";
  * compartilham o mesmo par de abas "Ranking"/"Presença Mensal"; Seção 2,
  * wireframes de T02/T03).
  *
- * Esta tarefa (`FE-02`) implementa só o conteúdo da aba "Ranking"
- * (`RankingList`). A aba "Presença Mensal" é conteúdo de `FE-03` — tarefa
- * separada no TASK.md, mesma dependência (`BE-03`), pode rodar em paralelo
+ * A aba "Ranking" (`RankingList`) é conteúdo de `FE-02`; a aba "Presença
+ * Mensal" (`PresencaMensal`) é conteúdo de `FE-03` — tarefas separadas no
+ * TASK.md, mesma dependência (`BE-03`), que puderam rodar em paralelo
  * (Seção 4.2: "FE-02/FE-03 (público) podem rodar em paralelo... não têm
- * nenhuma dependência de autenticação"). Renderizar aqui um placeholder
- * honesto (em vez de omitir a aba) preserva o layout final de duas abas já
- * confirmado pelo UX-SPEC.md sem antecipar/decidir sozinho o conteúdo real
- * de T03, que não é escopo desta tarefa.
+ * nenhuma dependência de autenticação"), ambas já concluídas nesta versão.
  */
 export function PublicHomeShell() {
   const [tab, setTab] = useState<string>("ranking");
@@ -39,12 +37,7 @@ export function PublicHomeShell() {
             {
               value: "presenca",
               label: "Presença Mensal",
-              panel: (
-                <EmptyState
-                  title="Presença mensal em breve"
-                  description="Esta visão ainda está em desenvolvimento (FE-03)."
-                />
-              ),
+              panel: <PresencaMensal />,
             },
           ]}
         />
@@ -52,7 +45,7 @@ export function PublicHomeShell() {
 
       <footer className={styles.footer}>
         {/* Link discreto de acesso interno (RF-07.2/UX-SPEC.md Seção 1.2) —
-            aponta para T01 (FE-01, ainda não implementada nesta tarefa). */}
+            aponta para T01 (FE-01, já Concluída). */}
         <Link href="/login" className={styles.loginLink}>
           Acesso interno
         </Link>

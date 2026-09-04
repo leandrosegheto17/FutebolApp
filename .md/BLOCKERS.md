@@ -230,6 +230,88 @@ aplicável (ex.: UX-SPEC.md).
 
 ---
 
+## BLOCKER-006
+
+- **Data**: 2026-09-03
+- **Origem**: devsecops
+- **Escalado para**: backend
+- **Artefato afetado**: `package.json`/`package-lock.json` (`next@14.2.5`,
+  fixado por `BE-01`).
+- **Descrição**: `static-security-analysis` (primeira execução, `.md/
+  SECURITY-REVIEW.md`, achado `CRIT-01`) encontrou `next@14.2.5` na faixa
+  vulnerável de `GHSA-f82v-jwr5-mffw` (CVE-2025-29927, CVSS 9.1) —
+  "Authorization Bypass in Next.js Middleware": um cabeçalho
+  `x-middleware-subrequest` forjado permite que a execução de
+  `middleware.ts` seja inteiramente pulada. Este projeto usa
+  exclusivamente `middleware.ts` como mecanismo de autorização de toda
+  rota de escrita da área interna (GUARDRAILS.md regra 17, SDD.md Seção
+  7.2) — não há checagem de sessão redundante em cada Route Handler.
+- **Impacto se não resolvido**: bloqueia deploy de L0 e de todos os lotes
+  subsequentes (mesmo `package.json` compartilhado). Se explorada em
+  produção, permitiria contornar por completo a autenticação de sessão
+  única compartilhada em qualquer rota de escrita (cadastro, lançamento de
+  pontos, correção, anonimização, quando implementadas).
+- **Sugestão**: atualizar `next` para `14.2.35` (ou patch mais recente da
+  série 14.2.x no momento da correção) — `npm audit` confirma
+  `fixAvailable.isSemVerMajor: false`, sem breaking change esperado.
+  Aproveitar a mesma janela para `npm audit fix` de `vitest`→`2.1.9`
+  (`DEBT-01` do `SECURITY-REVIEW.md`), para o gate `security-scan` do CI
+  voltar a passar por completo.
+- **Status**: Resolvido
+- **Prazo**: bloqueante — antes de qualquer deploy (staging ou produção)
+  de L0.
+- **Resolução (2026-09-03, backend)**: `next` atualizado de `14.2.5` para
+  `14.2.35` (`package.json`/`package-lock.json`, `--save-exact`, sem major —
+  confirmado `isSemVerMajor: false`). `npm audit` pós-bump confirma que
+  `GHSA-f82v-jwr5-mffw`/CVE-2025-29927 (o bypass de `middleware.ts` via
+  `x-middleware-subrequest`) **não aparece mais** na lista de achados para
+  `next` — CRIT-01 eliminado. Suíte completa reexecutada e verde:
+  `npm run lint` (limpo), `npm run typecheck` (limpo), `npm test` (35
+  arquivos, 179 testes, incluindo `__tests__/middleware.test.ts`, 7 testes),
+  `npm run build` (compila com `▲ Next.js 14.2.35`, middleware presente no
+  bundle, 9/9 páginas geradas). Nenhuma regressão em BE-01/BE-02/FE-00/BE-04.
+  Aproveitada a mesma janela para `DEBT-01` (`SECURITY-REVIEW.md`): `vitest`
+  atualizado de `2.0.5` para `2.1.9` (mesmo padrão de pin exato do resto do
+  `package.json`), sem breaking change — suíte de 179 testes segue 100%
+  verde após o bump. **Ressalva importante, para não esconder divergência**:
+  ao contrário do que `DEBT-01` registrou (\"`npm audit fix` resolve
+  `vitest`→`2.1.9`... sem major\"), o `npm audit` re-executado *depois* do
+  bump ainda reporta `vitest` como crítico, mas agora só por
+  `GHSA-5xrq-8626-4rwp` (\"When Vitest UI server is listening, arbitrary
+  file can be read and executed\", faixa `<3.2.6`) — o outro achado citado em
+  `DEBT-01` (`GHSA-9crc-q9x8-hgqq`) foi de fato resolvido por `2.1.9`, mas a
+  faixa vulnerável de `GHSA-5xrq-8626-4rwp` aparentemente foi ampliada na
+  base de advisories do npm depois que `SECURITY-REVIEW.md` foi escrito: a
+  correção completa hoje só está disponível em `vitest@5.0.0`
+  (`isSemVerMajor: true`), fora do que este bloqueio autorizou (major bump
+  de test runner, risco de quebra de API, não coberto pela suíte atual só
+  por passar hoje). Não forcei esse major — mesma severidade/mesmo raciocínio
+  de mitigação já registrado em `DEBT-01` (vetor exige servidor de API do
+  Vitest escutando localmente, `--ui`/watch, nunca exposto em
+  `build`/`start` de produção). Devolvido para `devsecops` como achado
+  residual a reclassificar/reabrir com prazo próprio (não bloqueia L0 — não
+  é o mesmo achado que motivou este `BLOCKER-006`, que era especificamente o
+  `next`/CRIT-01, agora fechado). Nenhuma tarefa do `TASK.md` reaberta
+  (correção de dependência compartilhada, não mudança de critério de
+  aceite de BE-01/BE-02/FE-00/BE-04).
+- **Confirmação DevSecOps (2026-09-03, reauditoria pontual)**: `npm audit
+  --json` re-executado confirma `GHSA-f82v-jwr5-mffw`/CVE-2025-29927
+  ausente para `next@14.2.35` — CRIT-01 fechado formalmente em
+  `SECURITY-REVIEW.md`. Achado residual de `vitest` devolvido pelo Backend
+  (`GHSA-5xrq-8626-4rwp`) avaliado e reclassificado como `DEBT-01`
+  (atualizado, severidade Baixa, dev-only confirmado — nenhum script do
+  projeto usa `vitest --ui`) em `SECURITY-REVIEW.md` Seção 3, com prazo de
+  reavaliação antes do fechamento de L2 — não reaberto como novo bloqueio.
+  Durante a mesma reauditoria, `npm audit` também revelou advisories
+  adicionais de `next@14.2.35` não relacionadas a CRIT-01 (classe DoS/
+  cache, não bypass de autorização), registradas como novo achado `DEBT-04`
+  em `SECURITY-REVIEW.md`, severidade Média, prazo antes do primeiro deploy
+  de produção. Veredito de L0 atualizado para Aprovado com débito
+  registrado (era Bloqueado). Nenhuma ação adicional pendente do Backend
+  para fechar `BLOCKER-006`.
+
+---
+
 ## Notas
 
 - O ponto de "redação da base legal diferenciada (adulto vs. menor) na Seção 7.6 do

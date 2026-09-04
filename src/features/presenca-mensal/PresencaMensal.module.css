@@ -1,0 +1,79 @@
+/*
+ * T03 — Presença Mensal (UX-SPEC.md Seção 2/6.2).
+ *
+ * Mobile-first (`base` < 640px, TASK.md Seção 1.6): navegador de mês em uma
+ * linha + accordion vertical por rodada, exatamente o wireframe da Seção 2.
+ * `lg` (Seção 6.2: "pode exibir em grade de mês... mesma informação, layout
+ * mais denso") é tratado como melhoria OPCIONAL ("pode", não "deve") — nesta
+ * implementação o accordion vertical é mantido em todos os breakpoints
+ * (decisão de detalhe documentada em PresencaMensal.tsx/nota de status do
+ * TASK.md): satisfaz o critério de aceite literal ("accordion de presentes
+ * por rodada") em qualquer largura, sem inventar uma segunda representação
+ * visual (grade de calendário) que a Seção 2/critério de aceite não exigem
+ * como obrigatória — solução mais simples que já satisfaz o requisito
+ * (TASK.md Seção 1.0), reforçando a densidade só via largura máxima de
+ * conteúdo em `lg`, não via redesenho de layout.
+ */
+
+.navigator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.monthLabel {
+  flex: 1;
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.body {
+  min-height: var(--tap-target-min);
+}
+
+.errorWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  align-items: flex-start;
+}
+
+.presentesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.emptyPresentes {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ---- lg (>=1024px, UX-SPEC.md Seção 6.1): mesmo layout, mais denso ------ */
+@media (min-width: 1024px) {
+  .navigator,
+  .body {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .navigator {
+    margin-top: 0;
+  }
+
+  .presentesList {
+    columns: 2;
+    column-gap: var(--spacing-6);
+  }
+}

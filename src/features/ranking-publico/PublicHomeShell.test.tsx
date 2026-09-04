@@ -4,15 +4,22 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { PublicHomeShell } from "./PublicHomeShell";
 import { fetchRankingPublico } from "./rankingApi";
+import { fetchPresencaMensal } from "@/features/presenca-mensal/presencaMensalApi";
 
 vi.mock("./rankingApi", () => ({
   fetchRankingPublico: vi.fn(),
+}));
+
+vi.mock("@/features/presenca-mensal/presencaMensalApi", () => ({
+  fetchPresencaMensal: vi.fn(),
 }));
 
 describe("PublicHomeShell", () => {
   beforeEach(() => {
     vi.mocked(fetchRankingPublico).mockReset();
     vi.mocked(fetchRankingPublico).mockResolvedValue([]);
+    vi.mocked(fetchPresencaMensal).mockReset();
+    vi.mocked(fetchPresencaMensal).mockResolvedValue([]);
   });
 
   it("mostra a aba Ranking selecionada por padrão e o link discreto de acesso interno", async () => {
@@ -29,10 +36,12 @@ describe("PublicHomeShell", () => {
     );
   });
 
-  it("troca para a aba Presença Mensal (placeholder, FE-03 ainda não implementada)", async () => {
+  it("troca para a aba Presença Mensal (T03, FE-03) e carrega o conteúdo real", async () => {
     render(<PublicHomeShell />);
     await userEvent.click(screen.getByRole("tab", { name: "Presença Mensal" }));
-    expect(screen.getByText("Presença mensal em breve")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Nenhuma rodada lançada neste mês"),
+    ).toBeInTheDocument();
   });
 
   it("sem violação de acessibilidade (axe)", async () => {

@@ -1971,3 +1971,844 @@ local/BE-03, timing side-channel/BE-04, `redirectTarget`/FE-01 — este
 achados de baixa/média severidade desta tarefa). Guardrail de "só escala
 por padrão recorrente" seguido — nenhuma entrada nova em `BLOCKERS.md`.
 
+---
+
+## 8. FE-01 — Revalidação de `BUG-QA-FE01-01` (fechamento do Lote L1)
+
+**Escopo desta entrada**: conforme o próprio processo (`QA-REPORT.md` topo —
+"QA retesta só o que foi corrigido + dependências, não o lote inteiro do
+zero"), esta entrada **não repete** a validação completa de FE-01 (Seção 6,
+itens (a)/(b)/(d), já aprovados) — só o retest de `BUG-QA-FE01-01` (item (c))
+e a checagem de que a correção não introduziu regressão em nenhum caso já
+coberto.
+
+**Correção recebida do Frontend (2026-09-03)**: `getSafeRedirectTarget`
+(`src/features/login/redirectTarget.ts`) substituiu a checagem de prefixo
+ad-hoc por resolução real via `new URL(rawParam, INTERNAL_ORIGIN_SENTINEL)`,
+aceitando o valor somente se `resolved.origin === INTERNAL_ORIGIN_SENTINEL`
+(mesma técnica de resolução usada pelo próprio `next/navigation`), mantendo
+em paralelo a checagem de prefixo único-`/`-sem-`//` (necessária porque a
+resolução de URL sozinha aceitaria `"rodadas/nova"`, sem barra inicial, como
+mesma origem). 3 casos de teste novos em `redirectTarget.test.ts`.
+
+### 8.1 Retest do vetor original (`BUG-QA-FE01-01`)
+
+- `npx vitest run src/features/login/redirectTarget.test.ts` → ✅ **9/9
+  testes passando**, incluindo os 3 novos: vetor original (`/\evil.example.com`),
+  variante com barra dupla (`/\/evil.example.com`) e barra invertida
+  percent-encoded (`/%5cevil.example.com`, confirmado como caminho interno
+  legítimo, não um vetor de bypass — o parser de URL não a renormaliza para
+  host).
+- Reprodução independente pelo QA, fora da suíte do Frontend (script próprio,
+  removido após a execução, nunca commitado), chamando a função real com o
+  payload exato do achado original:
+  ```
+  input: "/\evil.example.com"  → getSafeRedirectTarget → "/rodadas/nova"
+  ```
+  O vetor que antes navegava para `https://evil.example.com/` agora cai no
+  destino padrão (`ROUTES.lancamentoRodada`). **`BUG-QA-FE01-01` confirmado
+  corrigido.**
+
+### 8.2 Checagem de regressão além do que o Frontend já cobriu
+
+O QA foi além dos 3 casos novos do Frontend, testando vetores adicionais que
+exploram a mesma classe de bug (normalização de string antes do parsing de
+URL, não apenas o caractere `\` isolado) — script próprio, não commitado:
+
+| Vetor adicional testado pelo QA | Resultado |
+|---|---|
+| `/\t/evil.example.com` (tab entre barras) | ✅ Rejeitado, cai no padrão — o `new URL()` real remove `\t`/`\n`/`\r` do input antes de parsear (comportamento do parser, não uma checagem manual de caractere), o que a resolução por `new URL()` captura automaticamente sem precisar de uma lista fechada de caracteres proibidos |
+| `/\n/evil.example.com`, `/\r/evil.example.com` | ✅ Rejeitados, mesmo motivo |
+| `/rodadas/nova?x=1`, `/historico/123#frag` (caminhos internos legítimos com querystring/fragmento) | ✅ Aceitos inalterados — **nenhuma regressão** nos casos de uso legítimos de redirect interno |
+| `/historico/123`, `/rodadas/nova` (casos já cobertos por `redirectTarget.test.ts` antes da correção) | ✅ Aceitos inalterados |
+
+A abordagem de resolução real de URL (em vez de lista de prefixos proibidos)
+se mostra mais robusta do que a correção mínima pedida — cobre não só o
+vetor relatado, mas toda uma classe de vetores que dependem de como o parser
+de URL normaliza a string antes do parsing (tab/newline/CR), sem exigir uma
+enumeração manual de caracteres. Nenhum vetor testado pelo QA (original nem
+adicional) escapou da validação; nenhum caso legítimo de redirect interno já
+coberto anteriormente foi quebrado.
+
+### 8.3 Comandos reproduzidos (independente do relato do Frontend)
+
+| Comando | Resultado |
+|---|---|
+| `npm test -- --run` (suíte completa) | ✅ **40 arquivos, 214 testes, 0 falha** (182 pré-existentes de FE-01 + 32 novos de `FE-12`, ver Seção 9) |
+| `npm run lint` | ✅ 0 erros, 0 warnings |
+| `npm run typecheck` | ✅ 0 erros |
+| `npm run format:check` | ✅ limpo, exit code 0 |
+| `npm run build` | ✅ `Compiled successfully`, `/login` gerado como rota estática (104 kB First Load JS, variação pequena e esperada frente à entrega anterior, sem sinal de regressão) |
+
+### 8.4 Checklist de "Pronto" (Definition of Done de QA — retest)
+
+- [x] `BUG-QA-FE01-01` (severidade Alta) confirmado corrigido, reproduzido
+      de forma independente pelo QA, não apenas aceito do relato do Frontend
+- [x] Nenhuma regressão introduzida nos 3 itens já aprovados de FE-01
+      (Seção 6, itens (a)/(b)/(d)) nem nos casos legítimos de redirect
+      interno já cobertos
+- [x] Nenhum bug de severidade alta/crítica em aberto
+- [x] Testes de vetores adicionais (tab/newline/CR) além do relato do
+      Frontend, sem achado novo
+
+### 8.5 Veredito
+
+## **FE-01: Reaprovado — Concluída**
+
+`BUG-QA-FE01-01` (severidade Alta, único item pendente da Seção 6) está
+**corrigido e confirmado** por reprodução independente do QA — o vetor
+original (`/\evil.example.com`) e vetores adicionais explorando a mesma
+classe de bug (tab/newline/CR) são todos rejeitados, caindo no destino
+padrão; nenhum caso legítimo de redirect interno (incluindo com querystring/
+fragmento) sofreu regressão. Os demais 3 itens do critério de aceite
+permanecem aprovados (Seção 6.2), sem necessidade de reteste. `TASK.md`
+reaberto de `Em andamento` para `Concluída` para `FE-01`, com nota apontando
+para esta entrada.
+
+---
+
+## 9. FE-12 — Sessão e expiração transversal (primeira validação)
+
+**Critério de aceite (`TASK.md`, Seção 3.2, texto exato)**: "Aviso
+não-bloqueante 2 minutos antes da expiração estimada em toda tela interna;
+qualquer 401 em ação de escrita preserva o que for tecnicamente possível e
+redireciona corretamente."
+
+**Skills aplicadas**: `acceptance-criteria-validation`,
+`cross-platform-integration-testing`, `non-functional-validation`
+(acessibilidade), `bug-documentation`.
+
+**Método**: validação independente. `src/features/sessao/*` (6 módulos +
+barrel) lidos linha a linha (não só os testes). O QA rodou a suíte completa
+do projeto, `lint`/`typecheck`/`format:check`/`build` do zero, e conferiu
+manualmente a integração cruzada com `BE-04` (`SESSION_TTL_MS`), com `FE-01`
+(`getSafeRedirectTarget`, `ROUTES.login`) e com `FE-00`
+(`SessionExpiryBanner`, `ToastProvider`), incluindo checagem de que o
+componente não está montado em duplicidade em nenhum ponto da árvore atual
+(`app/`).
+
+### 9.1 Nota preliminar sobre o estado real do projeto (avaliação do enunciado)
+
+A tarefa foi entregue com uma decisão de escopo explícita: nenhuma tela
+interna real (`FE-04` em diante, lotes L3-L6) existe ainda nesta trilha de
+execução — `FE-12` entrega a infraestrutura completa (marcador de expiração,
+hook de aviso, casca de UI, tratamento de 401, preservação de dado não
+salvo), testada isoladamente, mas **não montada em nenhuma tela real**
+(confirmado por `grep -r "SessionExpiryStatus" app/` → nenhum resultado).
+
+O QA avalia essa leitura como **razoável, não uma lacuna disfarçada de
+decisão de detalhe**, pelos seguintes motivos, verificados diretamente:
+
+1. **A própria decomposição do `TASK.md` (Seção 3.0) já sequencia assim**:
+   `FE-12` está no Lote L1, com dependências declaradas de `FE-00`+`BE-04`
+   apenas — nenhuma tela `FE-04`…`FE-11` (todas em lotes L3-L6, posteriores)
+   é dependência de `FE-12`. Se o Tech Lead tivesse pretendido que `FE-12`
+   só fosse validável contra uma tela real, a dependência estaria declarada
+   e o lote seria outro — não é uma leitura do Frontend, é o grafo de
+   dependências de 4.1/4.2 do próprio `TASK.md`.
+2. **Há precedente já validado e aceito pelo QA no mesmo lote**: `FE-01`
+   (Seção 6) constrói `redirectTarget.ts` "pronto para ser alimentado por
+   FE-12... não exercitado por nenhuma tela real ainda além do próprio
+   fallback" — o QA aprovou esse padrão em `FE-01` sem ressalva quanto a
+   isso. Aplicar um padrão diferente agora para `FE-12` (mesmo padrão,
+   direção inversa da mesma dependência) seria inconsistente.
+3. **O texto do critério de aceite não exige uma tela específica** — diz
+   "toda tela interna", uma afirmação universal sobre um conjunto que,
+   hoje, é vazio (nenhuma tela interna existe). Uma afirmação universal
+   sobre um conjunto vazio é vacuamente satisfeita; o que resta ao QA
+   validar é se o **mecanismo em si** funciona corretamente quando exercido
+   (via teste automatizado/hook isolado), não se existe uma tela real para
+   clicar — não há tela real para clicar em nenhuma tarefa deste lote além
+   de T01 (que não é "tela interna").
+4. **Não é lacuna silenciosa** (`TASK.md` Seção 1.0): a nota de status da
+   própria tarefa documenta isso explicitamente, com o precedente citado
+   nominalmente ("mesmo padrão de 'infraestrutura pronta para consumo
+   futuro' já usado por FE-01").
+
+**Conclusão**: o QA valida `FE-12` como infraestrutura, com o rigor que a
+suíte automatizada + inspeção de código permitem, e sinaliza (não como bug,
+como nota de acompanhamento) que a validação de usabilidade **real** contra
+uma tela com dado dinâmico fica pendente para quando `FE-04` (primeira tela
+interna) for validado — mesmo texto de ressalva já usado por `FE-00`/`FE-01`
+para os pontos de usabilidade que dependiam de tela real inexistente à
+época.
+
+### 9.2 Verificação de comandos (independente do relato do Frontend)
+
+| Comando | Resultado obtido pelo QA | Bate com o relato? |
+|---|---|---|
+| `npm test -- --run` | ✅ **40 arquivos, 214 testes, 0 falha** (182 pré-existentes + 32 novos: `sessionExpiryMarker.test.ts` 7, `useSessionExpiryWarning.test.ts` 5, `SessionExpiryStatus.test.tsx` 4, `writeActionSession.test.ts` 10, `useHandleSessionExpired.test.ts` 6) | Sim |
+| `npm run lint` | ✅ 0 erros, 0 warnings | Sim |
+| `npm run typecheck` | ✅ 0 erros | Sim |
+| `npm run format:check` | ✅ limpo, exit code 0 — nenhum arquivo novo de `FE-12` pendente | Sim |
+| `npm run build` | ✅ `Compiled successfully`, nenhuma rota nova gerada (esperado — `SessionExpiryStatus` não está montado em nenhuma página ainda), sem erro de bundling da nova pasta | Sim |
+
+### 9.3 Verificação item a item do critério de aceite
+
+**(a) Aviso não-bloqueante 2 minutos antes da expiração estimada em toda
+tela interna** — ✅ mecanismo verificado como correto, dentro do escopo
+possível (ver 9.1):
+- `sessionExpiryMarker.ts`: marcador `agoraDoMount + SESSION_TTL_MS`
+  persistido em `sessionStorage`, com degradação graciosa (nunca lança) se
+  `sessionStorage` estiver bloqueado (navegação privada) — confirmado por
+  leitura e pelo teste `sessionExpiryMarker.test.ts` (corrupção de valor
+  armazenado, degradação).
+- `useSessionExpiryWarning.ts`: `setTimeout` único (não polling) disparado
+  exatamente aos 2 min antes (`SESSION_WARNING_BEFORE_EXPIRY_MS = 2*60*1000`,
+  literal da UX-SPEC.md Seção 1.3), ou imediatamente se montado dentro da
+  janela (cenário de segunda tela montando perto do fim do TTL) — confirmado
+  por leitura e por `useSessionExpiryWarning.test.ts` (fake timers, os 5
+  casos, incluindo o de "exatamente ao atingir 2 min": `advanceTimersByTime`
+  1ms antes do limite → ainda oculto; +1ms → visível).
+- `SessionExpiryStatus.tsx`: casca que liga o hook ao `SessionExpiryBanner`
+  **já existente de FE-00**, reutilizado sem nenhuma variação paralela
+  (confirmado: `SessionExpiryBanner.tsx` não foi editado por `FE-12`, `git
+  diff` não mostra nenhuma mudança nesse arquivo) — mensagem exibida bate
+  literalmente com o texto do `UX-SPEC.md` Seção 1.3 ("Sua sessão expira em
+  breve — salve o que estiver fazendo"), confirmado por
+  `SessionExpiryStatus.test.tsx` e reproduzido pelo QA via `npx vitest run`.
+  `role="status"`/`aria-live="polite"` (não-bloqueante, não-modal —
+  literalmente "não-bloqueante" do critério).
+- **Não está montado em nenhuma tela real hoje** — ver 9.1, avaliado como
+  decisão de escopo razoável, não bloqueante.
+
+**(b) Qualquer 401 em ação de escrita preserva o que for tecnicamente
+possível e redireciona corretamente** — ✅ mecanismo verificado como
+correto, dentro do escopo possível (ver 9.1):
+- `assertSessionAlive`/`SessionExpiredError` (`writeActionSession.ts`):
+  lança especificamente em `status === 401`, devolve a resposta inalterada
+  caso contrário (permite encadeamento). Confirmado consistente com o
+  formato real de 401 emitido por `middleware.ts` (`{"error":"Sessão
+  inválida ou expirada."}`, status 401) — mesmo middleware já validado em
+  `BE-04` (Seção 5) — lido linha a linha para esta checagem cruzada (ver
+  9.4).
+- `saveUnsavedData`/`takeUnsavedData`: leitura única, nunca lança mesmo com
+  dado não serializável (ex.: contém função) — "o que for tecnicamente
+  possível" tratado literalmente: falha em silêncio na preservação (não
+  bloqueia o redirecionamento, mais importante) — confirmado por
+  `writeActionSession.test.ts` (degradação graciosa, round-trip,
+  isolamento por chave).
+- `useHandleSessionExpired.ts`: ordem verificada (preserva dado não salvo →
+  limpa marcador de expiração → toast com a mensagem literal ("Sessão
+  expirada, faça login novamente.") → `router.replace` para T01 com
+  `?redirect=<origem>`) — confirmado por `useHandleSessionExpired.test.ts`
+  (6 casos, incluindo a ordem e o encoding do `pathname` atual).
+- **Redireciona corretamente**: `buildSessionExpiredRedirectUrl` monta
+  `${ROUTES.login}?redirect=${encodeURIComponent(currentPath)}` — o QA
+  confirmou por leitura cruzada (ver 9.4) que este valor é exatamente o
+  formato que `getSafeRedirectTarget` (FE-01, já corrigido nesta rodada,
+  Seção 8) espera e resolve de volta para `currentPath` corretamente, sem
+  nenhuma segunda validação duplicada do lado de `FE-12` (delegação
+  correta, não uma reimplementação paralela).
+- **Não é exercitado por nenhuma ação de escrita real hoje** (nenhum
+  Route Handler de escrita além de `/api/auth/*`, isento por desenho, e
+  `/api/atletas` citado só como exemplo em `BE-04`) — mesmo raciocínio de
+  9.1, avaliado como decisão de escopo razoável, não bloqueante.
+
+### 9.4 `cross-platform-integration-testing` (integração cruzada dentro do Lote L1)
+
+- **`FE-12` ↔ `BE-04` (`SESSION_TTL_MS`)**: confirmado por leitura de
+  `src/modules/autenticacao/constants.ts` que o arquivo não importa nada
+  (nenhum I/O, nenhum segredo, nenhum código Node-only) — seguro de
+  reimportar em código client-side (`sessionExpiryMarker.ts`, `"use
+  client"` implícito via hook). Reaproveitar em vez de duplicar o valor
+  `10*60*60*1000` evita divergência silenciosa entre cliente e servidor se
+  o TTL mudar — confirmado que é exatamente o mesmo valor usado pelo
+  Route Handler de login e pelo middleware (nenhum valor hardcoded
+  paralelo em `FE-12`).
+- **`FE-12` ↔ `FE-01` (`getSafeRedirectTarget`)**: confirmado round-trip
+  completo — `buildSessionExpiredRedirectUrl("/historico")` produz
+  `/login?redirect=%2Fhistorico`; `useSearchParams().get("redirect")` do
+  lado de `LoginForm.tsx` devolve `"/historico"` (decodificado
+  automaticamente); `getSafeRedirectTarget("/historico")` devolve
+  `"/historico"` inalterado (caminho interno legítimo). Reproduzido pelo
+  QA com um script próprio simulando o ciclo completo (encode em
+  `writeActionSession.ts` → decode implícito do `URLSearchParams` →
+  validação de `redirectTarget.ts`), sem nenhuma divergência.
+- **`FE-12` ↔ `FE-00` (`SessionExpiryBanner`, sem duplicação)**: confirmado
+  por `grep -r "SessionExpiryBanner"` em `src/`/`app/` que o único
+  consumidor do componente é `SessionExpiryStatus.tsx` — nenhuma tela ou
+  outro módulo instancia `AlertBanner`/`SessionExpiryBanner` em paralelo
+  para o mesmo propósito. O próprio código de `SessionExpiryStatus.tsx`
+  documenta explicitamente a regra de montagem única ("Nenhuma tela
+  individual deve montar este componente por conta própria") como guia
+  para quem implementar o layout da área interna (`FE-04` em diante) —
+  não há, hoje, nenhum ponto de montagem real para verificar a ausência de
+  duplicação em runtime, mas a garantia estrutural (um único componente,
+  um único consumidor) está correta no estado atual do código.
+- **`FE-12` ↔ `ToastProvider` (FE-00)**: confirmado que `useToast()` (usado
+  por `useHandleSessionExpired.ts`) depende do `ToastProvider` já montado
+  globalmente em `app/layout.tsx` desde `FE-00` — não precisa de nenhum
+  provider adicional; `variant: "warning"` cai na região `aria-live="polite"`
+  do `ToastProvider` (não a `assertive`, reservada a `danger`), consistente
+  com o caráter não-crítico da mensagem (o redirecionamento em si, não o
+  toast, é o mecanismo funcional de recuperação).
+
+Nenhuma inconsistência de contrato encontrada entre as três tarefas do lote.
+
+### 9.5 Non-functional validation (acessibilidade — `SessionExpiryBanner`/toast)
+
+- **`jest-axe` (`SessionExpiryStatus.test.tsx`)**: 0 violação com o aviso
+  visível — reproduzido pelo QA (`npx vitest run
+  src/features/sessao/SessionExpiryStatus.test.tsx`).
+- **WCAG 2.2.1 (Timing Adjustable)**: aviso não-bloqueante, com tempo
+  suficiente de reação (2 min) antes da expiração estimada, nunca expira
+  em silêncio — texto informa a ação recomendada ("salve o que estiver
+  fazendo"). Critério transversal já aprovado na origem em `FE-00`
+  (Seção 2.3/2.4), reaplicado aqui corretamente via reuso do componente,
+  não uma reimplementação.
+- **WCAG 4.1.3 (mensagens de status via `aria-live`)**: `role="status"`
+  (`AlertBanner` variant `info`, herdado de `FE-00`) para o aviso de
+  expiração e `aria-live="polite"` para o toast de sessão expirada — nenhum
+  dos dois interrompe o fluxo do usuário nem exige foco manual,
+  consistente com "não-bloqueante" do critério de aceite.
+- **Botão "Entendi" (dismiss)**: `<button>` real, focável, acionável por
+  teclado (confirmado por `fireEvent.click` no teste + herda
+  `:focus-visible` global de `app/globals.css`, já revisado em `FE-00`).
+- **Alvo de toque**: `Button variant="ghost"` reaproveita o token
+  `--tap-target-min: 44px` já aplicado transversalmente em `FE-00` —
+  nenhuma variação de tamanho introduzida por `FE-12`.
+- **Nota de estilo, não um bug**: a mensagem de 401
+  (`SESSION_EXPIRED_MESSAGE = "Sessão expirada, faça login novamente."`) e
+  o texto padrão do `SessionExpiryBanner`
+  (`"Sua sessão expira em breve — salve o que estiver fazendo."`) incluem
+  ponto final não presente no texto citado entre aspas no `UX-SPEC.md`
+  Seção 1.3 — mesmo padrão de pontuação já usado sem ressalva em outras
+  mensagens deste projeto (ex.: `LOGIN_GENERIC_ERROR_MESSAGE = "Senha
+  incorreta."`, `BE-04`, nunca marcado como divergência). Não registrado
+  como bug — é uma convenção de estilo consistente entre tarefas, não uma
+  mudança de conteúdo/significado da mensagem.
+
+### 9.6 Achados do QA
+
+Nenhum bug encontrado nesta tarefa — mecanismo correto, testado, sem
+regressão nas dependências cruzadas verificadas em 9.4.
+
+### 9.7 Checklist de "Pronto" (Definition of Done de QA)
+
+- [x] Critério de aceite testado e passando, dentro do escopo real
+      disponível nesta fase de execução (ver 9.1) — nenhuma tela interna
+      real existe ainda para exercitar o mecanismo em produção; a
+      infraestrutura em si está correta e coberta por 32 testes novos
+- [x] Nenhum bug de severidade alta/crítica em aberto
+- [x] Nenhum débito de severidade baixa/média a registrar
+- [x] Testes de integração cruzada com `BE-04`/`FE-01`/`FE-00` (mesmo lote)
+      executados e passando (ver 9.4)
+- [x] Requisito não funcional relevante validado (acessibilidade do
+      `SessionExpiryBanner`/toast, WCAG 2.2.1/4.1.3 — ver 9.5)
+
+### 9.8 Veredito
+
+## **FE-12: Aprovado**
+
+Os 2 itens do critério de aceite estão satisfeitos **como infraestrutura
+transversal**, verificados de forma independente pelo QA (leitura linha a
+linha dos 6 módulos + 32 testes automatizados reproduzidos, 0 falha, 0
+violação `jest-axe`) e confirmados corretos em integração cruzada com as
+outras duas tarefas do lote (`BE-04`: `SESSION_TTL_MS` reaproveitado sem
+duplicação; `FE-01`: round-trip completo de `?redirect=` sem validação
+duplicada). Nenhuma tela interna real monta o mecanismo hoje — avaliado pelo
+QA (Seção 9.1) como decisão de escopo coerente com a própria sequência de
+lotes do `TASK.md` (nenhuma tela interna é dependência declarada de `FE-12`)
+e com o precedente já aceito em `FE-01` no mesmo lote, não uma lacuna
+disfarçada. Nenhuma inconsistência estrutural encontrada. Nenhuma ação de
+reprovação necessária em `TASK.md`; status permanece `Concluída`.
+
+**Nota de acompanhamento (não é bloqueio)**: a validação de usabilidade
+**real** (aviso aparecendo de fato numa tela com dado dinâmico, preservação
+de formulário real em um 401 real) fica pendente para quando `FE-04`
+(primeira tela interna, L3) for validada — nesse momento o QA também vai
+confirmar que a tela consome `SessionExpiryStatus`/`useHandleSessionExpired`
+de `FE-12` em vez de reimplementar o tratamento, conforme o próprio código
+de `FE-12` documenta como contrato de uso esperado.
+
+---
+
+## 10. Lote L1 — Autenticação (veredito agregado)
+
+**Tarefas do lote** (`TASK.md` Seção 3.0): `BE-04`, `BE-05`, `FE-01`, `FE-12`.
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `BE-04` | Aprovado com ressalvas (2 débitos de baixa severidade, nenhum bloqueante) | Seção 5 |
+| `BE-05` | Aprovado (nenhum achado) | Seção 7 |
+| `FE-01` | Reaprovado — `BUG-QA-FE01-01` (Alta) corrigido e confirmado nesta rodada | Seção 8 |
+| `FE-12` | Aprovado (infraestrutura correta, integração cruzada confirmada) | Seção 9 |
+
+### 10.1 Checklist de "Pronto" do lote (Definition of Done por lote)
+
+- [x] Todo critério de aceite de cada tarefa do lote foi testado e está
+      passando (`BE-04`/`BE-05` reconfirmados nesta rodada por herança das
+      seções 5/7, já aprovadas anteriormente; `FE-01` reteste do item
+      pendente na Seção 8; `FE-12` validação completa na Seção 9)
+- [x] Nenhum bug de severidade alta/crítica em aberto em qualquer tarefa do
+      lote — o único bug Alta do lote (`BUG-QA-FE01-01`) está confirmado
+      corrigido
+- [x] Todo bug de severidade baixa/média está registrado como débito, com
+      prazo (débitos de `BE-04` — Seção 5 — herdados sem mudança; nenhum
+      débito novo de `FE-01`/`FE-12` nesta rodada)
+- [x] Testes de integração cruzada executados e passando: dentro do lote
+      (`FE-12` ↔ `BE-04`/`FE-01`, Seção 9.4) e com dependência de lote já
+      fechado (`L0`/`FE-00`: `SessionExpiryBanner`/`ToastProvider`
+      reaproveitados sem duplicação, Seção 9.4)
+- [x] Requisito não funcional relevante validado (segurança do redirect —
+      Seções 6/8; acessibilidade do aviso de expiração — Seção 9.5)
+
+### 10.2 Veredito agregado
+
+## **Lote L1 — Autenticação: Aprovado com ressalvas**
+
+As 4 tarefas do lote estão avaliadas: `BE-05` sem nenhum achado; `BE-04` com
+2 débitos de severidade baixa, já registrados e sem prazo formal vencido
+(Seção 5); `FE-01` reaprovada nesta rodada após confirmação independente de
+que `BUG-QA-FE01-01` (severidade Alta, o único bloqueio do lote) está
+corrigido, sem regressão nos itens já aprovados nem nos casos legítimos de
+redirect interno; `FE-12` aprovada como infraestrutura transversal correta,
+com integração cruzada confirmada contra as outras três tarefas do lote e
+contra o componente de `FE-00` (`L0`, já fechado) que ela reutiliza.
+
+O lote é classificado **"Aprovado com ressalvas"** (não "Aprovado" puro)
+porque as ressalvas de baixa severidade de `BE-04` (Seção 5) permanecem em
+aberto como débito — nenhuma delas bloqueante, nenhuma nova nesta rodada.
+Não há nenhum bug de severidade alta/crítica em aberto em nenhuma das 4
+tarefas. `TASK.md`: `FE-01` reaberta de `Em andamento` para `Concluída`
+(Seção 8.5); `BE-04`/`BE-05`/`FE-12` permanecem `Concluída`, sem alteração.
+
+**Encaminhamento**: lote elegível para seguir à auditoria do DevSecOps e,
+em seguida, à aprovação do Tech Lead, conforme `EXECUTION-FLOW.md` §5 — não
+há pausa obrigatória. Nenhum padrão recorrente de bug identificado entre as
+tarefas deste lote (guardrail de "só escala por padrão recorrente" seguido);
+nenhuma entrada nova em `BLOCKERS.md`.
+
+---
+
+## 11. Lote L6 — Montagem de Times, Restrições e Substituições
+
+**Gatilho**: `BE-11`, `BE-12`, `BE-13`, `FE-09`, `FE-10`, `FE-11` (`TASK.md`
+Seção 3.0) todas marcadas `Concluída` pelo Backend/Frontend — primeira
+validação por QA de qualquer uma das 6 tarefas deste lote (nenhuma entrada
+prévia neste relatório para `BE-11`/`BE-12`/`BE-13`/`FE-09`/`FE-10`/`FE-11`).
+
+**Método (comum às 6 tarefas, aplicado uma vez, não repetido em cada
+subseção)**: validação independente e **reprodução real**, mesmo rigor já
+aplicado a `BE-02`/`BE-03`/`BE-04` — não apenas leitura das notas de status
+extensas deixadas pelos times no `TASK.md`, nem aceite dos números de teste
+relatados.
+
+- `npm test -- --run` executado pelo QA: **101 arquivos / 788 testes, 0
+  falha** — bate exatamente com o número relatado por `FE-10` (última tarefa
+  do lote a fechar).
+- `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run
+  format:check` executados pelo QA: todos limpos (0 erro/warning), incluindo
+  as 3 rotas novas de página (`/times`, `/restricoes`) e as 8 rotas de API
+  novas deste lote.
+- Ambiente Supabase local resetado do zero pelo QA (`npx supabase db
+  reset`) — as 30 migrations (27 de tabela/view/função + as 3 novas deste
+  lote: `20260903150000_forbid_restricao_obrigatoria_delete.sql`,
+  `20260903160000_create_confirmar_times_rodada_function.sql`, e a migration
+  de trava do legado que não pertence a este lote) aplicadas sem erro.
+  `npm run test:integration -- --run` executado **duas vezes seguidas**
+  contra esse ambiente: **19 arquivos/190 testes** na primeira execução
+  (bate exatamente com o relato de `BE-16`, a tarefa mais recente a rodar a
+  suíte de integração completa) e **188 passando + 2 puladas** na segunda —
+  as 2 puladas são `it.skipIf(flagJaExistiaAntesDesteArquivo)` em
+  `src/lib/supabase/__tests__/trava-schema-legada.integration.test.ts`
+  (BE-14, fora do escopo de L6), comportamento intencional e documentado no
+  próprio arquivo (a flag testada é irreversível por desenho — RF-08.6 —,
+  então os testes de "antes da flag" só fazem sentido na primeira execução
+  contra um banco resetado); não é regressão nem falha de nenhuma tarefa
+  deste lote.
+- Verificação direta por `psql` no container do Postgres local (fora de
+  qualquer helper do Backend), reproduzindo os pontos estruturais mais
+  críticos citados nas notas de status de `BE-11`/`BE-12`/`BE-13`: (a) zero
+  linhas em `information_schema.role_table_grants` para `grantee='anon'`
+  nas 4 tabelas deste lote (`app.time`, `app.time_atleta`,
+  `app.substituicao`, `app.restricao_obrigatoria`); (b) `DELETE FROM
+  app.restricao_obrigatoria` como superusuário `postgres` (privilégio maior
+  que `service_role`, bypassa RLS) bloqueado pelo trigger
+  `forbid_restricao_obrigatoria_delete` com a mensagem exata da migration;
+  (c) `has_function_privilege` confirma `app.confirmar_times_rodada`
+  executável só por `service_role` (`anon`: `f`); (d) reconfirmação de
+  times BLOQUEADA (`errcode TM001`) quando já existe `app.substituicao`
+  registrada contra a divisão atual — reproduzido de ponta a ponta (rodada
+  → confirmar times → registrar substituição → tentar reconfirmar → erro
+  exato); (e) `TM002` (mesmo atleta em dois times na mesma chamada)
+  reproduzido isoladamente. Ambiente limpo com novo `supabase db reset` ao
+  final, sem deixar dado de teste do QA no banco.
+
+### 11.1 BE-11 — Serviço de Times (heurística de duas fases, ADR-007/ADR-010)
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "Para `N` times,
+gera divisão respeitando 100% das restrições obrigatórias ativas ou retorna
+`status: "conflito"` com o contrato exato do ADR-010; nível técnico + idade
+usados como soft constraint (RF-05.3); execução acima do timeout
+configurado retorna erro de 'falha técnica real' (não trava a função
+serverless)."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Divisão respeita 100% das restrições obrigatórias ativas, para `N` times | Leitura linha a linha de `src/modules/times/{grafo,backtracking,busca-local,montar}.ts` + 9 testes de integração reais (`app/api/times/sugestao/__tests__/sugestao.integration.test.ts`) reexecutados pelo QA contra Supabase local | ✅ `backtracking.ts` é backtracking genuíno (poda por forward-checking + retrocesso real via `cores.delete`, nunca uma gulosa pura — confirmado lendo o laço `for (const cor of ordemCores)` com `continue`/retrocesso), aplicado por componente conexo (`grafo.ts`, union-find com compressão de caminho + união por rank, determinístico); Fase 2 (`busca-local.ts`) nunca desfaz a garantia da Fase 1 (`rebalancearTamanhos`/`otimizarEquilibrio` só mexem em atribuições já válidas, `swapValido` sempre checado antes de aplicar) |
+| `status: "conflito"` com contrato exato do ADR-010 | Comparação campo a campo de `presenter.ts` (`paraSugestaoConflitoResponse`) contra `API-CONTRACT.yaml` (`RestricaoConflitanteItem`/`GrupoConflitoItem`/`SugestaoTimesConflitoResponse`) | ✅ Nomes de campo idênticos (`restricao_id`/`atleta_a_id`/`atleta_a_nome`/`atleta_b_id`/`atleta_b_nome`/`motivo`/`grupo_conflito`; `grupo_conflito`/`atletas_ids`/`quantidade_times_solicitada`/`mensagem`), nenhum campo a mais/a menos (`additionalProperties: false` verdadeiro em ambos os lados) |
+| Nível técnico + idade como soft constraint (RF-05.3) | Leitura de `calcularCusto`/`otimizarEquilibrio` (`busca-local.ts`) | ✅ Custo = variância das médias entre times, normalizada pela variância populacional (nível técnico + idade separadamente, somadas); idade `null` (sem `data_nascimento`, RF-08.3) excluída do cálculo, nunca tratada como `0` — confirmado por leitura de `mediasPorTime`/`calcularCusto` e pelo schema `AtletaMontadoResponse.idade` (`nullable: true`) do `API-CONTRACT.yaml` |
+| Timeout → "falha técnica real", nunca trava a função serverless | Leitura de `timeout.ts` (`Deadline`/`TimeoutError`) + `montar.ts` (`try/catch` convertendo `TimeoutError` em `{ tipo: "falha_tecnica" }`) + `app/api/times/sugestao/route.ts` (`500`, corpo `{ error: "falha_tecnica", message }`) + 2 testes de integração dedicados (`src/modules/times/__tests__/montar.integration.test.ts`, via `orcamentoMsOverride` negativo, exclusivo de teste) reexecutados pelo QA | ✅ Semânticas diferentes por fase corretamente implementadas: Fase 1 usa `deadline.verificar()` (lança, converte em `500` — "ainda não provou nem ok nem conflito"), Fase 2 usa `deadline.vencido()` (não lança — devolve a melhor partição já válida encontrada); resposta HTTP sempre controlada, nunca um processo abortado sem resposta |
+
+**Verificação adicional do QA, além do texto literal do critério**:
+`quantidade_times` genuinamente parametrizável (`2..10`, validado em
+`src/modules/times/validation.ts`, `.min(QUANTIDADE_TIMES_MINIMA).max(MAX_QUANTIDADE_TIMES)`,
+mais `superRefine` rejeitando `quantidade_times > atletas_ids.length`) —
+nunca hardcoded `N=2` no backend (o `N=2` fixo é uma decisão do **Frontend**
+em `FE-09`, não do algoritmo). `POST /api/times/sugestao` corretamente
+coberto por `WRITE_METHODS` do `middleware.ts` (`401` sem sessão,
+reconfirmado por leitura + pela suíte de `middleware.test.ts`).
+
+**GAP de persistência sinalizado pela própria nota de status de `BE-11`** —
+avaliado pelo QA e confirmado como **resolvido**, não como lacuna aberta: o
+próprio `BE-13` (Seção 11.3 abaixo) implementou `POST
+/api/rodadas/{id}/times`, exatamente como a nota de `BE-11` antecipava
+("ficará resolvido ali... se for esse o caso"). Não é uma reinterpretação do
+critério de aceite de `BE-11` (que continua correto: o endpoint de `BE-11`
+nunca persiste, por desenho) — é confirmação de que o desvio estrutural foi
+tratado com decisão explícita de quem tem autoridade para isso (o usuário),
+não absorvido silenciosamente.
+
+**Achados**: nenhum. Todos os 3 itens do critério de aceite satisfeitos,
+verificados de forma independente (leitura de código linha a linha + 11
+testes de integração/atomicidade reexecutados pelo QA, incluindo os 2 de
+timeout determinístico).
+
+**Veredito**: **BE-11: Aprovado**, sem ressalva.
+
+### 11.2 BE-12 — CRUD de Restrições Obrigatórias
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "Desativar uma
+restrição preserva o registro histórico com `desativado_em`, nunca exclui
+fisicamente; qualquer sessão válida pode criar/editar/desativar (sem
+hierarquia, RN-12)."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Desativar preserva histórico (`desativado_em`), nunca exclui fisicamente | (a) Leitura de `src/modules/times/restricoes/{repository,mutate}.ts` — só `UPDATE ativo=false/desativado_em=now()`, nenhum `DELETE`; (b) 9 testes de integração reais reexecutados (`app/api/restricoes/__tests__/restricoes.integration.test.ts`); (c) `DELETE FROM app.restricao_obrigatoria` emitido diretamente pelo QA via `psql`, **como superusuário Postgres** (privilégio maior que `service_role`, bypassa RLS por completo) | ✅ `UPDATE` idempotente confirmado (reativar/desativar de novo preserva a data original); `DELETE` direto bloqueado pelo trigger `forbid_restricao_obrigatoria_delete` com a mensagem exata da migration, reproduzido pelo QA numa condição ainda mais rigorosa que a suíte do Backend (que só testa via API/`service_role`, não via superusuário direto) — garantia estrutural, não apenas "a API não chama DELETE" |
+| Qualquer sessão válida pode criar/editar/desativar, sem hierarquia (RN-12) | Leitura de todas as 5 rotas (`app/api/restricoes/**`) + módulo (`validation.ts`/`mutate.ts`/`repository.ts`) — busca por qualquer parâmetro de identidade/papel de quem chama | ✅ Nenhuma função ou rota deste módulo recebe/verifica identidade do chamador; a única checagem de autorização é a sessão válida binária do `middleware.ts` — RN-12 satisfeita por ausência estrutural, não por uma checagem condicional que poderia ser inconsistente |
+
+**Reforço estrutural além do texto literal, verificado empiricamente**: o
+trigger `forbid_restricao_obrigatoria_delete` (mesmo padrão já usado em
+`app.atleta`/`app.lancamento_pontos`, BE-02) — reproduzido pelo QA como
+parte do bloco de verificação comum da Seção 11 acima.
+
+**`GET /api/restricoes` exige sessão mesmo sendo leitura** — confirmado por
+leitura de `middleware.ts` (`INTERNAL_READ_PROTECTED_PREFIXES` inclui
+`/api/restricoes`) e pelos 2 casos de `middleware.test.ts` (401 sem sessão /
+passagem com sessão válida), reexecutados pelo QA na suíte completa.
+
+**Decisão de detalhe do Backend, avaliada pelo QA (não escalada, dentro da
+autoridade delegada)**: adição de `POST /api/restricoes/{id}/reativar`, não
+citado literalmente no texto de RF-05.5 ("cadastrar, editar, desativar").
+Confirmado como consistente — o `UX-SPEC.md` (T10, linha da Seção 4:
+"Toast de sucesso + lista atualizada"; wireframe da Seção 2) já desenha um
+botão "Reativar" para toda restrição desativada, e RN-11 nunca descreve a
+desativação de restrição como irreversível (diferente da anonimização de
+atleta, ADR-011) — sem esse endpoint, `FE-10` (que de fato o consome, ver
+11.5) ficaria sem suporte de API para uma ação já aprovada a montante. Não é
+extrapolação de escopo, é fechamento de uma dependência real da mesma
+cadeia de execução.
+
+**Achados**: nenhum. Todos os itens do critério satisfeitos, reforço
+estrutural reproduzido pelo QA numa condição mais rigorosa que a própria
+suíte do Backend.
+
+**Veredito**: **BE-12: Aprovado**, sem ressalva.
+
+### 11.3 BE-13 — Serviço de Substituições (RF-06) + persistência de times (escopo ampliado)
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "Registrar
+substituição não altera saldo de nenhum atleta; múltiplas substituições na
+mesma rodada sem limite (RF-06.2); tentar usar o mesmo atleta em 'sai' e
+'entra' é bloqueado com mensagem clara."
+
+**Nota preliminar de QA sobre o escopo ampliado**: a nota de status de
+`BE-13` no `TASK.md` registra que esta mesma execução também implementou
+`POST /api/rodadas/{id}/times` (persistência de `app.time`/`app.time_atleta`),
+por **decisão explícita do usuário**, não do próprio Backend, para resolver
+o GAP estrutural sinalizado por `BE-11`. O QA confirma que essa é a leitura
+correta do limite de autoridade do Backend (TASK.md Seção 1.0/limite de
+autoridade dos agentes de implementação: desvio estrutural de decomposição
+não pode ser absorvido silenciosamente por quem implementa) — o registro no
+`TASK.md` é explícito quanto à origem da decisão, não uma alegação
+verificável de forma independente pelo QA (decisão de processo, não de
+código); o QA valida os DOIS blocos de funcionalidade entregues, como
+qualquer código real da árvore de trabalho.
+
+**Parte 1 — critério de aceite literal de `BE-13` (Serviço de Substituições)**:
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Registrar substituição não altera saldo de nenhum atleta | Leitura de `src/modules/times/substituicoes/{repository,mutate}.ts` (única escrita do módulo é `INSERT` em `app.substituicao`) + 8 testes de integração reais reexecutados (`app/api/rodadas/[id]/substituicoes/__tests__/substituicoes.integration.test.ts`), incluindo o caso que consulta `app.lancamento_pontos` da rodada e confirma **zero linhas** após o registro | ✅ Prova negativa direta (não apenas ausência de código que escreva em `lancamento_pontos`), reexecutada pelo QA |
+| Múltiplas substituições na mesma rodada sem limite (RF-06.2) | Leitura de `validation.ts`/`repository.ts` (nenhuma checagem de teto/contagem) + teste de integração com 5 substituições sucessivas na mesma rodada, `GET` listando todas em ordem cronológica | ✅ Nenhum limite implementado, comportamento confirmado por teste real |
+| Mesmo atleta em "sai"/"entra" bloqueado com mensagem clara | Leitura de `substituicaoBodySchema.refine` (zod, mensagem citando "diferentes") + constraint `substituicao_atletas_distintos_check` já existente no banco (BE-02, defesa em profundidade) + teste de integração (`400`, nada persistido) | ✅ Bloqueio em duas camadas (validação de aplicação + constraint de banco), mensagem clara confirmada nos dois níveis |
+
+**Parte 2 — persistência de times (`app.confirmar_times_rodada`, escopo
+ampliado), verificação por reprodução real e direta pelo QA (além dos 10
+testes de integração do Backend, também reexecutados)**:
+
+- Atomicidade "tudo ou nada": reproduzido pelo QA — atleta inexistente
+  recusa com `404` **antes** de qualquer chamada à função PL/pgSQL
+  (`confirmarTimes` em `mutate.ts` valida existência via
+  `buscarAtletasParaMontagem` primeiro), confirmado por leitura de código;
+  o próprio teste do Backend confirma nada persistido nesse caso
+  consultando `app.time` diretamente.
+- Reconfirmação substitui a divisão anterior por completo — reproduzido
+  diretamente pelo QA via `psql`: rodada nova → `confirmar_times_rodada`
+  (2 times) → confirma de novo com outra composição → `app.time`/
+  `app.time_atleta` refletem só a divisão mais recente.
+- Bloqueio de reconfirmação quando já existe substituição registrada
+  (`errcode TM001`, fidelidade histórica RF-06.1) — reproduzido de ponta a
+  ponta pelo QA: rodada → confirmar times → registrar 1 substituição →
+  tentar reconfirmar → erro exato `"...não é possível
+  reconfirmar/substituir a divisão (fidelidade histórica, RF-06.1)"`,
+  batendo com o texto da migration e com o `409`/`ErroSubstituicaoExistenteBloqueiaReconfirmacao`
+  publicado em `API-CONTRACT.yaml`.
+- Defesa em profundidade `TM002` (mesmo atleta em dois times na mesma
+  chamada) — reproduzido isoladamente pelo QA, mensagem exata confirmada.
+- `GRANT EXECUTE`/`REVOKE` da função — confirmado por
+  `has_function_privilege`: `anon` = `false`, `service_role` = `true`.
+- Uso de função PL/pgSQL dedicada, justificado por necessidade técnica de
+  atomicidade multi-tabela (o cliente `service_role` fala com o Postgres
+  exclusivamente via PostgREST, sem transação client-side abrangendo
+  múltiplas chamadas) — racional lido e considerado válido pelo QA, mesmo
+  padrão arquitetural já usado por `lancar_rodada`/`excluir_rodada`/
+  `anonimizar_atleta` (ADR-006), aplicado aqui por analogia correta (não
+  porque a operação altera saldo, que não altera).
+
+**Middleware**: `/api/rodadas` corretamente adicionado a
+`INTERNAL_READ_PROTECTED_PREFIXES` por causa de `GET .../substituicoes`
+(leitura interna sem dado pessoal sensível, mas exclusiva da área interna,
+mesmo racional de `GET /api/restricoes`) — confirmado por leitura +
+suíte de `middleware.test.ts`.
+
+**Convenção de rollback de CI**: reexecutado pelo QA o mesmo grep do job
+`migration-convention-check` contra as migrations novas — `DROP FUNCTION`
+presente dentro do bloco `-- ROLLBACK:` de ambas (`forbid_restricao_obrigatoria_delete`,
+`confirmar_times_rodada`); nenhuma falha.
+
+**Achados**: nenhum bloqueante. Ambas as partes (Serviço de Substituições +
+persistência de times) satisfazem seus respectivos critérios, verificadas
+por reprodução real direta contra o banco, não apenas pela suíte fornecida.
+
+**Veredito**: **BE-13: Aprovado**, sem ressalva (inclui a parte de escopo
+ampliado, avaliada com o mesmo rigor da parte de critério literal).
+
+### 11.4 FE-09 — T09 Montagem de Times
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "Geração de
+sugestão com indicadores de equilíbrio por time; estado de conflito
+consumindo `restricoes_conflitantes`/`grupos_conflito` via `ConflictList`
+(`role="alert"`); 'Trocar jogador' via modal de seleção (nunca só
+drag-and-drop); layout desta release fixo em 2 colunas (decisão Seção 6);
+estado de 'falha técnica real' reaproveitado para o caso de timeout do
+backend."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Geração de sugestão com indicadores de equilíbrio por time | Leitura de `TimesResultado.tsx` + `times.test.ts` (`recomputeTeamStats`) | ✅ `Card` por time com nível técnico médio/idade média, "—" quando `null` (nunca inventado); `swapAtletas` recalcula só os dois times afetados, sem nova chamada de rede |
+| Estado de conflito via `ConflictList` (`role="alert"`) consumindo `restricoes_conflitantes`/`grupos_conflito` | Leitura de `MontagemTimesShell.tsx` (mapeamento `conflito.restricoes_conflitantes`/`conflito.grupos_conflito` → props de `ConflictList`) + `ConflictList.tsx` (`role="alert"` no `div` wrapper, confirmado por leitura direta) + 6 testes de `ConflictList.test.tsx` reexecutados | ✅ Consumo fiel do contrato real do ADR-010 (mesmos nomes de campo verificados na Seção 11.1); ícone `⚡` sempre `aria-hidden` com texto associado ("não podem ficar juntos") — WCAG 1.1.1/1.4.1 |
+| "Trocar jogador" via modal de seleção, nunca só drag-and-drop | Leitura de `TrocarJogadorModal.tsx` — nenhum atributo/listener de `draggable`/`dragstart`/`drop` em nenhum arquivo de `src/features/times/` | ✅ Candidatos são `button` nativo, focável/navegável por teclado; nenhum drag-and-drop implementado nesta release, consistente com a decisão documentada (Seção 6.2 do `UX-SPEC.md`: atalho de arrastar é "pode oferecer", não "deve") |
+| Layout fixo em 2 colunas (decisão Seção 6) | Leitura de `TimesResultado.module.css` | ✅ `grid-template-columns: 1fr` em `base`, `1fr 1fr` só a partir de `@media (min-width: 1024px)` — bate exatamente com `UX-SPEC.md` Seção 6.2 ("T09... `lg`: Times lado a lado (colunas)"); "2 colunas" refere-se à quantidade de times desta release (`QUANTIDADE_TIMES = 2` em `times.ts`), não a um layout de grade arbitrário |
+| Estado de "falha técnica real" reaproveitado para timeout do backend | Leitura de `timesApi.ts` (`TimesFalhaTecnicaError`) + `MontagemTimesShell.tsx` (mensagem de erro genérica em `erroGeracao`) | ✅ Nenhuma tela nova criada para o caso de timeout — reaproveita o mesmo estado de erro de geração já previsto pelo `UX-SPEC.md` Seção 4 ("falha técnica real... Não foi possível gerar a sugestão, tente novamente") |
+
+**Integração cruzada Frontend↔Backend (dentro do lote + com `BE-16`, `L5`,
+dependência cruzada de lote)**: `timesApi.ts` confirmado, por leitura direta,
+chamando exatamente `POST /api/times/sugestao` e `POST
+/api/rodadas/{id}/times` (BE-11/BE-13, L6) e `GET /api/rodadas`/`GET
+/api/rodadas/{id}` (BE-16, L5) — nenhum mock, nenhuma URL divergente do
+`API-CONTRACT.yaml`. O QA reexecutou a suíte de integração real do Backend
+(Seção 11, bloco comum) que cobre `BE-16` (`listar.integration.test.ts`/
+`detalhar.integration.test.ts`, 8 testes) — todos passando de forma
+independente. **Observação (não bloqueante, não é achado de bug)**:
+`BE-16` pertence ao Lote L5, ainda sem veredito agregado formal de QA neste
+relatório (L5 segue pendente de fechamento próprio); a dependência de `FE-09`
+sobre esse endpoint foi verificada funcionalmente aqui (contrato + testes
+reais passando), mas o fechamento formal do Lote L5 em si é responsabilidade
+de uma validação própria daquele lote, não substituída por esta.
+
+**Achados**: nenhum. Todos os 5 itens do critério satisfeitos, contrato de
+dado consumido fielmente, WCAG confirmado por leitura + `jest-axe` (0
+violação nos 85 testes novos, incluindo `MontagemTimesShell.test.tsx`).
+
+**Veredito**: **FE-09: Aprovado**, sem ressalva.
+
+### 11.5 FE-10 — T10 Gestão de Restrições Obrigatórias
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "CRUD de pares com
+soft-delete visível (data de desativação, nunca remoção da lista);
+autocomplete de atleta nos dois seletores."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| CRUD de pares completo | Leitura de `RestricoesList.tsx`/`RestricaoFormModal.tsx`/`restricoesApi.ts` | ✅ Criar (`RestricaoFormModal`, modo `create`), editar (modo `edit`, só para ativas — decisão de detalhe consistente, sem paralelo funcional para editar uma restrição já desativada), desativar/reativar (ação direta na lista) — os 4 verbos de `RF-05.5` + `reativar` (`BE-12`) todos exercitados |
+| Soft-delete visível (data de desativação, nunca remoção da lista) | Leitura de `RestricoesList.tsx` (linhas 219–256) + `RestricoesList.test.tsx` (caso "ambos os status simultâneos na lista") | ✅ Restrição desativada permanece na lista com `"Desativada em DD/MM/AAAA"` (`formatDataDesativacao`, pt-BR) + botão "Reativar"; ativa mostra "Ativa" + "Editar"/"Desativar" — as duas linhas coexistem, confirmado por teste explícito, nunca uma remove a outra da tela |
+| Autocomplete de atleta nos dois seletores | Leitura de `Combobox.tsx` + `RestricaoFormModal.tsx` (2 instâncias de `Combobox`, um por atleta) | ✅ Implementa o padrão ARIA 1.2 "Combobox with List Autocomplete" — `role="combobox"` no `<input>` real (nunca um `<div>` estilizado), `aria-expanded`/`aria-controls`/`aria-autocomplete="list"`/`aria-activedescendant` corretos, `listbox`/`option` reais com `aria-selected`; filtro tolerante a acento/caixa (`normalize`, `NFD`); seleção sempre exige opção real da lista, nunca aceita texto livre (`onChange("")` ao digitar, até nova seleção) |
+
+**Verificação independente adicional do QA no `Combobox`**: o padrão ARIA
+1.2 recomenda (não exige para WCAG 4.1.2, mas é boa prática da APG)
+`aria-haspopup="listbox"` no input além dos atributos já presentes — **não
+implementado**. Registrado como **BUG-QA-FE10-01** abaixo (severidade
+baixa, não bloqueia — 4.1.2 já está satisfeito pelo `role="combobox"` +
+`aria-expanded`/`aria-controls` presentes, que já comunicam nome/função/
+valor corretamente; `aria-haspopup` é reforço redundante nesse caso, não
+uma lacuna de nome/função/valor).
+
+**Integração cruzada Frontend↔Backend**: `restricoesApi.ts` confirmado
+chamando exatamente os 5 endpoints publicados por `BE-12`
+(`GET`/`POST /api/restricoes`, `PUT /api/restricoes/{id}`, `POST
+.../desativar`, `POST .../reativar`) — nenhum mock. `GET /api/restricoes`
+exigindo sessão confirmado (Seção 11.2).
+
+**Achados**: 1 débito de baixa severidade (ver abaixo). Nenhum bloqueio.
+
+---
+
+**BUG-QA-FE10-01 — Severidade: Baixa (débito, sem prazo formal — polimento de acessibilidade)**
+- **Componente**: `src/components/ui/Combobox/Combobox.tsx`.
+- **Passos para reproduzir**: ler o JSX do `<input role="combobox" ...>` —
+  nenhum atributo `aria-haspopup`.
+- **Resultado esperado** (WAI-ARIA Authoring Practices, padrão "Combobox
+  with List Autocomplete", citado no próprio comentário do componente como
+  referência seguida): `aria-haspopup="listbox"` no input, além dos
+  atributos já presentes.
+- **Resultado obtido**: atributo ausente. `role="combobox"` +
+  `aria-expanded`/`aria-controls`/`aria-autocomplete="list"`/
+  `aria-activedescendant` já presentes e corretos — WCAG 4.1.2 (nome/
+  função/valor) já satisfeito sem este atributo adicional, que é reforço de
+  boa prática da APG, não um critério de sucesso WCAG isolado.
+- **Por que não bloqueia FE-10**: o critério de aceite literal ("autocomplete
+  de atleta nos dois seletores") não menciona `aria-haspopup`
+  especificamente, e nenhuma violação foi reportada por `jest-axe` (0
+  violação nos 41 testes novos de `FE-10`, incluindo `Combobox.test.tsx`).
+- **Ação**: débito de baixa severidade, atribuído ao Frontend — adicionar
+  `aria-haspopup="listbox"` ao `<input>` do `Combobox` na próxima janela de
+  manutenção do componente, junto com a formalização já sinalizada pelo
+  próprio Frontend na Seção 3.2/3.3 do `UX-SPEC.md` (mesmo ponto pendente
+  para `Select`, FE-11) — sem prazo formal, não bloqueia nenhuma tarefa
+  dependente.
+
+---
+
+**Veredito**: **FE-10: Aprovado com ressalvas** (1 débito de baixa
+severidade, `BUG-QA-FE10-01`, não bloqueante).
+
+### 11.6 FE-11 — T11 Substituição no Intervalo
+
+**Critério de aceite (TASK.md, Seção 3.1, texto exato)**: "Acessível a
+partir de T09; '+ Registrar outra' sempre disponível; bloqueio acessível ao
+selecionar o mesmo atleta em 'sai'/'entra'; reforço textual de 'não altera
+pontos'."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Acessível a partir de T09 | Leitura de `TimesResultado.tsx` (botão "Substituições" por time, gated por `confirmados`) + `TimesResultado.test.tsx` (2 casos novos de gating) | ✅ Botão só aparece quando existe uma divisão de fato persistida (`POST /api/rodadas/{id}/times` já confirmado, `BE-13`) e casa por `label` com o time exibido; some após gerar nova sugestão/"Gerar mesmo assim" (confirmação anterior invalidada) — implementado como `Modal` aberto a partir de T09, `onClose` cumprindo o papel do "←" do wireframe |
+| "+ Registrar outra" sempre disponível | Leitura de `SubstituicoesModal.tsx` (`handleRegistrarOutra`, botão fora de qualquer condicional de estado) | ✅ Botão sempre visível abaixo da lista (vazia ou não), nunca escondido — limpa os campos e devolve o foco ao seletor "Sai" |
+| Bloqueio acessível ao selecionar o mesmo atleta em "sai"/"entra" | Leitura de `SubstituicoesModal.tsx` (`mesmoAtleta`, propagado como prop `error` do `Select` "Entra") + `Select.tsx` (`aria-invalid`/`aria-describedby` via `FormField`) | ✅ Mensagem "Escolha um atleta diferente do que já está saindo." associada ao campo via `aria-describedby`/`aria-invalid` (nunca só desabilitar o submit em silêncio); botão "Registrar Substituição" também desabilitado enquanto a condição persistir — dupla sinalização, uma delas sempre perceptível por leitor de tela |
+| Reforço textual "não altera pontos" | Leitura de `SubstituicoesModal.tsx`, linha 184-186 | ✅ Texto literal "Substituição não altera pontos, apenas registro histórico." sempre visível no topo, antes de qualquer estado de carregamento/erro/lista |
+
+**Verificação independente adicional do QA**: "Entra" lista todo atleta
+ativo, deliberadamente sem excluir o roster do time atual — confirmado que
+isso é necessário (não uma falha de filtro) para que o cenário de bloqueio
+acessível seja de fato alcançável pela interface (se "Entra" excluísse quem
+já está no time, o par idêntico nunca poderia ser selecionado, e o bloqueio
+nunca seria exercitado pelo usuário real). `rosterAtualDoTime`
+(`substituicoes.ts`) recalcula corretamente o roster "ao vivo" a partir da
+divisão persistida + histórico de substituições em ordem cronológica —
+verificado por leitura + 7 testes unitários próprios (`substituicoes.test.ts`),
+reexecutados pelo QA.
+
+**Componente `Select` (novo do design system)** — mesma verificação de
+FE-00: label sempre visível (`<label for>`), erro associado via
+`aria-describedby`/`aria-invalid`; nenhuma decisão visual nova (reaproveita
+100% o wrapper `FormField`/`input.module.css` de `TextInput`). Nenhum
+achado.
+
+**Integração cruzada Frontend↔Backend**: `substituicoesApi.ts` confirmado
+chamando exatamente `GET`/`POST /api/rodadas/{id}/substituicoes` (`BE-13`) —
+nenhum mock.
+
+**Achados**: nenhum. Todos os 4 itens do critério satisfeitos.
+
+**Veredito**: **FE-11: Aprovado**, sem ressalva.
+
+### 11.7 Checklist de "Pronto" do lote (Definition of Done por lote)
+
+- [x] Todo critério de aceite de cada uma das 6 tarefas do lote foi testado
+      e está passando — verificado item a item nas Seções 11.1 a 11.6,
+      reproduzido de forma independente (código lido linha a linha, testes
+      reexecutados, consultas SQL diretas para os pontos estruturais mais
+      críticos)
+- [x] Nenhum bug de severidade alta/crítica em aberto em qualquer tarefa do
+      lote
+- [x] Todo bug de severidade baixa/média está registrado como débito, com
+      prazo — único achado do lote é `BUG-QA-FE10-01` (baixa, sem prazo
+      formal, não bloqueante)
+- [x] Testes de integração cruzada executados e passando: dentro do lote
+      (`FE-09`↔`BE-11`/`BE-13`, `FE-10`↔`BE-12`, `FE-11`↔`BE-13`, Seções
+      11.4/11.5/11.6) e com dependência de lote não-L6 (`FE-09`↔`BE-16`,
+      `L5` — funcionalmente verificado, ver observação da Seção 11.4 sobre
+      o fechamento formal do próprio `L5` ainda estar pendente em separado)
+- [x] Requisito não funcional relevante validado: acessibilidade WCAG dos
+      componentes novos (`ConflictList` — `role="alert"`, ícone `aria-hidden`
+      com texto associado; `Select`/`Combobox` — padrão ARIA nativo/1.2
+      Combobox with List Autocomplete; todos com 0 violação `jest-axe`
+      confirmada na suíte completa) e responsividade conforme `UX-SPEC.md`
+      Seção 6.2 (T09: 1 coluna em `base`, 2 colunas a partir de `lg`/1024px,
+      confirmado por leitura direta do CSS Module)
+
+### 11.8 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `BE-11` | Aprovado | Seção 11.1 |
+| `BE-12` | Aprovado | Seção 11.2 |
+| `BE-13` | Aprovado (inclui escopo ampliado) | Seção 11.3 |
+| `FE-09` | Aprovado | Seção 11.4 |
+| `FE-10` | Aprovado com ressalvas (1 débito de baixa severidade) | Seção 11.5 |
+| `FE-11` | Aprovado | Seção 11.6 |
+
+## **Lote L6 — Montagem de Times, Restrições e Substituições: Aprovado com ressalvas**
+
+As 6 tarefas do lote foram validadas de forma independente pelo QA —
+código-fonte lido linha a linha (não apenas as notas de status extensas
+deixadas pelos times no `TASK.md`), suíte completa (788 testes) e suíte de
+integração real (190 testes, contra Supabase local resetado do zero)
+reexecutadas com os mesmos números relatados, `lint`/`typecheck`/
+`format:check`/`build` confirmados limpos, e os pontos estruturais mais
+críticos (deny-by-default de `anon` nas 4 tabelas do lote, trigger de
+não-exclusão de `restricao_obrigatoria` numa condição mais rigorosa que a
+suíte do Backend, atomicidade/bloqueio de reconfirmação de
+`confirmar_times_rodada`, `GRANT EXECUTE` restrito a `service_role`)
+reproduzidos empiricamente pelo QA via `psql` direto, além da suíte
+automatizada.
+
+O lote é classificado **"Aprovado com ressalvas"** (não "Aprovado" puro)
+por um único débito de severidade baixa (`BUG-QA-FE10-01` — atributo
+`aria-haspopup` ausente no `Combobox`, sem impacto WCAG confirmado, sem
+prazo formal), não bloqueante. Nenhum bug de severidade alta/crítica em
+aberto em nenhuma das 6 tarefas. Nenhuma ação de reprovação necessária em
+`TASK.md` — todas as 6 tarefas permanecem `Concluída`.
+
+**Observação de escopo (não é achado de bug, não bloqueia este lote)**:
+`FE-09` depende funcionalmente de `BE-16` (`GET /api/rodadas`/`GET
+/api/rodadas/{id}`), tarefa do Lote L5 já `Concluída` e cujos testes reais
+foram reexecutados com sucesso pelo QA como parte da integração cruzada
+desta validação — mas o fechamento formal agregado do próprio Lote L5
+segue pendente de validação própria, em separado, não substituída por esta
+entrada.
+
+**Nota de rastreabilidade de padrão (não é escalonamento)**: nenhum padrão
+recorrente de bug foi identificado entre as 6 tarefas deste lote nem em
+relação aos achados de lotes anteriores (os achados de `format:check`/
+`AppNav` de `L0` já estavam resolvidos antes de `L1`; o débito de
+segurança de `BE-04` é de natureza distinta do achado de acessibilidade
+aqui). Guardrail de "só escala por padrão recorrente" seguido — nenhuma
+entrada nova em `BLOCKERS.md`.
+
+**Encaminhamento**: lote elegível para seguir à auditoria do DevSecOps e,
+em seguida, à aprovação do Tech Lead, conforme `EXECUTION-FLOW.md` §5.
+

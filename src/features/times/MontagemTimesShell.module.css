@@ -1,0 +1,96 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.errorWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+}
+
+/* Fase de seleção de presentes (`PresencaSelecao.tsx`) */
+
+.selecaoWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.instrucao {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.contagem {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.atletaList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.atletaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.atletaNome {
+  font-weight: var(--font-weight-medium);
+}
+
+.calculando {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Fase de conflito (`MontagemTimesShell.tsx`) */
+
+.conflitoWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.conflitoIntro {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-danger);
+}
+
+.conflitoAcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+@media (min-width: 640px) {
+  .conflitoAcoes {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
