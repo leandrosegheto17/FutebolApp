@@ -51,9 +51,27 @@ function formatZodError(prefix: string, error: z.ZodError): string {
  * Valida e retorna as variáveis de ambiente seguras para o cliente. Pode ser
  * chamada tanto no servidor quanto no navegador (Next.js já garante que só
  * variáveis `NEXT_PUBLIC_*` chegam ao bundle do cliente).
+ *
+ * CORREÇÃO (2026-09-04, achado ao rodar a aplicação real pela primeira vez
+ * num navegador, contra o projeto Supabase real — nenhum dos 788 testes
+ * automatizados nem a validação manual anterior tinha exercitado o bundle
+ * compilado do cliente): o valor-padrão do parâmetro `source` não pode ser
+ * `process.env` inteiro (objeto). O Next.js só consegue substituir
+ * `NEXT_PUBLIC_*` por seus valores literais no bundle do navegador quando o
+ * código referencia cada variável individualmente como `process.env.NEXT_
+ * PUBLIC_X` — passar o objeto `process.env` como um todo não é reconhecido
+ * pela análise estática do compilador, então nenhuma variável era substituída
+ * e todas chegavam `undefined` no navegador real (mesmo corretas no
+ * `.env.local` e funcionando no servidor, onde `process.env` sempre existe de
+ * verdade). Resultado silencioso: ranking público e presença mensal
+ * quebrados. Corrigido referenciando cada variável explicitamente abaixo.
  */
 export function getPublicEnv(
-  source: Record<string, string | undefined> = process.env,
+  source: Record<string, string | undefined> = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_APP_BASE_URL: process.env.NEXT_PUBLIC_APP_BASE_URL,
+  },
 ): PublicEnv {
   const parsed = publicEnvSchema.safeParse(source);
   if (!parsed.success) {

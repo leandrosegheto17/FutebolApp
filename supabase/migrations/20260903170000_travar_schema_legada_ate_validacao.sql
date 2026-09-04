@@ -117,6 +117,7 @@
 -- ============================================================================
 -- Decisao de detalhe 4 — REVOKE complementar de escrita comum (INSERT/
 -- UPDATE/DELETE/TRUNCATE), permanente, NUNCA reconcedido pela flag
+-- [HISTORICO ORIGINAL — REVERTIDO, ver "CORRECAO (2026-09-04)" logo abaixo]
 -- ============================================================================
 -- Alem de DROP/ALTER (pedido literal do criterio de aceite), GUARDRAILS.md
 -- regra 11 e mais ampla: "a schema legada permanece intocada (SOMENTE
@@ -146,6 +147,33 @@
 -- tarefa (Decisoes 1-3, event trigger) para DROP/ALTER, que E dinamica por
 -- natureza (reavalia a flag a cada tentativa, nao depende de quando rodou).
 --
+-- CORRECAO (2026-09-04, BE-14) — a suposicao acima estava ERRADA e a Secao 3
+-- (o REVOKE/ALTER DEFAULT PRIVILEGES descrito acima) foi REMOVIDA por
+-- inteiro desta migration. Motivo: a decisao acima foi escrita assumindo que
+-- o app legado real (`FutebolRanking`) seria descontinuado em breve e que
+-- "ninguem mais escreve" nas tabelas de `public` alem de BE-15 (que so LE).
+-- O stakeholder confirmou, depois deste lote (L7) ja fechado, que o
+-- `FutebolRanking` **continua no ar e em uso normal por tempo indeterminado**
+-- (organizador lanca dado manualmente nos dois sistemas em paralelo, meses
+-- possiveis, ate decidir por conta propria aposentar o legado) — e esse app
+-- legado real (RLS desabilitado, confirmado no ADR-002/`LEGADO-SCHEMA.md`)
+-- escreve nessas mesmas tabelas via uma das roles padrao do Supabase
+-- (`anon`/`authenticated`/`service_role`). O REVOKE permanente acima, se
+-- aplicado ao projeto remoto compartilhado, teria derrubado a capacidade de
+-- escrita do app legado imediatamente — exatamente o que o stakeholder disse
+-- explicitamente que nao pode acontecer. GUARDRAILS.md regra 11 ("somente
+-- leitura ate validacao explicita") permanece correta sobre o que os
+-- SCRIPTS DESTE PROJETO fazem (BE-15 so le, nunca foi alterado) — nunca foi,
+-- e nunca poderia ser, uma regra que restrinja a operacao do proprio app
+-- legado, que escreve em `public` por conta propria, fora do controle deste
+-- projeto (ver GUARDRAILS.md regra 11, nota adicionada na mesma data). A
+-- trava de DROP/ALTER TABLE/DROP SCHEMA (Decisoes 1-3, event trigger) NAO
+-- muda com esta correcao — continua fazendo sentido e nao afeta a operacao
+-- normal do app legado (ele nunca faz DDL em tempo de execucao); a flag de
+-- validacao (RF-08.5/RF-08.6) passa a representar exclusivamente "o
+-- organizador decidiu, no futuro, arquivar/remover a schema legada" — evento
+-- manual e distante, nao consequencia automatica de BE-15.
+--
 -- ROLLBACK:
 --   drop event trigger if exists trg_bloqueia_alter_schema_legada;
 --   drop event trigger if exists trg_bloqueia_drop_schema_legada;
@@ -153,13 +181,19 @@
 --   drop trigger if exists trg_legado_migracao_validacao_no_delete on app.legado_migracao_validacao;
 --   drop function if exists app.forbid_legado_migracao_validacao_delete();
 --   drop table if exists app.legado_migracao_validacao cascade;
---   grant insert, update, delete, truncate on all tables in schema public to anon, authenticated, service_role;
---   alter default privileges in schema public grant insert, update, delete, truncate on tables to anon, authenticated, service_role;
 -- (aditiva por natureza -- nenhuma tabela/coluna ja existente e alterada;
 -- bloco listado porque o arquivo contem os literais "DROP TABLE"/"DROP
 -- SCHEMA" dentro do filtro WHEN TAG do event trigger, o que aciona o grep
 -- mecanico do CI -- mesmo padrao ja usado em
 -- 20260903150000_forbid_restricao_obrigatoria_delete.sql.)
+--
+-- CORRECAO (2026-09-04, BE-14): as duas linhas `grant insert, update, delete,
+-- truncate .../alter default privileges ... grant ...` que existiam aqui,
+-- revertendo o REVOKE permanente da antiga Secao 3, foram REMOVIDAS deste
+-- bloco de rollback porque essa Secao 3 deixou de existir (ver comentario no
+-- lugar onde ela estava, mais abaixo neste arquivo, e "Decisao de detalhe 4 —
+-- CORRECAO" logo acima da antiga Secao 3). Nao ha mais nenhum REVOKE de
+-- INSERT/UPDATE/DELETE/TRUNCATE aplicado por esta migration para reverter.
 
 -- ----------------------------------------------------------------------------
 -- 1. Tabela de controle — flag de validacao explicita (Decisao 2)
@@ -338,14 +372,20 @@ comment on event trigger trg_bloqueia_drop_schema_legada is
   'vazia — nunca afeta a schema `app` (dominio novo) nem qualquer outra.';
 
 -- ----------------------------------------------------------------------------
--- 3. REVOKE complementar de escrita comum sobre a schema legada, permanente
---    (Decisao 4) — reforca GUARDRAILS.md regra 11 ("somente leitura")
+-- 3. [REMOVIDA — CORRECAO 2026-09-04, BE-14] REVOKE complementar de escrita
+--    comum sobre a schema legada — nao mais aplicado
 -- ----------------------------------------------------------------------------
-
-revoke insert, update, delete, truncate
-  on all tables in schema public
-  from anon, authenticated, service_role;
-
-alter default privileges in schema public
-  revoke insert, update, delete, truncate on tables
-  from anon, authenticated, service_role;
+--
+-- Esta secao continha, ate 2026-09-04, um `REVOKE INSERT, UPDATE, DELETE,
+-- TRUNCATE ON ALL TABLES IN SCHEMA public` + `ALTER DEFAULT PRIVILEGES`
+-- equivalente para tabelas futuras, aplicado permanentemente as roles
+-- `anon`/`authenticated`/`service_role` (Decisao de detalhe 4, ver historico
+-- completo e a nota de correcao logo acima, antes da Secao 2). Foi removida
+-- por inteiro porque o stakeholder confirmou, apos este lote ja fechado, que
+-- o app legado real (`FutebolRanking`) continua no ar e em uso normal por
+-- tempo indeterminado, escrevendo diretamente nas mesmas tabelas de `public`
+-- via uma dessas roles (RLS desabilitado no legado). Aplicar este REVOKE ao
+-- projeto remoto compartilhado (ADR-002) derrubaria a escrita do app legado
+-- imediatamente — o oposto do que o stakeholder pediu explicitamente. A
+-- trava de DROP/ALTER/DROP SCHEMA da Secao 2 (event trigger) nao e afetada
+-- por esta remocao e continua ativa normalmente.

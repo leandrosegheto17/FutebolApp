@@ -61,7 +61,20 @@ formatação de código (isso é responsabilidade de lint/formatter configurado 
     (ADR-008); a schema legada permanece **intocada (somente leitura)** até
     validação explícita do organizador (RF-08.5/RF-08.6) — nenhum script de
     migração tem permissão de escrita destrutiva sobre a schema legada antes
-    dessa validação.
+    dessa validação. **Nota (2026-09-04, correção BE-14)**: esta regra vale
+    exclusivamente para os **scripts deste projeto** (ex.: BE-15, que só lê da
+    schema legada) — ela nunca restringe, e nunca poderia restringir, a
+    operação normal do próprio app legado (`FutebolRanking`), que continua
+    escrevendo em `public` por conta própria, fora do controle deste projeto,
+    por tempo indeterminado (o stakeholder confirmou que o legado permanece em
+    uso ativo em paralelo até decisão futura própria de descontinuá-lo). A
+    migration técnica de BE-14 (`20260903170000_travar_schema_legada_ate_validacao.sql`)
+    foi corrigida na mesma data para remover um `REVOKE` permanente de escrita
+    comum (INSERT/UPDATE/DELETE/TRUNCATE) que, por engano, teria bloqueado
+    essa escrita legítima do app legado caso aplicado ao projeto remoto
+    compartilhado — a trava contra `DROP`/`ALTER TABLE`/`DROP SCHEMA`
+    destrutivo permanece válida e ativa, pois nunca afeta a operação normal
+    (não-DDL) do app legado.
 12. **Nenhum recálculo retroativo da pontuação histórica migrada do legado**
     (RN-13) — o histórico pré-migração é preservado exatamente como estava; a
     tabela RN-05 só vale a partir da primeira rodada lançada após a migração.

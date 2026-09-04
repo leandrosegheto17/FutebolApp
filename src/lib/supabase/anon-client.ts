@@ -20,5 +20,8 @@ export function getAnonClient(): SupabaseClient {
       persistSession: false,
       autoRefreshToken: false,
     },
+    db: {
+      schema: "app",
+    },
   });
 }

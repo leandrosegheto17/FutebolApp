@@ -42,8 +42,22 @@
  * suíte "desfazer" a validação entre duas execuções. Por isso os testes de
  * "antes da flag" são pulados (`it.skipIf`, com motivo explícito no nome)
  * quando a flag já existir de uma execução anterior; os testes de "depois
- * da flag"/REVOKE permanente/imutabilidade continuam rodando sempre,
- * independente disso.
+ * da flag"/imutabilidade continuam rodando sempre, independente disso.
+ *
+ * CORREÇÃO (2026-09-04, BE-14): este arquivo continha um describe adicional
+ * ("REVOKE permanente de escrita comum (DML) sobre a schema legada"),
+ * removido por inteiro nesta data. Ele testava um `REVOKE INSERT/UPDATE/
+ * DELETE/TRUNCATE` permanente que a migration desta tarefa
+ * (`20260903170000_travar_schema_legada_ate_validacao.sql`) aplicava sobre
+ * toda tabela de `public` — essa instrução foi removida da própria
+ * migration (ver comentário "CORREÇÃO (2026-09-04)" nela) porque o
+ * stakeholder confirmou que o app legado real (`FutebolRanking`) continua
+ * no ar, escrevendo normalmente nessas mesmas tabelas via uma dessas roles,
+ * por tempo indeterminado — um REVOKE permanente derrubaria essa escrita
+ * legítima, o oposto do pedido explícito do stakeholder. Os testes de
+ * DROP/ALTER TABLE (bloqueados antes da flag, liberados depois) permanecem
+ * 100% inalterados — essa trava nunca teve relação com a escrita normal do
+ * app legado (ele nunca faz DDL em tempo de execução).
  */
 import { Client as PgClient } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -88,9 +102,6 @@ describe.skipIf(!podeRodar)(
         "create table if not exists public._be14_alter_test (id int primary key)",
       );
       await pg.query(
-        "create table if not exists public._be14_dml_test (id int primary key)",
-      );
-      await pg.query(
         "create table if not exists app._be14_app_schema_test (id int primary key)",
       );
     });
@@ -101,7 +112,6 @@ describe.skipIf(!podeRodar)(
       // arquivo) — DROP em `public` já está liberado.
       await pg.query("drop table if exists public._be14_drop_test");
       await pg.query("drop table if exists public._be14_alter_test");
-      await pg.query("drop table if exists public._be14_dml_test");
       await pg.end();
     });
 
@@ -224,92 +234,21 @@ describe.skipIf(!podeRodar)(
       });
     });
 
-    describe("REVOKE permanente de escrita comum (DML) sobre a schema legada — nunca reconcedido pela flag", () => {
-      beforeAll(async () => {
-        // Simula o estado real de uma tabela legada pre-existente (Supabase
-        // concede por padrao SELECT/INSERT/UPDATE/DELETE/TRUNCATE amplos a
-        // anon/authenticated/service_role em tabelas de `public`) e reaplica
-        // exatamente a mesma instrucao REVOKE da migration desta tarefa
-        // (`20260903170000_travar_schema_legada_ate_validacao.sql`) contra
-        // esta tabela — necessario porque o REVOKE da migration, ao rodar
-        // uma unica vez, so alcanca as tabelas que ja existiam naquele
-        // momento (mesmo comportamento padrao de `REVOKE ... ON ALL TABLES
-        // IN SCHEMA`, ver nota na propria migration); esta tabela e criada
-        // pelo teste DEPOIS da migration ja ter rodado, entao precisa da
-        // mesma instrucao reaplicada para representar fielmente o cenario
-        // real (a schema legada real ja existe HOJE, antes de BE-14 rodar
-        // contra ela de verdade).
-        await pg.query(
-          "grant select, insert, update, delete, truncate on public._be14_dml_test to anon, authenticated, service_role",
-        );
-        await pg.query(
-          "revoke insert, update, delete, truncate on public._be14_dml_test from anon, authenticated, service_role",
-        );
-      });
-
-      it.each(["anon", "authenticated", "service_role"])(
-        "INSERT como %s em public.* é negado, mesmo após a flag de validação já gravada",
-        async (role) => {
-          await pg.query("begin");
-          try {
-            await pg.query(`set local role ${role}`);
-            await expect(
-              pg.query("insert into public._be14_dml_test (id) values (1)"),
-            ).rejects.toMatchObject({ code: "42501" });
-          } finally {
-            await pg.query("rollback");
-          }
-        },
-      );
-
-      it("UPDATE como service_role em public.* é negado, mesmo após a flag", async () => {
-        await pg.query("begin");
-        try {
-          await pg.query("set local role service_role");
-          await expect(
-            pg.query("update public._be14_dml_test set id = id where id = 1"),
-          ).rejects.toMatchObject({ code: "42501" });
-        } finally {
-          await pg.query("rollback");
-        }
-      });
-
-      it("DELETE como service_role em public.* é negado, mesmo após a flag", async () => {
-        await pg.query("begin");
-        try {
-          await pg.query("set local role service_role");
-          await expect(
-            pg.query("delete from public._be14_dml_test where id = 1"),
-          ).rejects.toMatchObject({ code: "42501" });
-        } finally {
-          await pg.query("rollback");
-        }
-      });
-
-      it("TRUNCATE como service_role em public.* é negado, mesmo após a flag", async () => {
-        await pg.query("begin");
-        try {
-          await pg.query("set local role service_role");
-          await expect(pg.query("truncate public._be14_dml_test")).rejects.toMatchObject({
-            code: "42501",
-          });
-        } finally {
-          await pg.query("rollback");
-        }
-      });
-
-      it("SELECT continua permitido (a trava é de escrita, nunca de leitura)", async () => {
-        await pg.query("begin");
-        try {
-          await pg.query("set local role service_role");
-          await expect(
-            pg.query("select * from public._be14_dml_test"),
-          ).resolves.toBeDefined();
-        } finally {
-          await pg.query("rollback");
-        }
-      });
-    });
+    // CORRECAO (2026-09-04, BE-14): o describe "REVOKE permanente de escrita
+    // comum (DML)..." que existia aqui foi REMOVIDO por inteiro. Ele
+    // verificava um `REVOKE INSERT/UPDATE/DELETE/TRUNCATE` permanente que a
+    // migration desta tarefa aplicava sobre TODA tabela de `public` — essa
+    // instrucao foi removida da propria migration
+    // (`20260903170000_travar_schema_legada_ate_validacao.sql`, ver
+    // comentario "CORRECAO (2026-09-04)" no lugar onde a antiga Secao 3
+    // estava) porque o stakeholder confirmou que o app legado real
+    // (`FutebolRanking`) continua no ar, escrevendo normalmente nessas mesmas
+    // tabelas via uma dessas roles, por tempo indeterminado — um REVOKE
+    // permanente derrubaria essa escrita legitima. Os testes de DROP/ALTER
+    // TABLE/DROP SCHEMA acima e abaixo (bloqueados antes da flag, liberados
+    // depois) NAO mudam com esta correcao — essa trava nunca teve relacao
+    // com a escrita normal do app legado (ele nunca faz DDL em tempo de
+    // execucao).
 
     describe("imutabilidade da flag de validação", () => {
       it("DELETE em app.legado_migracao_validacao é sempre bloqueado, mesmo já validado", async () => {
