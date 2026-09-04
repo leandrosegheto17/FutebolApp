@@ -743,6 +743,51 @@ executado e confirmado. Consequências práticas:
 | Disparo manual do health-check | `gh workflow run` (`workflow_dispatch`) | Success, `ACTIVE_HEALTHY`, run #2 |
 | Disparo de `deploy-production.yml`/`deploy-staging.yml`/`rollback-production.yml` | — | **Não executado nesta sessão** |
 
+### 7.6 Publicação real do commit `56d9047` (correções de segurança + CSP) — 2026-09-04
+
+**Contexto**: commit `56d9047` (`main`, push real para `origin/main`) consolida
+a execução completa do Tier 1 desta sessão de retomada — inclui DEBT-05,
+DEBT-06 (código, `app/api/auth/login/route.ts` e
+`src/modules/autenticacao/client-ip.ts`) e DEBT-03 (`vercel.json`, CSP).
+
+**O que aconteceu, verificado por comando real, não assumido**:
+1. `git push origin main` (`4c57be7..56d9047`) disparou automaticamente a
+   integração nativa Git↔Vercel deste projeto — confirmado por
+   `npx vercel ls futebol-app --prod` mostrando um novo deployment
+   (`futebol-hjgjcb2vq…`, `dpl_BQ37jqZ9AU3MmRc6MZrKdxENgr2S`) em
+   `Building` poucos segundos após o push, concluído como `Ready`.
+2. **Achado relevante para a Seção 7.3** (revisa a especulação registrada
+   lá sobre como o deploy real anterior aconteceu): a integração automática
+   do Git **não promove sozinha** o alias real de produção
+   (`futebol-app-lsm.vercel.app`) — ela só atribui os domínios padrão
+   (`futebol-app-leandrosegheto17s-projects.vercel.app`,
+   `futebol-app-git-main-…vercel.app`). O alias `-lsm` é uma atribuição
+   manual separada (confirmado: continuou apontando para o deployment
+   anterior, `futebol-1hs9xw5vf…`/`4c57be7`, minutos depois do build novo
+   terminar). Isso significa que a publicação real de produção descrita na
+   Seção 7.3 **não pode** ter sido um simples "push disparou a Vercel" — teve
+   que envolver, em algum momento, uma promoção manual de alias (`vercel
+   alias`/`vercel --prod`/"Promote to Production" no dashboard) — atualiza,
+   não invalida, a lacuna de confirmação já registrada na Seção 7.3.
+3. Por autorização explícita do usuário/organizador nesta sessão, o
+   deployment novo foi promovido manualmente ao alias real:
+   `npx vercel alias set futebol-hjgjcb2vq-…vercel.app futebol-app-lsm.vercel.app`
+   → sucesso.
+4. Verificação pós-promoção, todas via `curl` real contra a URL de
+   produção: `/api/health` → `200`/`{"status":"ok"}`; `/` → `200`; header
+   `Content-Security-Policy` presente na resposta real, com o valor exato
+   configurado em `vercel.json` (Seção 1) — confirma que `DEBT-03` está,
+   agora sim, resolvido **em produção real**, não só no arquivo de
+   configuração.
+
+**Consequência prática**: a partir deste ponto, o mecanismo real de "ir para
+produção" usado por este projeto é a combinação push→build automático (Git)
++ promoção manual de alias — não o workflow `deploy-production.yml`
+governado (que segue configurado e apto a rodar, mas nunca foi exercitado de
+fato, Seção 7.5). Isso não é uma mudança de decisão de arquitetura, é o
+registro honesto do que de fato aconteceu duas vezes agora (Seção 7.3 e
+aqui).
+
 ## 8. Incidentes Pós-Deploy
 
 **Reavaliado em 2026-09-04.** Não há, até o momento, sinal de incidente
