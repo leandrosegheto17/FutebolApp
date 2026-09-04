@@ -9,10 +9,15 @@
  * Seguro de instanciar tanto no servidor (SSR, Fluxo 2.2 do SDD.md) quanto no
  * navegador — a chave anônima não é segredo, ao contrário da `service role`.
  */
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { getPublicEnv } from "@/lib/config/env";
 
-export function getAnonClient(): SupabaseClient {
+// Sem anotação explícita de retorno (mesmo padrão de `getServiceRoleClient`,
+// `server-client.ts`) — deixa o TypeScript inferir `SupabaseClient<..., "app", ...>`
+// a partir do `db: { schema: "app" }` abaixo; uma anotação `: SupabaseClient`
+// fixaria o parâmetro de schema em `"public"` (o default do tipo genérico) e
+// conflitaria com o schema real usado em tempo de execução.
+export function getAnonClient() {
   const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getPublicEnv();
 
   return createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, {
