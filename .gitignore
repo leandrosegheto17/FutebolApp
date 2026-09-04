@@ -33,3 +33,10 @@ next-env.d.ts
 # supabase CLI local state
 /supabase/.branches/
 /supabase/.temp/
+
+.vercel
+
+# playwright-skill runtime artifacts
+.claude/skills/playwright-skill/node_modules/
+.claude/skills/playwright-skill/package-lock.json
+.claude/skills/playwright-skill/.temp-execution-*.js
