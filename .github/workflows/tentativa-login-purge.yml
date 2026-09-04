@@ -1,0 +1,123 @@
+name: Tentativa Login Purge (retenção/expurgo de app.tentativa_login)
+
+# Implementa a remediação recomendada por SECURITY-REVIEW.md DEBT-07
+# (Seção 12): `app.tentativa_login.ip` é dado potencialmente pessoal (LGPD
+# Art. 5º, II) armazenado indefinidamente, mas o rate limiting de login só
+# usa os últimos 15 minutos (`LOGIN_RATE_LIMIT_WINDOW_MS`,
+# src/modules/autenticacao/constants.ts) — divergência entre necessidade
+# funcional (15 min) e retenção física (indefinida), o tipo de gap que o
+# princípio de minimização (LGPD Art. 6º, III) existe para prevenir.
+#
+# Janela de retenção escolhida: 72 horas — folga suficiente para
+# investigação manual de um incidente de força bruta recente (a própria
+# faixa sugerida pelo achado original, "24-72h"), sem reter indefinidamente.
+# Linhas mais antigas que 72h nunca mais influenciam nenhuma decisão de
+# bloqueio (a janela de rate limiting é de 15 min), então o expurgo não tem
+# efeito funcional sobre o algoritmo de rate limiting em si.
+#
+# Acesso via connection string direta ao Postgres (SUPABASE_PROD_DB_URL,
+# o mesmo secret já usado por supabase-backup-export.yml) — não via
+# PostgREST/service_role/anon, que não têm (e não devem ter) permissão de
+# DELETE nesta tabela pela superfície pública da API.
+#
+# Mesmo padrão de falha visível de supabase-backup-export.yml/
+# supabase-health-check.yml: nunca falha em silêncio — abre (ou comenta)
+# uma Issue de alerta com label própria.
+#
+# STATUS NESTA FASE: pronto, mas o DELETE real contra produção nunca foi
+# executado por este workflow ainda (nem em modo manual, nem pelo cron) —
+# ver DEPLOY.md/SECURITY-REVIEW.md para o registro explícito dessa
+# limitação. `SUPABASE_PROD_DB_URL` já está configurado como secret do
+# repositório (DEPLOY.md Seção 7.5), então o workflow está tecnicamente
+# apto a rodar a partir do próximo disparo do cron ou de um
+# `workflow_dispatch` manual.
+
+on:
+  schedule:
+    # Diariamente às 10:00 UTC — depois do supabase-health-check.yml
+    # (09:00 UTC), para não competir por execução no mesmo minuto; folga
+    # ampla frente à janela de retenção de 72h (garante que nenhuma linha
+    # fique retida muito além do prazo definido, mesmo com alguma variação
+    # de horário de execução do runner).
+    - cron: "0 10 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  purge-tentativa-login:
+    name: Expurga app.tentativa_login mais antigo que 72h
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pula se secret ainda não configurado
+        id: precheck
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROD_DB_URL }}" ]; then
+            echo "ativo=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_PROD_DB_URL ainda não configurado — purge de tentativa_login em modo pendente de ativação. Nada a fazer."
+          else
+            echo "ativo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar cliente PostgreSQL
+        if: steps.precheck.outputs.ativo == 'true'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Executar DELETE de retenção (72h)
+        if: steps.precheck.outputs.ativo == 'true'
+        id: purge
+        run: |
+          set -e
+          # Conta antes de apagar, para o log ficar diagnosticável (nunca só
+          # "rodou", mas "rodou e apagou N linhas").
+          before_count=$(psql "${{ secrets.SUPABASE_PROD_DB_URL }}" -tAc \
+            "select count(*) from app.tentativa_login where tentado_em < now() - interval '72 hours';")
+          echo "Linhas elegíveis para expurgo (tentado_em < now() - 72h): ${before_count}"
+
+          deleted_count=$(psql "${{ secrets.SUPABASE_PROD_DB_URL }}" -tAc \
+            "with removidas as (delete from app.tentativa_login where tentado_em < now() - interval '72 hours' returning 1) select count(*) from removidas;")
+          echo "Linhas efetivamente removidas: ${deleted_count}"
+          echo "deleted_count=${deleted_count}" >> "$GITHUB_OUTPUT"
+
+          if [ "${deleted_count}" != "${before_count}" ]; then
+            echo "::error::Contagem antes (${before_count}) e depois (${deleted_count}) do DELETE divergem — pode indicar concorrência (novas tentativas de login inseridas durante a janela de execução, esperado e inofensivo) ou falha parcial. Não tratado como erro fatal por si só, mas registrado para investigação se divergir de forma consistente entre execuções."
+          fi
+
+      - name: Alerta em caso de falha do job
+        if: failure() && steps.precheck.outputs.ativo == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "[ALERTA] Falha no expurgo de app.tentativa_login (DEBT-07)";
+            const body = [
+              "O job tentativa-login-purge.yml falhou — a política de retenção de 72h de `app.tentativa_login.ip` (SECURITY-REVIEW.md DEBT-07) pode não estar sendo aplicada.",
+              "",
+              "Verificar logs da execução e corrigir antes da próxima janela agendada. Enquanto o job não voltar a rodar com sucesso, linhas continuam se acumulando além da janela de retenção pretendida (sem impacto funcional no rate limiting, que só usa os últimos 15 min, mas divergindo do princípio de minimização de dados registrado como débito).",
+            ].join("\n");
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "tentativa-login-purge-alerta",
+            });
+            if (existing.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["tentativa-login-purge-alerta", "debt-07"],
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Reincidência em ${new Date().toISOString()}.`,
+              });
+            }

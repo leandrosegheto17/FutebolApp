@@ -10,6 +10,23 @@ function requestWithHeaders(headers: Record<string, string>): Request {
 }
 
 describe("getClientIp (BE-04, RNF-03)", () => {
+  it("prefere x-vercel-forwarded-for sobre x-forwarded-for e x-real-ip (DEBT-06)", () => {
+    const request = requestWithHeaders({
+      "x-vercel-forwarded-for": "203.0.113.99",
+      "x-forwarded-for": "203.0.113.10, 70.41.3.18",
+      "x-real-ip": "198.51.100.23",
+    });
+    expect(getClientIp(request)).toBe("203.0.113.99");
+  });
+
+  it("cai para x-forwarded-for quando x-vercel-forwarded-for está ausente (DEBT-06)", () => {
+    const request = requestWithHeaders({
+      "x-forwarded-for": "203.0.113.10, 70.41.3.18",
+      "x-real-ip": "198.51.100.23",
+    });
+    expect(getClientIp(request)).toBe("203.0.113.10");
+  });
+
   it("usa o primeiro IP de x-forwarded-for quando há vários (proxy encadeado)", () => {
     const request = requestWithHeaders({
       "x-forwarded-for": "203.0.113.10, 70.41.3.18, 150.172.238.178",

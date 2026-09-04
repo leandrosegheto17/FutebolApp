@@ -36,14 +36,13 @@ function genericAuthFailureResponse(): NextResponse {
   // nenhum campo adicional (ex.: "retryAfter") que permita ao cliente
   // distinguir os dois casos.
   //
-  // Nota de limite não escondida (TASK.md Secao 1.0): esta resposta não
-  // tenta igualar o TEMPO de execução entre os dois casos (o caminho
-  // bloqueado pula a verificação de senha por desenho, para não gastar CPU
-  // durante uma tentativa de força bruta ativa) — só o conteúdo da resposta
-  // é garantidamente idêntico. Timing side-channel entre "bloqueado" e
-  // "verificando senha real" é uma lacuna conhecida, candidata a revisão do
-  // DevSecOps (TASK.md Secao 5, risco #7 — "hardening tático... mais
-  // adiante"), não resolvida nesta tarefa.
+  // DEBT-05 (SECURITY-REVIEW.md Secao 12, resolvido — ver nota de resolução
+  // na própria entrada): o caminho `rateLimit.bloqueado === true` também
+  // chama `verifyPasswordOrDummy` antes de responder (ver `POST` abaixo),
+  // equalizando o custo de CPU/tempo entre os dois caminhos — o
+  // side-channel de timing que permitia inferir o estado do rate limit sem
+  // conhecer a senha foi fechado. Esta função continua responsável apenas
+  // pelo CONTEÚDO idêntico da resposta.
   return NextResponse.json({ error: LOGIN_GENERIC_ERROR_MESSAGE }, { status: 401 });
 }
 
@@ -71,6 +70,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rateLimit = evaluateLoginRateLimit(tentativasRecentes);
 
   if (rateLimit.bloqueado) {
+    // DEBT-05 (SECURITY-REVIEW.md Secao 12): chama `verifyPasswordOrDummy`
+    // mesmo aqui, com o mesmo custo de CPU do caminho normal (argon2id.verify
+    // contra o hash vigente, ou contra o hash descartável quando ainda não há
+    // senha configurada), e descarta o resultado — bloqueado nunca autentica,
+    // não importa se a senha estaria correta. O único propósito desta chamada
+    // é equalizar o TEMPO de resposta entre "bloqueado" e "senha incorreta,
+    // não bloqueado", fechando o side-channel de timing que permitia inferir
+    // o estado do rate limit para um IP sem nunca saber a senha.
+    const hashVigenteBloqueado = await getHashSenhaVigente(client);
+    await verifyPasswordOrDummy(hashVigenteBloqueado, senha);
     await registrarTentativaLogin(client, { ip, sucesso: false });
     return genericAuthFailureResponse();
   }

@@ -40,3 +40,6 @@ next-env.d.ts
 .claude/skills/playwright-skill/node_modules/
 .claude/skills/playwright-skill/package-lock.json
 .claude/skills/playwright-skill/.temp-execution-*.js
+
+.vercel
+.env*

@@ -2,12 +2,14 @@
 
 **Dono**: Software Architect
 **Status**: **Aprovado com ressalvas pelo CTO no Gate 2** (`CTO-REVIEW.md`,
-2026-09-02). Duas ressalvas do Gate 2 (itens 3 e 6 — anonimização LGPD Art. 18
-e mecanismo de explicação de conflito RF-05.2) foram resolvidas nesta revisão,
-via ADR-011 e ADR-010 respectivamente — ver Anexo A, ao final deste documento,
-e `BLOCKERS.md` (BLOCKER-001/BLOCKER-002, marcados `Resolvido`). As demais
-ressalvas do Gate 2 (itens 1, 2, 4, 5, 7) seguem em acompanhamento conforme
-`CTO-REVIEW.md` e não são objeto desta revisão.
+2026-09-02). Três ressalvas do Gate 2 (itens 3, 4 e 6 — anonimização LGPD Art.
+18, redação da base legal LGPD diferenciada entre adulto e menor na Seção 7.6,
+e mecanismo de explicação de conflito RF-05.2) foram resolvidas: a primeira e
+a terceira via ADR-011 e ADR-010 respectivamente (ver Anexo A), e a segunda
+via correção direta de redação da Seção 7.6 em 2026-09-04, sem gerar novo ADR
+(ver Anexo B) — e `BLOCKERS.md` (BLOCKER-001/BLOCKER-002, marcados
+`Resolvido`). As demais ressalvas do Gate 2 (itens 1, 2, 5, 7) seguem em
+acompanhamento conforme `CTO-REVIEW.md` e não são objeto desta revisão.
 **Input de origem**: `PRD-TECNICO.md` (Business Analyst, liberado 2026-09-02,
 incluindo a revisão que incorpora RF-08/RNF-11/RNF-12/RN-13 sobre o banco legado
 Supabase) + `CTO-REVIEW.md` Gate 1 (ressalvas estratégicas: LGPD, senha única,
@@ -592,18 +594,52 @@ compartilhando a mesma instância. Não existe requisito de isolamento por
 
 ### 7.6 Base legal e minimização de dados (LGPD, insumo para o DevSecOps)
 
-- Base legal aplicada: **legítimo interesse do organizador do grupo** (LGPD
-  Art. 7º, IX), restrita à finalidade de organização das peladas — herdada do
-  PRD-TECNICO.md (RNF-01), com transparência sobre a coleta no ato do
-  cadastro (responsabilidade de UX/UI detalhar a tela).
-- Minimização de dados aplicada estruturalmente (não apenas por convenção de
-  código): a fronteira de exposição pública (7.5) garante, no nível de banco,
-  que `contato` e `data_nascimento` nunca circulam fora da área interna.
-- Consentimento de responsável legal para atleta menor de 18 anos (RN-02,
-  RNF-02): campo declarativo `consentimento_responsavel_obtido` (boolean) na
-  tabela `atleta`, preenchido pelo organizador no cadastro — o processo de
-  obtenção do consentimento em si é operacional, fora do sistema, conforme já
-  delimitado pelo Business Analyst.
+**Correção de redação (Gate 2, item 4 / Gate 3, prazo "antes do freeze do
+texto de privacidade de `FE-04`") — ver nota de resolução ao final desta
+seção e Anexo B.**
+
+O cadastro de atleta trata dois subconjuntos de titulares sob **duas bases
+legais distintas** — não uma única base legal com uma exigência funcional
+adicional para o subconjunto de menores:
+
+- **Atleta adulto (18 anos ou mais)**: a base legal é o **legítimo interesse
+  do organizador do grupo** (LGPD Art. 7º, IX), restrita à finalidade de
+  organização das peladas — herdada do PRD-TECNICO.md (RNF-01), com
+  transparência sobre a coleta no ato do cadastro (responsabilidade de UX/UI
+  detalhar a tela).
+- **Atleta menor de 18 anos**: a base legal é o **consentimento específico do
+  responsável legal** (LGPD Art. 14, §1º) — uma base legal distinta, não uma
+  variação nem um reforço do legítimo interesse aplicado ao adulto. O
+  tratamento do dado do menor não se apoia em legítimo interesse do
+  organizador; apoia-se exclusivamente no consentimento do responsável.
+  O sistema materializa essa exigência através do campo declarativo
+  `consentimento_responsavel_obtido` (boolean) na tabela `atleta` (RN-02,
+  RNF-02), preenchido pelo organizador no ato do cadastro — sem esse
+  consentimento declarado, o cadastro do menor não pode ser concluído
+  (validação de formulário, `FE-04`). A obtenção do consentimento em si (o
+  contato com o responsável legal e seu aceite) é operacional, fora do
+  sistema, conforme já delimitado pelo Business Analyst; o sistema registra a
+  declaração de que ela ocorreu, não a executa nem a verifica.
+- Minimização de dados aplicada estruturalmente a ambos os subconjuntos (não
+  apenas por convenção de código): a fronteira de exposição pública (7.5)
+  garante, no nível de banco, que `contato` e `data_nascimento` nunca
+  circulam fora da área interna — independentemente de qual das duas bases
+  legais ampara o registro.
+
+**Nota de resolução (2026-09-04)**: até esta data, esta seção tratava
+"legítimo interesse do organizador" como base legal única para todo o
+cadastro, mencionando o consentimento do responsável apenas como um requisito
+funcional adicional — imprecisão de redação com implicação regulatória
+apontada pelo CTO no Gate 2 (Risco 4) e reiterada no Gate 3
+(`CTO-REVIEW.md`). A redação acima corrige a imprecisão, sem alterar nenhum
+desenho funcional já existente: RN-02/RNF-02 e o campo
+`consentimento_responsavel_obtido` já capturavam corretamente a exigência
+funcional; o que estava impreciso era a prosa desta seção, não o desenho.
+Esta seção nunca foi objeto de um ADR próprio (é aplicação direta de
+RNF-01/RN-02 do PRD-TECNICO.md, não uma decisão arquitetural com alternativas
+concorrentes) — a correção não gera novo ADR e não altera o status de nenhum
+ADR existente em `adr/`. Detalhe completo da resolução e o veredito sobre o
+texto de produção de `FE-04` em Anexo B, ao final deste documento.
 
 ### 7.7 Direito do Titular à Anonimização/Exclusão (LGPD Art. 18)
 
@@ -724,3 +760,67 @@ do CTO) **não** são objeto desta revisão — permanecem como pendências
 rastreadas em `CTO-REVIEW.md`, sob a responsabilidade já atribuída lá (Software
 Architect para 1/4/5, Tech Lead/Backend para 7, PM/stakeholder para o
 orçamento associado ao item 2).
+
+---
+
+## Anexo B — Resolução da Ressalva de Redação da Seção 7.6 (Gate 2, item 4 / Gate 3)
+
+**Data**: 2026-09-04
+**Contexto**: o Gate 2 do CTO (`CTO-REVIEW.md`, Risco 4) apontou que a Seção
+7.6 aplicava "legítimo interesse do organizador" (LGPD Art. 7º, IX) como base
+legal única para todo o cadastro de atleta, tratando o consentimento do
+responsável legal para menores apenas como um requisito funcional adicional
+(`consentimento_responsavel_obtido`) — sem deixar explícito que o dado de
+atleta menor de idade é tratado sob uma base legal distinta: consentimento
+específico do responsável legal (LGPD Art. 14, §1º). O Gate 3 reiterou a
+pendência sem novo prazo específico além de "antes do freeze do texto de
+privacidade de `FE-04` para produção" (`TASK.md`, Risco 4/Seção 6.1 item 2).
+Diagnóstico do CTO: imprecisão de redação com implicação regulatória, não
+erro de desenho funcional — RN-02/RNF-02 já capturavam corretamente a
+exigência do checkbox de consentimento.
+
+**Resolução**: Seção 7.6 reescrita nesta data, deixando explícitas as duas
+bases legais distintas aplicadas a dois subconjuntos de titulares (adulto sob
+legítimo interesse, Art. 7º IX; menor sob consentimento do responsável legal,
+Art. 14 §1º) — sem alterar nenhum desenho funcional, modelo de dados ou
+componente já existente. Não foi aberto nem superseded nenhum ADR: a Seção
+7.6 nunca foi lastreada por um ADR próprio (é aplicação direta de RNF-01/RN-02
+do PRD-TECNICO.md), logo a correção de prosa não aciona o guardrail de
+imutabilidade de ADR.
+
+**Veredito sobre o texto de produção de `FE-04`
+(`src/features/atletas/AtletaForm.tsx`, linhas 278-285 e 342-368)**: revisado
+contra a redação corrigida da Seção 7.6 — **o texto passa na verificação de
+consistência, sem necessidade de ajuste de copy**:
+
+- O banner fixo exibido para todo cadastro ("🔒 Aviso de privacidade: Contato
+  e data de nascimento são usados apenas internamente e nunca aparecem no
+  ranking público.") não atribui nenhuma base legal ao tratamento — é um
+  aviso de minimização/transparência, válido igualmente para titular adulto
+  ou menor, e por isso não contradiz a distinção agora explícita na Seção
+  7.6 (não afirma nada que a distinção pudesse contradizer).
+- O bloco condicional exibido apenas quando a idade calculada é menor de 18
+  anos ("⚠ Menor de 18 anos detectado" + checkbox "Confirmo que o
+  consentimento do responsável legal foi obtido") já comunica, em linguagem
+  simples e sem citar dispositivo legal ao usuário final — corretamente,
+  citar artigo de lei ao usuário é decisão de copy/UX, não uma exigência de
+  arquitetura — que o tratamento do dado do menor depende de um requisito
+  próprio e adicional (o consentimento do responsável). Isso é exatamente o
+  que a base legal do Art. 14, §1º exige na prática, ainda que o texto da
+  tela não nomeie o artigo.
+- **Conclusão**: o texto de `FE-04` pode ser considerado **congelado como
+  está** para produção quanto a este ponto — nenhum ajuste de copy é
+  necessário em função desta correção da Seção 7.6.
+
+**Sinalização objetiva ao Frontend/Tech Lead**: o comentário no código-fonte
+de `AtletaForm.tsx` (linhas 278-281), que marcava o texto do banner como
+"pendente de revisão pelo Software Architect" enquanto a Seção 7.6 não fosse
+corrigida, referencia uma pendência agora resolvida — o Frontend pode
+atualizar/remover esse comentário na próxima alteração do arquivo (não é
+necessário um commit dedicado só para isso). O `UX-SPEC.md` (Seção 2, nota de
+T04, e Seção 7.2, item 3) também referenciava esta mesma pendência como "em
+aberto"; cabe ao UX/UI atualizar esse status para refletir a resolução
+registrada aqui, sem necessidade de reabrir o desenho de T04.
+
+`TASK.md` (Seção 6.1, item 2) e `CTO-REVIEW.md` (ressalva reiterada no Gate 3)
+podem marcar este ponto como resolvido, apontando para este Anexo B.

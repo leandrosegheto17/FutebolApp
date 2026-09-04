@@ -719,6 +719,31 @@ confirma que a correção é robusta, não apenas funcionalmente aprovada.
   de quando agendar é do Tech Lead/DevSecOps, não uma ação imediata deste
   lote.
 
+- **Nota de resolução (2026-09-04, Backend)**: **Resolvido.** Implementada
+  exatamente a remediação recomendada acima (primeira opção, reaproveitando
+  `verifyPasswordOrDummy`) — `app/api/auth/login/route.ts`, ramo
+  `if (rateLimit.bloqueado)`: antes de responder, o código agora chama
+  `getHashSenhaVigente(client)` seguido de
+  `verifyPasswordOrDummy(hashVigenteBloqueado, senha)`, descartando o
+  resultado (bloqueado nunca autentica, independentemente do retorno). O
+  conteúdo da resposta (`genericAuthFailureResponse`) permanece
+  byte-a-byte idêntico ao de antes — só o custo de CPU/tempo do caminho
+  passou a ser equivalente ao do caminho normal de senha incorreta. Não foi
+  introduzida nenhuma constante de atraso artificial. Comentário inline em
+  `genericAuthFailureResponse` (linhas 33-45) atualizado para não afirmar
+  mais que a lacuna de timing é conhecida/não resolvida. Cobertura de teste:
+  `app/api/auth/__tests__/login.timing.test.ts` (novo, unitário, mocka
+  Supabase/repository/rate-limit/password/session-cookie) — assevera que
+  `verifyPasswordOrDummy` é chamado exatamente 1 vez tanto no caminho
+  bloqueado quanto no não bloqueado, com o mesmo hash vigente e a mesma
+  senha submetida, e que o caminho bloqueado nunca autentica mesmo que o
+  mock de `verifyPasswordOrDummy` force `true`. Medição real de tempo (`~50ms`
+  citado acima) não foi reproduzida em CI por ser frágil (ruído de
+  agendamento do processo) — a asserção é de comportamento (mesma chamada,
+  mesmo custo de CPU), não de tempo de parede, conforme orientação desta
+  tarefa. Suíte completa (`npm test`), `npm run typecheck` e `npm run lint`
+  executados após a mudança, todos verdes (793 testes, 102 arquivos).
+
 ### DEBT-06 — Rate limiting de login depende de `x-forwarded-for` não ser forjável pelo cliente (`BE-04`) — dependência de infraestrutura não documentada explicitamente no código
 
 - **Severidade**: **Média** (impacto alto se a premissa de infraestrutura
@@ -793,9 +818,57 @@ confirma que a correção é robusta, não apenas funcionalmente aprovada.
 - **Dono**: Backend (itens 1-2, mudança de código/comentário) / DevOps
   (item 3, checklist de deploy).
 
-### DEBT-07 — `app.tentativa_login.ip` sem política de retenção/expurgo definida — minimização de dados (LGPD Art. 6, III)
+- **Nota de resolução (2026-09-04, Backend — itens 1-2; item 3 permanece
+  com DevOps, fora do escopo desta correção)**: **Resolvido (itens 1-2).**
+  `src/modules/autenticacao/client-ip.ts`, `getClientIp`: ordem de
+  preferência alterada exatamente para `x-vercel-forwarded-for` →
+  `x-forwarded-for` → `x-real-ip` → `"unknown"`, conforme recomendado.
+  Comentário de topo do arquivo reescrito para nomear explicitamente a
+  dependência de infraestrutura (a proteção assume que a plataforma de
+  deploy sobrescreve/nunca repassa o valor do cliente nesses cabeçalhos;
+  válido hoje na Vercel; se o projeto for hospedado atrás de outro proxy/
+  CDN ou self-hosted sem proxy confiável equivalente, o rate limiting de
+  login fica vulnerável a bypass por spoofing) — mesmo texto de fundo já
+  usado nesta entrada do relatório. Cobertura de teste:
+  `src/modules/autenticacao/__tests__/client-ip.test.ts` — dois casos
+  novos, um confirmando que `x-vercel-forwarded-for` tem prioridade sobre
+  `x-forwarded-for`/`x-real-ip` quando presente, outro confirmando o
+  fallback para `x-forwarded-for` quando `x-vercel-forwarded-for` está
+  ausente; os 5 casos pré-existentes (incluindo o de `x-real-ip` como
+  último recurso e `"unknown"` sem nenhum cabeçalho) continuam passando
+  sem alteração. Item 3 (checklist de deploy do DevOps) não foi endereçado
+  por este agente — fora do escopo de mudança de código atribuído ao
+  Backend nesta tarefa; permanece como ação pendente de DevOps. Suíte
+  completa (`npm test`), `npm run typecheck` e `npm run lint` executados
+  após a mudança, todos verdes (793 testes, 102 arquivos).
 
-- **Severidade**: **Baixa** — não é achado de compliance obrigatório
+### DEBT-07 — `app.tentativa_login.ip` sem política de retenção/expurgo definida — minimização de dados (LGPD Art. 6, III) — **RESOLVIDO (implementação), pendente de primeira execução real contra produção — 2026-09-04**
+
+- **Status atualizado (2026-09-04)**: DevOps implementou a remediação
+  recomendada abaixo — `.github/workflows/tentativa-login-purge.yml`, cron
+  diário (`10:00 UTC`, depois de `supabase-health-check.yml`), `DELETE FROM
+  app.tentativa_login WHERE tentado_em < now() - interval '72 hours'` via
+  `psql` contra `SUPABASE_PROD_DB_URL` (mesmo padrão de acesso direto ao
+  Postgres já usado por `supabase-backup-export.yml`, sem depender de
+  `service_role`/`anon` via PostgREST). Falha do job abre/comenta Issue com
+  label `tentativa-login-purge-alerta` (mesmo padrão de
+  `supabase-backup-export.yml`/`supabase-health-check.yml`) — nunca falha em
+  silêncio. **Coluna confirmada por leitura direta da migration antes de
+  escrever a query**: `tentado_em` (não `criado_em`, nome hipotético
+  descartado). **Query validada empiricamente contra Postgres local**
+  (`supabase_db_turma-do-rola-comary`, mesma imagem/schema do projeto,
+  não apenas sintaxe): linhas de teste inseridas com `tentado_em` em 100h,
+  80h, 5h e 1h atrás — o `DELETE` exato do workflow removeu somente as duas
+  linhas com mais de 72h, preservando as duas mais recentes; dados de teste
+  removidos após a validação, sem deixar resíduo. **Não executado contra
+  produção real nesta sessão** — nem manualmente (`workflow_dispatch`), nem
+  pelo cron ainda (o secret `SUPABASE_PROD_DB_URL` já existe no repositório,
+  `DEPLOY.md` Seção 7.5, então o workflow está tecnicamente apto a rodar a
+  partir do próximo disparo, mas isso é diferente de ter sido *comprovado em
+  execução real* contra o banco de produção — mesma distinção já aplicada a
+  outros workflows deste projeto). Ver `DEPLOY.md` Seção 1/2 para o registro
+  de IaC/pipeline correspondente.
+- **Severidade (mantida)**: **Baixa** — não é achado de compliance obrigatório
   bloqueante (ver justificativa abaixo), é débito de higiene de dados.
 - **Onde**: `supabase/migrations/20260903090100_create_tentativa_login_table.sql`
   — o próprio Backend já documentou esta lacuna no comentário da coluna

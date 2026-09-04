@@ -315,10 +315,16 @@ aplicável (ex.: UX-SPEC.md).
 ## Notas
 
 - O ponto de "redação da base legal diferenciada (adulto vs. menor) na Seção 7.6 do
-  `SDD.md`" (Gate 2, item 4) **não** gerou entrada própria aqui — é acompanhamento de
+  `SDD.md`" (Gate 2, item 4) **não** gerou entrada própria aqui — foi acompanhamento de
   sincronização de texto entre `SDD.md` e o aviso de privacidade já desenhado em T04,
-  não um conflito de experiência vs. arquitetura que bloqueie o Tech Lead. Registrado
-  apenas em `UX-SPEC.md`, Seção 7.2, item 3.
+  não um conflito de experiência vs. arquitetura que bloqueasse o Tech Lead. Registrado
+  em `UX-SPEC.md`, Seção 7.2, item 3. **Resolvido em 2026-09-04** pelo Software
+  Architect — Seção 7.6 do `SDD.md` reescrita distinguindo explicitamente as duas
+  bases legais (Art. 7º IX para adulto, Art. 14 §1º para menor); veredito registrado
+  de que o texto de produção de `FE-04` (`AtletaForm.tsx`) já é consistente com a
+  redação corrigida e não precisa de ajuste de copy. Detalhe completo em `SDD.md`,
+  Anexo B. Cabe ao UX/UI atualizar `UX-SPEC.md` Seção 7.2 item 3 para `Resolvido` e ao
+  Tech Lead atualizar `TASK.md` Seção 6.1 item 2.
 - O procedimento de redefinição de senha única (Gate 2, item 7) também não gerou
   entrada aqui — seu dono já é Tech Lead/Backend, conforme `CTO-REVIEW.md`, não uma
   divergência entre UX/UI e Software Architect.

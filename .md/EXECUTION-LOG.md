@@ -97,3 +97,38 @@ não o histórico completo de dispatches/fix-loops (esse fica em
   `DEBT-02`/`DEBT-04` (`SECURITY-REVIEW.md`, prazos já vigentes desde
   L0/L1), e o achado de processo acima (fechamento retroativo de L1-L5
   pendente).
+
+---
+
+## Reconciliação de DEPLOY.md — 2026-09-04 (não é fechamento de lote)
+
+- **Contexto**: `.md/DEPLOY.md` (Seções 7.1/7.2) registrava, corretamente
+  no momento em que foi escrito, duas tentativas de `deployment-execution`
+  (L0, L6) simuladas/bloqueadas por falta de secrets de CI/CD, projeto
+  Supabase de staging dedicado, e código não commitado em `main`. O
+  usuário reportou evidência coletada diretamente (fora do fluxo deste
+  agente) mostrando que, entre a tentativa de L6 e agora, **uma
+  publicação real de produção aconteceu** — `main` sincronizado com
+  `origin/main` em `4c57be7` (reconfirmado por este agente via
+  `git log`/`git status`/`git show HEAD:vercel.json`), 8 deploys de
+  Produção na Vercel, aplicação respondendo 200/health ok, dados reais
+  migrados do legado sendo servidos, CSP ainda ausente (`DEBT-03` real,
+  não mais hipotético).
+- **Ação deste agente**: reconciliação documental de `DEPLOY.md` (Status,
+  nova Seção 7.3, Seções 8/9/10) para refletir esse estado real, deixando
+  explícito que a publicação **não foi executada por este agente** nem
+  pela skill `deployment-execution` governada — apenas registrada a
+  partir da evidência recebida. Nenhuma ação de infraestrutura real foi
+  tomada por este agente (nenhum `vercel`/`supabase` de escrita).
+- **Reclassificação de urgência**: `DEBT-03` (CSP) e o rollback nunca
+  testado (Seção 5 de `DEPLOY.md`) deixam de ser "pré-condição antes do
+  primeiro deploy real de produção" e passam a ser **lacunas ativas numa
+  produção real já existente** — registrado como item 0 (novo, mais
+  urgente) da Seção 10 de `DEPLOY.md`. Gate 4 segue não fechado por este
+  agente: build em produção existe, mas observabilidade ativa e rollback
+  testado — dois dos critérios de pronto — seguem não satisfeitos.
+- **Não verificado**: se os secrets do GitHub Actions
+  (`deploy-production.yml`) estão configurados no repositório (sem `gh`
+  CLI disponível), e se o ambiente deveria ter passado por staging antes
+  de produção — registrado como lacuna de confirmação em `DEPLOY.md`
+  Seção 7.3, não assumido como fato.

@@ -276,9 +276,12 @@ export function AtletaForm({ atletaId }: AtletaFormProps) {
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       {/* Aviso de privacidade fixo no topo (LGPD, transparência no ato do
-          cadastro — SDD.md Seção 7.6, texto final ainda pendente de revisão
-          pelo Software Architect, TASK.md Seção 6.1 item 2; texto abaixo é
-          literal do wireframe do UX-SPEC.md, Seção 2). */}
+          cadastro — SDD.md Seção 7.6). Texto congelado: revisado em 2026-09-04
+          contra a Seção 7.6 corrigida (duas bases legais distintas — Art. 7º
+          IX para adulto, Art. 14 §1º/consentimento do responsável para menor,
+          ver SDD.md Anexo B) e considerado consistente, sem necessidade de
+          ajuste de copy. Texto abaixo é literal do wireframe do UX-SPEC.md,
+          Seção 2. */}
       <AlertBanner variant="info">
         <span aria-hidden="true">🔒</span> Aviso de privacidade: Contato e data de
         nascimento são usados apenas internamente e nunca aparecem no ranking público.

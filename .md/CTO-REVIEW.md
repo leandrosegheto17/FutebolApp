@@ -633,3 +633,1007 @@ Com este Gate 3, o fluxo de planejamento (Gates 1-3) está formalmente encerrado
 O próximo ponto de atuação formal do CTO é ad hoc (arbitragem de conflito
 escalado, ou nova mudança estrutural em `GUARDRAILS.md`) ou o Gate 4
 (fechamento, registro após o deploy do DevOps — sem poder de veto).
+
+---
+
+## Gate 1 — Pré-descoberta — Iniciativa "Refactor Visual v2.0" — 2026-09-04
+
+**Skill aplicada**: `tech-strategy-review`, com apoio de leitura de
+`DEPLOY.md`, `EXECUTION-LOG.md`, `GUARDRAILS.md` e `src/design-system/tokens.css`
+como contexto de execução real (este projeto já passou dos Gates 1-3
+originais e está em fase de execução — não é mais um pipeline "do zero").
+**Input avaliado**: briefing do stakeholder/organizador recebido diretamente
+("vamos planejar a refatoração visual do módulo de acordo com o link
+[...]"), tratando como v2.0 a adoção de um redesenho visual de 6 telas
+(Ranking Público, Presença Mensal, Login, Lançamento de Rodada, Montagem de
+Times, Histórico de Rodadas) já explorado informalmente pelo organizador com
+um agente de UX ad hoc, **fora deste pipeline formal**. Contexto acumulado:
+`PRD.md` (objetivo de negócio original, Seção 3), `SDD.md`/`GUARDRAILS.md`
+(arquitetura e regras vigentes), `UX-SPEC.md` (design system atual,
+`src/design-system/tokens.css`, 11 telas T01-T11 já especificadas e
+implementadas), `TASK.md` (capacidade real: 1 Backend + 1 Frontend, já
+integralmente alocada), `DEPLOY.md`/`EXECUTION-LOG.md` (estado real de
+execução: 6 lotes — L0 a L6 — fechados com dupla aprovação QA/DevSecOps, mas
+**nenhum deploy real ocorreu ainda**, nem mesmo commit em `main`).
+
+### Tentativa de verificação direta do artefato de origem
+
+Tentei acessar o link do artefato (`WebFetch`) para avaliar o conteúdo
+diretamente, não apenas pelo resumo fornecido. O retorno confirma que a
+página é uma casca vazia para mim ("Content is user-generated and
+unverified", sem elementos de layout/cor/tipografia visíveis) — o artefato
+é uma sessão de chat do `claude.ai` sem controle de versão, potencialmente
+editável/expirável, acessível apenas à sessão autenticada do organizador.
+**Isso não invalida a proposta**, mas é um achado real: **não existe hoje
+nenhum artefato durável e versionado desta proposta dentro do repositório**
+— só a descrição em prosa fornecida nesta tarefa. Antes de qualquer agente
+downstream (UX/UI, Frontend) tratar isso como especificação de trabalho, o
+conteúdo (telas, paletas, tipografia, componentes) precisa ser capturado em
+um artefato persistido e versionado (ex.: anexado como imagens/descrição
+formal dentro do próprio `UX-SPEC.md` revisado), não referenciado só por
+link externo — mesmo racional de rastreabilidade que já rege todo o resto
+deste pipeline.
+
+### Objetivo de negócio
+
+Diferente do Gate 1 original (que tinha um objetivo verificável e concreto —
+"ranking sempre correto e disponível, eliminando reconciliação manual"),
+**esta iniciativa não veio acompanhada de um objetivo de negócio explícito
+próprio** — o briefing é uma instrução de adoção de uma solução ("vamos
+adotar este design") e não a descrição de um problema ou resultado
+mensurável que o redesenho resolveria. Isso é estruturalmente análogo ao
+padrão que meu próprio critério de pronto trata como insuficiente ("não é
+só 'fazer um app'") — aqui seria "não é só 'trocar o visual'".
+
+Não trato isso como reprovação automática, porque existe uma hipótese
+plausível e legítima de objetivo de negócio subjacente, que o PM precisa
+**confirmar explicitamente com o stakeholder antes de comprometer escopo**,
+não presumir por conta própria:
+- **Hipótese A (adoção/gestão de mudança)**: o app legado
+  (`FutebolRanking`) segue em uso ativo em paralelo (`GUARDRAILS.md`, nota
+  da regra 11) e tem um recurso "mais celebrado" (simulador tático) que o
+  grupo já ama. Se a v1 deste projeto (ainda não lançada) tiver uma
+  identidade visual genérica, o risco real é resistência de adoção quando
+  o organizador migrar o grupo do legado para o novo sistema — trazer de
+  volta o visual/recurso amado reduziria esse atrito. **Isto seria um
+  objetivo de negócio verificável** (ex.: taxa de adoção pelo grupo nas
+  primeiras semanas pós-lançamento), mas não foi essa a formulação
+  recebida — é uma inferência minha, a confirmar.
+- **Hipótese B (preferência estética do organizador, sem métrica de
+  negócio associada)**: se for isso, ainda é uma decisão de produto
+  legítima do dono do sistema, mas deve ser tratada com prioridade
+  proporcional — não como parte do MVP Must/Should já aprovado (PRD.md
+  Seção 5), e sim como item de roadmap pós-lançamento.
+
+**Ressalva**: o PM não deve iniciar levantamento detalhado (PRD/UX-SPEC
+delta) sem primeiro obter do stakeholder qual das duas hipóteses (ou outra)
+é o motivador real — isso muda diretamente a prioridade relativa desta
+iniciativa frente ao que já está pendente (ver seção seguinte).
+
+### Alinhamento com roadmap
+
+Aqui está a diferença mais importante frente ao Gate 1 original: **desta
+vez existe um roadmap ativo, e ele está incompleto na etapa mais crítica —
+a entrega.** Reli `DEPLOY.md` (Seção 10, item 0) e `EXECUTION-LOG.md`:
+
+- 6 lotes (L0-L6) de Backend/Frontend já foram implementados, aprovados por
+  QA e DevSecOps, e fechados pelo Tech Lead — ou seja, as 11 telas (T01-T11)
+  do escopo original **já existem em código**, com o design system atual
+  (`tokens.css`, baseline única, FE-00) já aplicado e já validado.
+- **Nenhum deploy real ocorreu ainda** — nem em staging, nem em produção.
+  O próprio `DEPLOY.md` classifica isso como "alerta de acúmulo", o item
+  mais urgente do documento: código de 6 lotes existe só na árvore de
+  trabalho local, nunca chegou a `main`, por três pré-requisitos ainda não
+  resolvidos (secrets de CI/CD, projeto Supabase de staging dedicado,
+  decisão de commit) — **nenhum dos três é dívida de design visual**.
+- A métrica primária do objetivo de sucesso (`PRD.md` Seção 3) só começa a
+  ser medida **depois** do primeiro deploy real e exige 8 rodadas
+  consecutivas (~2 meses) de uso real para ser avaliada. Cada semana sem
+  deploy adia diretamente essa janela de mensuração — o gargalo real do
+  projeto hoje é **infraestrutura de entrega**, não a qualidade visual do
+  que já foi construído.
+
+**Conclusão de alinhamento**: propor agora uma reformulação visual completa
+de 6 (ou potencialmente das 11) telas — que exige nova rodada de UX/UI,
+reestimativa de Frontend sobre tarefas já fechadas (`FE-00` a `FE-11`, todas
+aprovadas), e nova passagem por QA/DevSecOps — **compete diretamente pela
+mesma capacidade (1 Backend + 1 Frontend) que o Gate 3 já validou como
+integralmente alocada**, no exato momento em que o valor de negócio
+declarado do projeto ainda não começou a ser entregue por motivo alheio ao
+código ou ao design. Isto não é dizer que a iniciativa é ruim — é dizer que
+a **sequência importa**: redesenhar antes de entregar adia ainda mais o
+único objetivo que este projeto tem formalmente aprovado.
+
+Não identifico contradição de escopo (o redesenho não muda regra de
+negócio, dado ou fluxo, conforme já declarado) — identifico um **risco de
+sequenciamento/priorização**, que é exatamente o tipo de achado que este
+gate existe para capturar antes que o PM comprometa a squad.
+
+### Plausibilidade de orçamento/prazo
+
+Em nível de sinalização (Gate 3 fará a validação formal de capacidade
+quando houver `TASK.md` delta):
+
+- Isoladamente, um refactor visual sobre 6 (ou 11) telas já implementadas,
+  sem mudança de regra de negócio/dado/fluxo, é proporcionalmente **mais
+  barato** que a construção original de qualquer uma dessas telas — não há
+  sinal de incompatibilidade orçamentária por si só.
+- Mas o custo real não é isolado: envolve (a) capturar/formalizar a
+  proposta em `UX-SPEC.md` (nova revisão, com `accessibility-review`
+  completo — WCAG 2.1 AA, Guardrail 28, é reaplicado à nova paleta,
+  não herdado automaticamente); (b) decidir e implementar hospedagem de
+  fonte (Bebas Neue/Public Sans/JetBrains Mono são fontes Google —
+  self-host vs. CDN externo tem implicação direta na CSP ainda pendente,
+  `DEBT-03`, `SECURITY-REVIEW.md`) — ponto técnico a rotear ao Software
+  Architect/DevSecOps, não decidido aqui; (c) reestimativa de Tech Lead
+  sobre tarefas de Frontend **já fechadas e aprovadas** (`FE-00`
+  principalmente, que estabeleceu a baseline atual do design system); (d)
+  nova passagem completa por QA (regressão visual em 6-11 telas) e
+  DevSecOps (novos assets, nova fonte externa).
+- **Achado concreto, fora do briefing recebido**: o `git status` deste
+  repositório já mostra dois arquivos de imagem não versionados na raiz do
+  projeto (`logo.jpg`, `logo_comary.jpg`) — ou seja, ativos de marca já
+  começaram a ser adicionados à árvore de trabalho **fora de qualquer
+  processo governado** (sem convenção de path definida por Frontend/Tech
+  Lead, sem confirmação de direito de uso dos escudos oficiais dos clubes
+  citados). Sinalizo isso para que Tech Lead/Frontend tratem via convenção
+  própria (ex.: `public/images/`) quando esta iniciativa for formalmente
+  aceita, e para que o PM confirme com o stakeholder que o grupo tem
+  autorização de uso desses brasões — não presumo problema de direito
+  autoral, apenas registro que não foi confirmado.
+- **Ambiguidade a esclarecer antes de estimar**: a proposta descreve duas
+  paletas distintas (marinho/dourado para "Grupo Rola", verde para "Clube
+  Comary") — o atual `tokens.css` tem **uma única paleta verificada**
+  ("identidade campo de futebol"). Não está claro se isso é (i) uma
+  substituição 1-para-1 de paleta única, (ii) um sistema de "times" com
+  duas cores contextuais (ex.: para diferenciar os dois lados na tela de
+  Montagem de Times), ou (iii) branding duplo por contexto de uso. Cada
+  opção tem custo de implementação e de nova verificação de contraste
+  WCAG muito diferente — isso muda a estimativa em ordem de grandeza e
+  precisa ser resolvido pelo PM/UX-UI com o stakeholder antes de qualquer
+  estimativa de Tech Lead.
+
+Nenhum sinal de incompatibilidade orçamentária absoluta, mas o escopo real
+é maior do que "trocar cor e fonte" — precisa ser dimensionado corretamente
+antes do Gate 3 desta iniciativa.
+
+### Gap de roster
+
+- **PM**: necessário para elicitar o objetivo de negócio real (Hipóteses A/B
+  acima) e formalizar prioridade relativa frente ao roadmap Must/Should já
+  aprovado.
+- **Business Analyst**: provavelmente **não necessário** nesta fase — o
+  próprio briefing declara que não há mudança de regra de negócio, dado ou
+  fluxo. Se isso se confirmar ao longo da elicitação do PM, BA pode ser
+  pulado; se surgir qualquer mudança de regra/dado disfarçada de "só
+  visual" (ex.: novo campo de "nível técnico" exibido, mudança de
+  informação exibida no card do top 3), BA entra normalmente.
+- **UX/UI**: agente do roster correto para formalizar a proposta em
+  `UX-SPEC.md` (nova revisão), rodar `accessibility-review` e
+  `design-system-consistency-check` sobre a proposta externa — **o
+  exercício ad hoc anterior não substitui isso**, foi feito fora deste
+  pipeline, sem os mesmos critérios de pronto (WCAG, responsividade,
+  consistência com os 11 componentes já catalogados).
+- **Software Architect**: acionamento leve, só se a decisão de hospedagem
+  de fonte externa ou de armazenamento de assets de imagem tiver
+  implicação de arquitetura/CSP (plausível, não confirmado).
+- **Tech Lead/Frontend**: reestimativa de esforço sobre tarefas já
+  fechadas — não é gap de agente, é sinalização de retrabalho a
+  quantificar no Gate 3 desta iniciativa.
+- **QA/DevSecOps**: reentram normalmente para qualquer tela tocada.
+- Nenhum gap de agente/skill no roster — todos os papéis necessários já
+  existem e já foram usados neste mesmo projeto.
+
+### Riscos estratégicos preliminares (para acompanhamento nos Gates 2/3 desta iniciativa, se avançar)
+
+1. **[Alto] Risco de sequenciamento** — comprometer a única capacidade de
+   Frontend/Backend do projeto com um redesenho antes do primeiro deploy
+   real adia ainda mais a mensuração do objetivo de sucesso já aprovado
+   (`PRD.md` Seção 3), num momento em que o gargalo real e já documentado
+   é infraestrutura de entrega (`DEPLOY.md` Seção 10), não qualidade
+   visual. Recomendo tratar esta iniciativa como **backlog priorizado
+   após o primeiro deploy real de produção**, não como trabalho paralelo
+   imediato — a menos que o PM traga do stakeholder uma justificativa de
+   negócio (Hipótese A) forte o bastante para inverter essa prioridade
+   conscientemente, decisão que caberia então a mim revalidar.
+2. **[Médio] Cobertura parcial do redesenho (6 de 11 telas)** — a proposta
+   cobre T01, T02, T03, T05, T06 e T09; **T04, T07, T08, T10 e T11 ficam
+   sem direção visual nova**. Se a adoção for parcial, o produto passa a
+   ter duas linguagens visuais coexistindo, o que viola diretamente o
+   espírito do Guardrail 31 ("todo componente do design system é
+   implementado uma única vez e reutilizado — nenhuma tela cria uma
+   variação paralela"). Antes de qualquer implementação, UX/UI precisa
+   decidir e registrar explicitamente: (a) estender a nova linguagem
+   visual às 5 telas restantes antes do Frontend tocar qualquer tela, ou
+   (b) definir um plano de migração faseado explícito e temporário, com
+   prazo — nunca duas linguagens coexistindo indefinidamente sem essa
+   decisão registrada.
+3. **[Médio] Retrabalho sobre trabalho já aprovado** — `tokens.css`/FE-00
+   já é a baseline formal do design system, fechada e aprovada em L0. Uma
+   troca de paleta/tipografia não é aditiva, é uma revisão estrutural do
+   próprio design system — o mecanismo de "alteração visível" que o
+   `UX-SPEC.md` já prevê (Seção 3.3/nota metodológica) deve ser usado
+   integralmente, e o Tech Lead precisa reabrir estimativa sobre tarefas
+   já fechadas, não tratar isso como tarefas novas independentes.
+4. **[Médio] Artefato de origem não durável/não verificável por mim** —
+   ver seção acima; precisa virar artefato versionado no repositório antes
+   de UX/UI iniciar trabalho formal sobre ele.
+5. **[Baixo/Médio] Assets de marca fora de processo governado** — dois
+   arquivos de imagem já na árvore de trabalho, sem convenção de path,
+   sem confirmação de direito de uso dos escudos reais dos clubes.
+6. **[Baixo] Ambiguidade de "v2.0"** — nenhuma versão deste sistema chegou
+   a produção ainda (zero deploys reais, `DEPLOY.md` Seção 8/10). Rotular
+   esta iniciativa como "v2.0" antes de existir uma "v1" em produção pode
+   criar expectativa equivocada de planejamento (ex.: Tech Lead abrir uma
+   trilha de release separada prematuramente). Sugiro tratar como "adendo/
+   revisão de design system", não como nova major version, até que a v1
+   esteja de fato em produção.
+7. **[Baixo] Fonte externa (Google Fonts) e CSP** — `DEBT-03` (CSP ausente
+   em `vercel.json`) já é débito de segurança pendente antes do primeiro
+   deploy de produção (`SECURITY-REVIEW.md`); adicionar fontes externas
+   sem decidir self-host vs. CDN antes de fechar a CSP cria retrabalho
+   adicional para DevSecOps/Frontend — sinalizar ao Software Architect
+   para decidir junto com o fechamento de `DEBT-03`, não depois.
+
+### Veredito: **Aprovado com ressalvas**
+
+O PM está liberado para iniciar a elicitação/discovery desta iniciativa —
+**não** para comprometer a capacidade de Backend/Frontend em implementação
+imediata. Ressalvas a carregar, com dono e prazo:
+
+- [ ] PM deve confirmar com o stakeholder o objetivo de negócio real por
+      trás do redesenho (Hipótese A — adoção/gestão de mudança frente ao
+      legado — vs. Hipótese B — preferência estética sem métrica), antes
+      de registrar qualquer PRD/escopo formal desta iniciativa. Dono: PM.
+      Prazo: antes de qualquer estimativa de Tech Lead.
+- [ ] PM/UX-UI devem capturar o conteúdo do artefato externo (telas,
+      paletas, tipografia, componentes) em formato versionado dentro do
+      repositório antes de tratá-lo como especificação de trabalho — o
+      link de chat não é um artefato de pipeline válido. Dono: PM + UX/UI.
+      Prazo: antes do início do `UX-SPEC.md` delta.
+- [ ] UX/UI deve decidir e registrar explicitamente a cobertura das 5
+      telas fora do escopo do artefato original (T04, T07, T08, T10, T11)
+      — extensão imediata da nova linguagem visual ou plano de migração
+      faseado com prazo — nunca duas linguagens coexistindo sem essa
+      decisão explícita (Guardrail 31). Dono: UX/UI. Prazo: antes de
+      qualquer tarefa de Frontend ser reestimada em `TASK.md`.
+- [ ] UX/UI e PM devem esclarecer com o stakeholder a ambiguidade das duas
+      paletas (Grupo Rola/marinho-dourado vs. Clube Comary/verde) —
+      substituição única, tema contextual por "lado", ou branding duplo —
+      antes de qualquer estimativa de esforço. Dono: PM/UX-UI. Prazo:
+      antes do Gate 2 desta iniciativa.
+- [ ] Software Architect deve decidir a hospedagem das fontes externas
+      (self-host vs. CDN) em conjunto com o fechamento de `DEBT-03` (CSP),
+      não isoladamente depois. Dono: Software Architect. Prazo: antes do
+      primeiro deploy de produção (já é prazo do próprio `DEBT-03`) ou
+      antes de esta iniciativa ser implementada, o que vier primeiro.
+- [ ] Tech Lead/Frontend devem definir convenção de path para os assets de
+      marca já presentes na árvore de trabalho (`logo.jpg`,
+      `logo_comary.jpg`) e o PM deve confirmar com o stakeholder o direito
+      de uso dos escudos reais dos clubes antes de publicá-los. Dono: Tech
+      Lead/Frontend (path) + PM (direito de uso). Prazo: antes do merge de
+      qualquer asset destes.
+- [ ] **Recomendação de sequenciamento (não bloqueio formal, mas
+      condição forte)**: esta iniciativa não deve consumir a capacidade
+      dedicada de Backend/Frontend antes do primeiro deploy real de
+      produção do escopo já aprovado (`DEPLOY.md` Seção 10, item 0 —
+      resolução dos três pré-requisitos de infraestrutura). Se o PM, após
+      confirmar a Hipótese A com o stakeholder, entender que há
+      justificativa de negócio para inverter essa prioridade, deve trazer
+      essa recomendação explicitamente de volta a mim antes de comprometer
+      `TASK.md`. Dono: PM (trazer de volta, se for o caso). Prazo:
+      contínuo, revisitado no Gate 2 desta iniciativa.
+
+Nenhum gap de roster identificado. Nenhuma incompatibilidade absoluta de
+escopo x orçamento identificada — o risco relevante deste gate é de
+**sequenciamento/priorização**, não de viabilidade. Esta iniciativa não
+reabre nenhuma decisão dos Gates 1-3 originais (arquitetura, capacidade,
+`GUARDRAILS.md` permanecem válidos como estão) — é tratada como um novo
+ciclo de discovery, paralelo e subordinado à prioridade já aprovada de
+concluir a entrega da v1.
+
+---
+
+## Nota de Governança Ad Hoc — Recalibração de urgência temporal frente ao
+público real atual (fase de teste pessoal do organizador) — 2026-09-04
+
+**Natureza deste registro**: não é um gate formal (1-3), não reabre nenhum
+veredito anterior, e não é uma reclassificação técnica de nenhum achado.
+É o registro de uma **decisão de produto/negócio do próprio dono do
+sistema** (o organizador, stakeholder original deste projeto desde o Gate
+1), comunicada diretamente a mim, sobre o público real que a publicação de
+produção descrita em `DEPLOY.md` Seção 7.3 atende **hoje**. Minha função
+aqui é registrar essa decisão com rastreabilidade, não avaliá-la
+tecnicamente nem substituí-la por julgamento próprio — não é matéria da
+minha alçada (não é arquitetura, não é capacidade de squad, não é exceção
+de `GUARDRAILS.md`), mas fica registrada em `CTO-REVIEW.md` por ser o
+único ponto do pipeline com visão consolidada de `DEPLOY.md` e
+`SECURITY-REVIEW.md` ao mesmo tempo, e por ser o log de governança que
+todo agente downstream já consulta como referência de contexto vigente.
+
+### 1. Contexto reconhecido
+
+`DEPLOY.md` Seção 7.3/10 (reconciliada em 2026-09-04) e `SECURITY-REVIEW.md`
+(`DEBT-03` a `DEBT-07`, `DEBT-09`) tratam a publicação real descoberta hoje
+(`https://futebol-app-lsm.vercel.app`) como produção real com todas as
+implicações de severidade que isso normalmente carrega — usuários reais,
+dado pessoal real de terceiros sob LGPD, superfície de ataque real exposta
+a uma população desconhecida. O organizador esclareceu diretamente: **hoje,
+o único usuário real do sistema é ele mesmo.** Não há ainda o grupo real
+"Turma do Rola" usando o sistema — é uso pessoal de teste, e os dados de
+atleta atualmente na base (migrados do legado, confirmados servidos pela
+view `app.ranking_publico` em `DEPLOY.md` Seção 7.3) devem ser tratados,
+para efeito de **urgência**, como fixture/dado de teste do próprio
+organizador neste momento, não como dado pessoal de terceiros já exposto a
+risco real hoje.
+
+Isto é uma constatação de fato sobre quem usa o sistema agora, feita pelo
+dono do produto — não uma avaliação técnica minha, e não decido nem
+questiono se essa é a categorização correta de "quem é o titular do dado"
+sob a LGPD em sentido estrito (isso, se disputado, seria matéria de
+compliance formal, fora do escopo desta nota). Registro a decisão de
+priorização que decorre dela.
+
+O organizador foi explícito, e reforço aqui como condição do próprio
+registro: **isto não é autorização para tratar o sistema como não sendo
+produção.** Nenhum agente downstream deve ler esta nota como "pular rigor"
+ou "reclassificar para não é real" — o ambiente continua sendo tecnicamente
+produção, com todas as práticas de engenharia que isso exige (débitos
+continuam sendo débitos, não deixam de existir). O que muda é exclusivamente
+**a urgência temporal** de resolvê-los, calibrada ao tamanho real do público
+exposto hoje (uma pessoa, o próprio dono), não ao pior caso assumido por
+padrão (um grupo real de usuários já exposto).
+
+### 2. O que **não** muda
+
+Nenhum achado técnico já registrado é apagado, riscado ou reclassificado
+para baixo. Os seguintes itens permanecem **tecnicamente válidos, com a
+mesma severidade já atribuída pelo DevSecOps/DevOps**, exatamente como
+estão em `SECURITY-REVIEW.md`/`DEPLOY.md`:
+
+- `DEBT-03` — CSP ausente em `vercel.json` (Baixa, confirmada ativa em
+  produção real, `DEPLOY.md` Seção 7.3/10 item 0).
+- `DEBT-04` — advisories residuais de `next@14.2.35` (Média).
+- `DEBT-05` — timing side-channel entre "senha incorreta" e "bloqueado por
+  rate limit" (Média).
+- `DEBT-06` — rate limiting dependente de `x-forwarded-for` não documentado
+  no código (Média).
+- `DEBT-07` — `app.tentativa_login.ip` sem política de retenção/expurgo
+  (Baixa).
+- `DEBT-09` — confirmação pendente de `Secure=true` no cookie de sessão em
+  produção real (informativo/operacional).
+- Rollback de produção **nunca testado** (`DEPLOY.md` Seção 5/10 item 0) —
+  continua sendo o item que este agente trata como guardrail próprio
+  ("nunca produção sem rollback testado").
+- Monitoramento/observabilidade (Guardrail 36 e geral) **inativo**
+  (`DEPLOY.md` Seção 4/8/10 item 0).
+
+Eu, CTO, não tenho autoridade nem intenção de reescrever `SECURITY-REVIEW.md`
+ou `DEPLOY.md` — são artefatos de DevSecOps e DevOps respectivamente
+(guardrail próprio deste agente: nunca edito artefato de outro dono). Esta
+nota não os altera; ela é lida **em conjunto** com eles a partir de agora.
+
+### 3. O que muda — recalibração de prazo, não de severidade
+
+Os prazos hoje redigidos nesses dois documentos como "antes do primeiro
+deploy de produção" ou "agora, produção real ativa, risco ativo imediato"
+(`DEPLOY.md` Seção 10, item 0, em particular) partiam da premissa padrão de
+pior caso — grupo real já exposto. Essa premissa está confirmada pelo
+próprio dono do sistema como não sendo o estado real de hoje. Recalibro,
+portanto, a urgência temporal desses itens (não a severidade, não a
+validade técnica do achado) de **"agora, imediatamente"** para:
+
+> **Antes da abertura real de acesso ao grupo "Turma do Rola".**
+
+Este é um **gate de evento**, não uma data — não há previsão hoje de quando
+isso ocorrerá, e não crio uma data artificial só para ter uma. O gatilho é
+a ação do organizador de abrir o acesso, não o calendário.
+
+Isto vale igualmente para os dois itens de `DEPLOY.md` que hoje têm o rótulo
+mais urgente de todos (Seção 10, item 0): CSP ausente (`DEBT-03`) e rollback
+nunca testado. Ambos deixam de ser "corrigir imediatamente, produção real já
+está exposta a terceiros" e passam a ser "corrigir antes da abertura real ao
+grupo" — mesma régua aplicada aos demais itens desta nota. Observabilidade
+(Guardrail 36) segue no mesmo racional: sua ausência hoje não expõe dado de
+terceiro a risco sem monitoramento, porque não há terceiro usando o sistema
+ainda.
+
+### 4. Condição automática de reversão — não é um novo gate a esperar
+
+Este relaxamento de urgência **vale exclusivamente até o momento em que o
+organizador decidir abrir o acesso ao grupo real** — isto é, a partir do
+primeiro dos seguintes eventos, o que ocorrer primeiro:
+
+- Convidar qualquer jogador real do grupo "Turma do Rola" a usar o sistema;
+- Compartilhar a URL pública (`https://futebol-app-lsm.vercel.app` ou
+  qualquer outra que venha a substituí-la) com qualquer pessoa além do
+  próprio organizador;
+- Compartilhar a senha/link de acesso interno com qualquer outra pessoa.
+
+A partir desse ponto, **todos os itens listados na Seção 2 acima voltam a
+valer com a urgência e a severidade originais** — produção real, dados
+pessoais reais de terceiros, LGPD em pleno vigor, exatamente como
+`SECURITY-REVIEW.md`/`DEPLOY.md` já os descrevem. Esta reversão é
+**automática e condicional ao evento**, não a um novo veredito meu: nenhum
+agente (DevOps, DevSecOps, Backend, Frontend, ou o próprio organizador)
+precisa reabrir esta nota, pedir uma nova aprovação do CTO, ou aguardar um
+novo Gate para que a urgência original volte a valer — ela volta a valer no
+instante em que o evento ocorre, por força desta própria nota. Se, na
+prática, o organizador abrir o acesso sem que os itens da Seção 2 estejam
+resolvidos, isso passa a ser, a partir daquele instante, produção real
+insegura para terceiros, no sentido pleno que `SECURITY-REVIEW.md`/
+`DEPLOY.md` já descrevem — não uma novidade a ser descoberta depois.
+
+### 5. Novo item de checklist — pré-requisito antes da abertura real ao grupo
+
+Registro como item de checklist obrigatório, a ser verificado antes de
+qualquer um dos três eventos-gatilho da Seção 4 ocorrer (dono: DevOps
+verifica infraestrutura/observabilidade/rollback; DevSecOps verifica
+débitos de segurança; CTO confirma o fechamento antes de dar sinal-verde
+ao organizador, se for consultado):
+
+- [ ] `DEBT-03` a `DEBT-07` e `DEBT-09` (`SECURITY-REVIEW.md`), cada um
+      **resolvido**, ou conscientemente **aceito como risco residual pelo
+      CTO** com justificativa registrada (não fica "em aberto" por omissão
+      — precisa de uma das duas resoluções explícitas antes da abertura).
+- [ ] Rollback de produção **testado de fato** (não só documentado) —
+      `DEPLOY.md` Seção 5.
+- [ ] Observabilidade/monitoramento (Guardrail 36 e geral) **ativo**, não
+      mais em modo pendente de ativação — `DEPLOY.md` Seção 4.
+- [ ] Confirmação de que os secrets do GitHub Actions (`deploy-production.yml`)
+      estão configurados e de que o gate mecânico de dupla aprovação
+      (QA + DevSecOps) de fato governa qualquer deploy futuro — pendência já
+      registrada em `DEPLOY.md` Seção 10, item 1, hoje não verificada.
+- [ ] Confirmação, junto ao organizador, de que os dados de atleta hoje na
+      base (migrados do legado) foram tratados como fixture de teste até
+      este ponto e — se forem manter-se como dado real de produção a partir
+      da abertura — de que a base legal de LGPD (`SDD.md` Seção 7.6,
+      ressalvas dos Gates 2/3 sobre diferenciação adulto/menor, ainda
+      pendente de redação final) está com o texto de privacidade
+      efetivamente congelado para produção antes de qualquer terceiro real
+      acessar o sistema.
+
+Nenhum destes itens é novo em substância — todos já existiam como
+pendência em `SECURITY-REVIEW.md`/`DEPLOY.md`/`CTO-REVIEW.md` (Gates 2/3).
+O que esta nota adiciona é o **agrupamento explícito como pré-requisito de
+um evento de negócio específico** (abertura ao grupo real), para que a
+condição de reversão da Seção 4 tenha um checklist objetivo a consultar, em
+vez de depender de memória de contexto espalhada por três documentos.
+
+### Veredito desta nota: **Registrado** (não é um gate com veto — é
+governança ad hoc, sem bloqueio de nenhum agente em curso)
+
+Nenhum agente está bloqueado por esta nota. DevOps e DevSecOps continuam
+livres para resolver os itens da Seção 2 no ritmo que julgarem adequado
+dentro da nova janela de urgência (antes da abertura ao grupo, não
+"imediatamente"), sem que isso seja lido como negligência frente ao que
+`SECURITY-REVIEW.md`/`DEPLOY.md` registram. Se qualquer agente tiver razão
+para acreditar que a abertura ao grupo real está prestes a ocorrer sem o
+checklist da Seção 5 satisfeito, deve escalar diretamente para mim via
+`BLOCKERS.md` (PIPELINE-CONVENTIONS.md §4) — não presumir silenciosamente
+que ainda há tempo.
+
+---
+
+## Gate 1 — Iniciativa "Refactor Visual v2.0" — Revisão da recomendação de
+sequenciamento — 2026-09-04
+
+**Natureza deste registro**: continuação da mesma seção de Gate 1 desta
+iniciativa (acima, "Gate 1 — Pré-descoberta — Iniciativa 'Refactor Visual
+v2.0' — 2026-09-04"), não um novo Gate 1. Reavalio especificamente o **Risco
+1 (Alto, sequenciamento)** e a ressalva final daquele veredito, à luz de três
+fatos novos apresentados nesta retomada: (a) o deploy real de produção
+registrado em `DEPLOY.md` Seção 7.3; (b) a Nota de Governança Ad Hoc acima
+(uso pessoal de teste do organizador, recalibração de urgência de segurança);
+(c) uma justificativa de negócio relatada como vinda diretamente do
+stakeholder, equivalente à Hipótese A que eu mesmo havia levantado como
+inferência a confirmar.
+
+### O que de fato mudou, e o que foi apresentado como tendo mudado mas não mudou no sentido que importa
+
+**1. O deploy aconteceu — mas não satisfaz, no sentido substantivo, a
+condição que eu havia escrito.** Minha recomendação original usava "primeiro
+deploy real de produção" como proxy para algo mais específico: o início da
+entrega de valor mensurável ao grupo real (a métrica de sucesso do `PRD.md`
+Seção 3 exige ~8 rodadas de uso real, ~2 meses, do grupo — não do
+organizador sozinho). O que de fato ocorreu (`DEPLOY.md` Seção 7.3) é um
+deploy real, porém fora do fluxo governado — não via skill
+`deployment-execution`, sem confirmação do gate mecânico de dupla aprovação,
+sem rollback testado, sem observabilidade ativa. O próprio DevOps registra,
+na Seção 9 do mesmo documento, que o Gate 4 "ainda não pode ser formalmente
+fechado" e que fechá-lo agora "seria reportar... um sucesso que este agente
+não pode afiançar". Mais relevante ainda: por admissão da própria Nota Ad
+Hoc (Seção 1), o único usuário real hoje é o organizador — o grupo real não
+tem acesso. A mensuração da métrica de sucesso **não começou a correr**,
+porque depende de uso real do grupo, não de uma URL visitada pelo próprio
+organizador. Neste sentido específico — o que realmente importava na minha
+recomendação original — o estado de "valor ainda não entregue ao público-
+alvo" é **idêntico** ao que era antes deste deploy fora de banda. Tratar "o
+deploy já aconteceu" como satisfazendo literalmente minha condição original
+seria uma leitura formalista que perde o motivo real da condição — não
+adoto essa leitura.
+
+**2. Ainda assim, a proposta do stakeholder não depende dessa leitura
+formalista para ser válida — sustenta-se por um argumento diferente e mais
+sólido.** A própria Nota de Governança Ad Hoc que registrei hoje, por um
+raciocínio correlato (débitos de segurança), já havia deslocado o marco
+relevante de "primeiro deploy real" para "abertura real de acesso ao
+grupo". É consistente, não oportunista, aplicar o mesmo deslocamento à
+recomendação de sequenciamento deste Gate 1: o marco que sempre importou
+para "quando o valor de negócio começa a ser entregue/mensurado" nunca foi
+tecnicamente "existir uma URL em produção" — sempre foi "o grupo real ganhar
+acesso". Um deploy de teste pessoal do organizador não move essa data.
+Redesenhar agora, antes da abertura ao grupo, não adia a métrica de sucesso
+em nenhum dia além do que já está parado esperando a resolução do checklist
+de pré-abertura (Nota Ad Hoc, Seção 5) — **desde que o redesenho não desloque
+ou atrase esse checklist**. Isso é, na prática, a Hipótese A que eu havia
+levantado como inferência no Gate 1 original desta iniciativa, agora trazida
+como justificativa relatada do stakeholder. Aceito revisar o marco de
+sequenciamento com base nela — com a ressalva de rastreabilidade na trava
+(b) abaixo, porque o que tenho em mãos é um relato de terceiro sobre o que o
+stakeholder disse, não uma declaração capturada diretamente por mim.
+
+### Revisão do marco de sequenciamento
+
+Reviso a condição registrada no Gate 1 original desta iniciativa (Risco 1,
+Alto; ressalva final da lista de 2026-09-04), de:
+
+> "esta iniciativa não deve consumir a capacidade dedicada de Backend/
+> Frontend antes do primeiro deploy real de produção do escopo já aprovado"
+
+para:
+
+> Esta iniciativa pode consumir capacidade de Frontend (e, se necessário, de
+> Backend) **antes da abertura real de acesso ao grupo "Turma do Rola"** —
+> o mesmo evento-gatilho já definido na Nota de Governança Ad Hoc (Seção 4)
+> — condicionada a três travas novas que a recomendação original não tinha:
+
+**(a) Precedência do checklist de pré-abertura.** O checklist da Nota Ad Hoc
+(Seção 5: `DEBT-03` a `DEBT-07`/`DEBT-09`, rollback testado, observabilidade
+ativa, confirmação dos secrets do GitHub Actions, congelamento do texto de
+privacidade LGPD de `FE-04`) continua sendo o requisito de maior prioridade
+antes da abertura ao grupo — não é subordinado ao redesenho, é anterior e
+superior a ele. Dois destes itens têm interseção direta com o escopo do
+redesenho e com a capacidade de Frontend (decisão self-host vs. CDN de fonte
+externa em conjunto com o fechamento de `DEBT-03`/CSP; texto de privacidade
+de `FE-04`) — Tech Lead deve sequenciar/paralelizar de forma que o redesenho
+**nunca** atrase esses dois itens. Se surgir conflito real de capacidade
+entre "avançar o redesenho" e "fechar CSP/privacidade LGPD antes da
+abertura", o checklist de pré-abertura vence sempre — decido isso aqui, não
+fica para o Tech Lead arbitrar caso a caso.
+
+**(b) Registro formal da Hipótese A pelo PM.** Não sigo em frente só com a
+justificativa relatada informalmente nesta retomada de tarefa — o que
+recebi é um relato de terceiro sobre a posição do stakeholder, não uma
+declaração capturada diretamente por mim, nem um artefato do pipeline. Antes
+de o Tech Lead reestimar qualquer capacidade em um `TASK.md` delta, o PM
+precisa capturar com rastreabilidade (data, formulação nas palavras do
+próprio stakeholder) em artefato do pipeline (PRD delta ou nota equivalente)
+a confirmação explícita da Hipótese A — mesmo racional de "nenhuma aprovação
+sem registro" que já rege este pipeline inteiro, aplicado aqui à entrada que
+justifica a mudança de prioridade, não só às minhas próprias aprovações.
+
+**(c) Consciência explícita do trade-off, não ausência dele.** Aceitar este
+novo marco significa aceitar conscientemente que a abertura ao grupo real —
+e, com ela, o início da mensuração da métrica de sucesso já aprovada — fica
+sujeita ao tempo que o redesenho consumir, além do tempo que o checklist de
+pré-abertura já exige. Não elimino o Risco 1 (Alto) do Gate 1 original desta
+iniciativa — aceito-o conscientemente, ancorado num motivo de negócio
+explícito (Hipótese A), exatamente como eu mesmo previ como única saída
+válida ("a menos que o PM traga... justificativa de negócio forte o bastante
+para inverter essa prioridade conscientemente, decisão que caberia então a
+mim revalidar"). Rebaixo a severidade deste risco de **Alto** para **Médio**
+nesta reavaliação — não porque o risco em si diminuiu de tamanho, mas porque
+passa a existir uma decisão consciente, justificada e condicionada assumindo-
+o, o que é qualitativamente diferente de um risco não endereçado.
+
+### O que não muda
+
+- As outras 6 ressalvas do Gate 1 original desta iniciativa (artefato de
+  origem não versionado; cobertura parcial das 5 telas restantes — Guardrail
+  31; ambiguidade da paleta dupla; assets de marca fora de processo; fonte
+  externa x CSP a decidir junto com `DEBT-03`; rótulo "v2.0" prematuro)
+  permanecem integralmente em aberto e válidas. Nenhuma delas foi endereçada
+  pelo que mudou aqui, e nenhuma é dispensada por esta revisão — confirmo a
+  leitura do relato recebido nesta tarefa nesse ponto específico.
+- Nenhuma decisão de arquitetura, a capacidade estrutural da squad (1
+  Backend + 1 Frontend, Gate 3 original) ou `GUARDRAILS.md` é reaberta aqui.
+- Esta revisão não fecha o Gate 4 nem reclassifica o estado do deploy fora
+  de banda — ele continua sendo tratado por DevOps/DevSecOps conforme já
+  registrado (`DEPLOY.md` Seção 9; Nota Ad Hoc, Seções 2-5).
+
+### Correção de enquadramento — o que já estava liberado e o que esta revisão libera de fato
+
+O PM **já estava liberado** para iniciar a elicitação/discovery desta
+iniciativa desde o veredito original de 2026-09-04 ("Aprovado com
+ressalvas") — esta revisão não é o que "libera a Etapa 2" do fluxo de
+planejamento; essa liberação já existia. O que esta revisão efetivamente
+muda é o próximo passo, mais adiante: a possibilidade de o Tech Lead
+comprometer capacidade de Frontend/Backend em um `TASK.md` delta **antes da
+abertura ao grupo**, em vez de esperar um "primeiro deploy real" que, no
+sentido que importava, ainda não ocorreu. Essa possibilidade fica
+condicionada, sem exceção, às três travas (a)-(c) acima — em particular, à
+trava (b): PM deve registrar formalmente a Hipótese A antes de qualquer
+estimativa de Tech Lead, não depois.
+
+### Veredito desta revisão: **Aprovado com ressalvas**
+
+- [x] Recomendação de sequenciamento revisada: de "antes do primeiro deploy
+      real de produção" para "antes da abertura real de acesso ao grupo
+      'Turma do Rola'" — mesmo evento-gatilho da Nota de Governança Ad Hoc.
+      Severidade do Risco 1 rebaixada de Alto para Médio, dado como risco
+      conscientemente aceito, não removido.
+- [ ] PM deve registrar formalmente, com rastreabilidade, a confirmação da
+      Hipótese A pelo stakeholder (trava b), antes de qualquer estimativa de
+      Tech Lead sobre capacidade desta iniciativa. Dono: PM. Prazo: antes do
+      `TASK.md` delta.
+- [ ] Tech Lead deve sequenciar/paralelizar o redesenho de forma que ele
+      nunca atrase os dois itens do checklist de pré-abertura que
+      intersectam Frontend (CSP/fonte externa junto com `DEBT-03`; texto de
+      privacidade de `FE-04`) — precedência do checklist é regra fixa, não
+      decisão caso a caso (trava a). Dono: Tech Lead. Prazo: contínuo, a
+      partir do `TASK.md` delta.
+- [ ] As 6 ressalvas remanescentes do Gate 1 original desta iniciativa
+      (artefato de origem, cobertura das 5 telas restantes, ambiguidade de
+      paleta, assets de marca, fonte externa/CSP, rótulo "v2.0") seguem
+      integralmente em aberto, sem alteração de dono ou prazo.
+
+Com isto, o PM segue liberado (como já estava) para a elicitação/discovery
+desta iniciativa, incluindo agora, explicitamente, a captura formal da
+Hipótese A como primeiro ato — pré-requisito para que o Tech Lead, mais
+adiante, possa comprometer capacidade em um `TASK.md` delta antes da
+abertura ao grupo real.
+
+---
+
+## Gate 1 — Iniciativa "Refactor Visual v2.0" — Atualização por Fatos Novos
+do Organizador (Correção Hipótese A/B; Ausência de Usuário Real em v1 e v2)
+— 2026-09-04 (retomada)
+
+**Natureza deste registro**: **não é um novo Gate 1**. É atualização, com
+rastreabilidade, das duas seções anteriores desta mesma iniciativa ("Gate 1
+— Pré-descoberta — Iniciativa 'Refactor Visual v2.0'" e "Gate 1 — Revisão da
+recomendação de sequenciamento", ambas 2026-09-04, acima). O motivo desta
+atualização é qualitativamente diferente do que motivou a revisão anterior:
+lá, eu trabalhava sobre um **relato de terceiro** sobre a posição do
+stakeholder (explicitamente registrado como tal, com ressalva de
+rastreabilidade — trava (b)). Aqui, o organizador fala **diretamente comigo,
+nesta retomada** — é fonte primária, não relato.
+
+### 1. Correção da Hipótese A/B — o fundamento do rebaixamento de severidade não se sustenta
+
+Na revisão anterior ("Gate 1 — Revisão da recomendação de sequenciamento"),
+rebaixei o Risco 1 (sequenciamento) de **Alto** para **Médio** com base num
+relato de terceiro que apontava a Hipótese A (adoção/gestão de mudança
+frente ao app legado, recurso "mais celebrado", risco de resistência de
+adoção na migração do grupo) como a motivação real do redesenho — tratando
+isso como a "justificativa de negócio forte o bastante para inverter a
+prioridade conscientemente" que eu mesmo havia colocado como única condição
+válida para essa inversão, no Gate 1 original desta iniciativa.
+
+**O organizador agora afirma diretamente, nesta retomada, que isso está
+errado**: a motivação real do redesenho é a **Hipótese B** — preferência
+estética pessoal, sem métrica de negócio associada — a mesma hipótese que a
+minha própria análise original (Gate 1, "Objetivo de negócio") já havia
+levantado e classificado explicitamente: *"se for isso, ainda é uma decisão
+de produto legítima do dono do sistema, mas deve ser tratada com prioridade
+proporcional — não como parte do MVP Must/Should já aprovado (`PRD.md`
+Seção 5), e sim como item de roadmap pós-lançamento."*
+
+**Correção formal, com rastreabilidade**:
+
+- A trava (c) da "Revisão da recomendação de sequenciamento" ("Consciência
+  explícita do trade-off... ancorado num motivo de negócio explícito
+  (Hipótese A)... Rebaixo a severidade deste risco de Alto para Médio") **é
+  anulada nesta atualização** — o motivo de negócio que justificava o
+  rebaixamento não existe; era baseado em informação incorreta (relato de
+  terceiro que não correspondia à posição real do stakeholder).
+- **Reverto a severidade do Risco 1 (sequenciamento) de Médio para Alto** —
+  volta ao valor original do Gate 1 desta iniciativa. Não é uma terceira
+  reclassificação independente; é a constatação de que a única condição que
+  eu havia aceito para o rebaixamento ("a menos que o PM traga... uma
+  justificativa de negócio forte o bastante") nunca foi de fato satisfeita.
+- A trava (b) da mesma revisão ("PM deve registrar formalmente a Hipótese A
+  antes de qualquer estimativa de Tech Lead") **fica sem objeto** — não faz
+  sentido exigir o registro formal de uma hipótese que o próprio stakeholder
+  já refutou diretamente. Substituo por uma exigência equivalente, agora
+  correta: **PM deve registrar formalmente, com rastreabilidade (data,
+  formulação nas palavras do organizador), a confirmação da Hipótese B**,
+  para que este ponto não fique só em prosa neste log — mesmo racional de
+  "nenhuma correção sem registro" já aplicado ao resto deste pipeline.
+- A trava (a) (precedência do checklist de pré-abertura sobre o redesenho)
+  **permanece válida como boa prática**, mas deixa de ser a trava operante
+  principal — com o Risco 1 revertido a Alto e sem justificativa de negócio
+  para inversão de prioridade, a questão de "que ordem seguir se houver
+  conflito de capacidade" deixa de ser o ponto central: o ponto central volta
+  a ser "esta iniciativa não deveria consumir capacidade dedicada agora",
+  como no Gate 1 original.
+
+**Recomendação de sequenciamento, revertida**: volta a valer, sem a exceção
+que a revisão anterior havia aberto, a formulação original do Gate 1 desta
+iniciativa — esta iniciativa **não deve consumir a capacidade dedicada de
+Backend/Frontend antes do início real da entrega/mensuração de valor ao
+grupo "Turma do Rola"** (evento-gatilho equivalente ao já definido na Nota
+de Governança Ad Hoc, Seção 4: convite de jogador real, compartilhamento da
+URL pública ou da senha de acesso interno com alguém além do organizador).
+Diferente da revisão anterior, **não há mais exceção condicionada a uma
+justificativa de negócio (Hipótese A)** — essa exceção foi a que se revelou
+infundada.
+
+### 2. Nem a v1 nem a v2 têm usuário real hoje — extensão explícita da Nota de Governança Ad Hoc à priorização desta iniciativa
+
+A Nota de Governança Ad Hoc registrada mais acima nesta mesma data
+("Recalibração de urgência temporal frente ao público real atual") já
+documentava, por relato do organizador, que o único usuário real do sistema
+hoje é ele mesmo, e recalibrava **a urgência** (não a severidade) dos
+débitos de segurança em função disso. O organizador esclarece agora, nesta
+retomada, que essa mesma condição de fato — **uso exclusivamente pessoal de
+teste** — vale igualmente para a v1 já publicada (`DEPLOY.md` Seção 7.3,
+commit `4c57be7`) e para a v2 (este redesenho): nenhuma das duas tem
+previsão de abertura ao grupo real no horizonte desta retomada.
+
+Isto é **adicional**, não substitui, a Nota Ad Hoc já registrada — estendo
+aqui explicitamente o mesmo racional à priorização desta iniciativa de
+redesign, não só à urgência dos débitos de segurança:
+
+- Reforça, por um caminho independente da correção do item 1 acima, a
+  mesma conclusão: não existe hoje pressão real de adoção/gestão de mudança
+  a mitigar (não há grupo migrando de lugar nenhum, porque não há grupo
+  usando nenhuma das duas versões) — o que já era, por si só, o argumento
+  central da Hipótese A que o organizador acabou de refutar diretamente.
+  As duas informações novas se reforçam mutuamente, não apenas coincidem.
+  Não é preciso escolher qual delas "resolve" o Risco 1 — as duas apontam
+  para a mesma correção.
+  Aplica-se aqui a mesma nota de valor: DEBT-03 a DEBT-09 e as ressalvas
+  técnicas seguem tecnicamente válidas na íntegra; apenas a urgência
+  temporal de priorização de capacidade entre "redesenho" e "resto do
+  backlog" é recalibrada.
+  Nenhuma severidade técnica muda em função disto.
+
+### Veredito desta atualização: **Aprovado com ressalvas** (correção de registro, não novo veredito de mérito)
+
+- [x] Hipótese A/B corrigida com rastreabilidade: motivação real é Hipótese
+      B (preferência estética, sem métrica de negócio), confirmada
+      diretamente pelo organizador nesta retomada — não mais um relato de
+      terceiro.
+- [x] Risco 1 (sequenciamento) revertido de Médio para **Alto** — a
+      justificativa que sustentava o rebaixamento (Hipótese A) não se
+      confirmou.
+- [x] Recomendação de sequenciamento revertida: sem exceção de negócio
+      ativa, esta iniciativa não deve consumir capacidade dedicada de
+      Backend/Frontend antes do início real de entrega ao grupo real (mesmo
+      evento-gatilho da Nota Ad Hoc, Seção 4).
+- [x] Nota de Governança Ad Hoc (uso pessoal de teste) estendida
+      explicitamente, nesta atualização, à priorização desta iniciativa —
+      não só à urgência dos débitos de segurança.
+- [ ] PM deve registrar formalmente, com rastreabilidade, a confirmação da
+      Hipótese B pelo organizador (data e formulação), substituindo o
+      registro da Hipótese A que a trava (b) da revisão anterior exigia.
+      Dono: PM. Prazo: antes de qualquer estimativa de Tech Lead sobre esta
+      iniciativa.
+- [ ] Se, no futuro, surgir uma justificativa de negócio nova e diretamente
+      confirmada pelo stakeholder (não um relato de terceiro) capaz de
+      justificar inverter esta prioridade, ela deve ser trazida a mim para
+      revalidação explícita — mesma régua já registrada no Gate 1 original,
+      agora reafirmada.
+- As 6 ressalvas remanescentes do Gate 1 original desta iniciativa
+  (artefato de origem não versionado, cobertura parcial das 5 telas
+  restantes/Guardrail 31, ambiguidade de paleta dupla, assets de marca fora
+  de processo, fonte externa/CSP a decidir junto, rótulo "v2.0" prematuro)
+  permanecem integralmente em aberto, sem alteração de dono ou prazo — nem
+  agravadas nem dispensadas por esta atualização.
+
+---
+
+## Consolidação de Pendências Reais da v1 — Lista Única Priorizada — 2026-09-04
+
+**Natureza deste registro**: consolidação, não nova análise. Todos os itens
+abaixo já foram analisados e registrados por seus donos originais
+(DevSecOps, QA, Tech Lead/DevOps, Software Architect, ou por mim mesmo em
+gates anteriores) — aqui apenas reúno, com referência de fonte, numa lista
+única ordenada por severidade/urgência real, à luz do fato registrado acima
+(nem v1 nem v2 têm usuário real hoje) e da Nota de Governança Ad Hoc já em
+vigor (severidade técnica não muda; urgência é calibrada pelo evento
+"abertura de acesso ao grupo real"). Nenhum item aqui é reclassificado em
+severidade — apenas ordenado.
+
+### Tier 1 — Pré-requisito da abertura de acesso ao grupo real (gate de evento, não data; ver Nota de Governança Ad Hoc, Seções 4-5)
+
+1. **Rollback de produção nunca testado de fato** — `DEPLOY.md` Seção 5/10
+   item 0. Guardrail próprio do DevOps ("nunca produção sem rollback
+   testado"). Mecanismo existe (`rollback-production.yml`), nunca
+   exercitado.
+2. **[RESOLVIDO PARCIALMENTE em 2026-09-04, quanto ao Guardrail 36 —
+   `DEPLOY.md` Seção 4/7.5/10 item 0]** Observabilidade/monitoramento
+   inativo, incluindo Guardrail 36 (monitoramento do tier gratuito do
+   Supabase) — `DEPLOY.md` Seção 4/8/10 item 0. Os secrets necessários
+   (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_PROJECT_REF`) foram
+   configurados via `gh secret set`/`gh secret list` (executado pelo
+   usuário/organizador, com orientação do DevOps) e o workflow
+   `supabase-health-check.yml` foi disparado manualmente
+   (`gh workflow run`, `workflow_dispatch`), concluindo com sucesso: run
+   `https://github.com/leandrosegheto17/FutebolApp/actions/runs/33923744716`
+   (run #2), job "Verifica status e pausa do projeto Supabase" em 7s,
+   log confirmando status **`ACTIVE_HEALTHY`** via Management API,
+   nenhuma Issue `supabase-alerta` criada (esperado — status saudável).
+   Isso é confirmação de **execução real de ponta a ponta**, não apenas de
+   presença de secret — o cron diário (09:00 UTC) passa a rodar de
+   verdade a partir de hoje. **Ressalva explícita, não inflada como
+   resolvida**: isso cobre apenas o sub-item de monitoramento de
+   pausa/status do tier gratuito do Supabase (o gatilho de maior
+   probabilidade prática, SDD.md Seção 6.2). Observabilidade **geral** da
+   aplicação (logs estruturados, métricas de erro/latência, alertas de
+   aplicação em produção) **segue não implementada/confirmada** — o item
+   permanece parcialmente aberto quanto a esse escopo mais amplo. O job de
+   backup lógico externo (ADR-009, `supabase-backup-export.yml`), que
+   depende dos mesmos secrets agora presentes, também **não foi
+   disparado/testado** nesta sessão.
+3. **[RESOLVIDO quanto à configuração dos secrets em 2026-09-04 —
+   `DEPLOY.md` Seção 7.5/10 item 1; confirmação de execução do gate de
+   dupla aprovação segue pendente]** Secrets do GitHub Actions não
+   confirmados + confirmação de que o gate mecânico de dupla aprovação
+   (QA + DevSecOps) de fato governa deploy futuro — `DEPLOY.md` Seção 10,
+   item 1. Confirmado que **antes desta sessão não havia nenhum secret
+   configurado** (`gh secret list --repo leandrosegheto17/FutebolApp`
+   retornava vazio, confirmado também pela UI de Settings > Secrets) — o
+   que confirma retroativamente que a publicação de produção já registrada
+   em `DEPLOY.md` Seção 7.3 (commit `4c57be7`, detectada fora do fluxo
+   governado) **não pode ter passado pelo gate mecânico** de
+   `deploy-production.yml` (que depende desses secrets para sequer
+   iniciar) — foi publicada por um caminho não governado, como a Seção 7.3
+   já suspeitava sem poder confirmar. **Agora**, 6 secrets de produção
+   foram configurados e confirmados via `gh secret set`/`gh secret list`:
+   `VERCEL_TOKEN`, `VERCEL_ORG_ID` (`team_LGMpqv4TnLt60QJ52AKDqQI9`, não
+   sensível), `VERCEL_PROJECT_ID` (`prj_Ql7a22UII1loTsNAfjOGsnWSNx7z`, não
+   sensível), `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_PROJECT_REF`
+   (`ipnbdrejlikrmqyxggsp`, já conhecido), `SUPABASE_PROD_DB_URL`. A
+   pergunta original ("os secrets do GitHub Actions estão configurados?")
+   está respondida, positivamente, tanto para o estado anterior (não)
+   quanto para o atual (sim, para produção). **Ressalva explícita que
+   permanece em aberto, não inflada como resolvida**: (a) os workflows
+   `deploy-production.yml`, `deploy-staging.yml` e
+   `rollback-production.yml` — que também dependem destes secrets,
+   incluindo o gate mecânico de dupla aprovação que lê
+   `QA-REPORT.md`/`SECURITY-REVIEW.md` — **não foram
+   disparados/exercitados** nesta sessão; só `supabase-health-check.yml`
+   foi executado e confirmado com sucesso. A confirmação de que o gate de
+   dupla aprovação "de fato governa deploy futuro" continua **pendente de
+   teste real** — só a presença dos secrets foi confirmada, não o
+   comportamento do workflow em execução. (b) Os secrets de staging
+   (`SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD`) **não**
+   foram configurados — a decisão de criar (ou não) um segundo projeto
+   Supabase gratuito dedicado a staging (item Tier 1 relacionado à Seção
+   5.1 de `DEPLOY.md`) segue em aberto; `deploy-staging.yml` continua sem
+   poder rodar de verdade.
+4. **Texto de privacidade LGPD de `FE-04` não congelado**, incluindo a
+   redação diferenciada de base legal adulto (Art. 7º IX) vs. menor (Art.
+   14) — `SDD.md` Seção 7.6, ressalva aberta desde o Gate 2/3
+   (`CTO-REVIEW.md`, acima) — e o item correspondente da Nota Ad Hoc, Seção
+   5. Uma única ação (congelar o texto com a redação diferenciada) fecha as
+   duas pendências ao mesmo tempo — não são dois itens independentes.
+5. **`DEBT-04`** (Média) — advisories residuais de `next@14.2.35` (DoS/
+   cache), fora do escopo de CRIT-01 já fechado — `SECURITY-REVIEW.md`.
+6. **`DEBT-05`** (Média) — timing side-channel entre "senha incorreta" e
+   "bloqueado por rate limit" (`BE-04`) — `SECURITY-REVIEW.md`.
+7. **`DEBT-06`** (Média) — rate limiting de login depende de
+   `x-forwarded-for` não documentado como premissa de infraestrutura —
+   `SECURITY-REVIEW.md`.
+8. **`DEBT-03`** (Baixa, mas item de maior visibilidade histórica no
+   checklist) — ausência de CSP em `vercel.json`. Interseção direta com a
+   ressalva 5/7 do redesenho v2.0 (fonte externa Google Fonts, self-host
+   vs. CDN) — decisão a tomar em conjunto, não isoladamente.
+   **[Atualizado 2026-09-04 pelo DevOps, registro factual — não altero o
+   veredito/priorização do CTO acima]**: CSP adicionada em `vercel.json`
+   (`DEPLOY.md` Seção 10.1), autorizada nesta sessão pelo usuário/
+   organizador. Nenhuma fonte externa (Google Fonts) está em uso hoje no
+   código real — a ressalva 5/7 sobre self-host vs. CDN segue relevante
+   apenas para quando/se o redesenho v2.0 (ainda não implementado) chegar a
+   introduzir fonte externa; não bloqueou esta correção. **Ressalva que
+   permanece, não inflada como resolvida**: a aplicação real do header em
+   produção (via deploy real, não `next start` local) segue não confirmada
+   por HTTP real nesta sessão — ver `DEPLOY.md` Seção 10.1 para a limitação
+   de teste explícita.
+9. **`DEBT-07`** (Baixa) — `app.tentativa_login.ip` sem política de
+   retenção/expurgo (LGPD Art. 6º, III, minimização) — `SECURITY-REVIEW.md`.
+   **[Atualizado 2026-09-04 pelo DevOps, registro factual]**: workflow
+   `.github/workflows/tentativa-login-purge.yml` criado (cron diário, 72h de
+   retenção), query validada empiricamente contra Postgres local
+   (`DEPLOY.md` Seção 10.2) — **nunca executado contra produção real** nesta
+   sessão (nem manual, nem pelo cron ainda); instrução explícita recebida
+   foi não rodar o `DELETE` real contra produção nesta tarefa.
+10. **`DEBT-09`** (informativo/operacional) — confirmar `Secure=true` no
+    cookie de sessão em produção real — `SECURITY-REVIEW.md`.
+11. **`DEBT-01`/`DEBT-02`** (Baixa, dev-only, sem exposição em produção
+    confirmada) — vulnerabilidades residuais de toolchain (`vitest`,
+    `glob`/`minimatch`/`eslint-config-next`) — `SECURITY-REVIEW.md`. Menor
+    urgência real dentro deste Tier por não terem exposição de produção.
+
+### Tier 2 — Débito de governança/processo (não bloqueante, mas deveria fechar antes de qualquer nova rodada de mudança nas mesmas telas)
+
+12. **Lotes L1 a L5 nunca receberam veredito agregado formal de QA/DevSecOps
+    como unidade fechada** — gap de processo já identificado pelo próprio
+    Tech Lead/DevOps em `EXECUTION-LOG.md` (achado sinalizado no
+    fechamento de L6). Recomendo fechar retroativamente antes de o
+    redesenho v2.0 tocar qualquer uma dessas telas — evita empilhar
+    mudança visual nova sobre lotes que nunca foram formalmente fechados
+    como unidade.
+13. **Trava técnica complementar para RF-08.6** — o Gate 2 (`CTO-REVIEW.md`,
+    acima) pediu uma trava técnica (não só disciplina de processo) contra
+    `DROP`/`DROP SCHEMA` destrutivo na schema legada. Ao revisar
+    `GUARDRAILS.md` (regra 11, nota de 2026-09-04/BE-14) nesta consolidação,
+    encontro evidência de que essa trava **já foi implementada**
+    (`REVOKE` de `DROP`/`ALTER TABLE`/`DROP SCHEMA` destrutivo, migration
+    `20260903170000_travar_schema_legada_ate_validacao.sql`), mas este
+    `CTO-REVIEW.md` nunca registrou o fechamento formal desta ressalva.
+    Não fecho isso agora por conta própria (não é matéria desta
+    consolidação reabrir mérito técnico) — sinalizo para que Software
+    Architect/Tech Lead confirmem que a migration de BE-14 satisfaz
+    integralmente o pedido original do Gate 2, e o PM leve essa
+    confirmação para eu fechar formalmente o item na próxima ocasião em
+    que este log for atualizado.
+
+### Tier 3 — Débitos técnicos de baixa severidade, sem prazo formal, não bloqueantes (`QA-REPORT.md`)
+
+14. `BUG-QA-BE01-01` — débito, sem bloqueio.
+15. `BUG-QA-BE01-02` — débito, prazo já vencido de "antes do próximo push"
+    (verificar se segue pendente).
+16. `BUG-QA-FE00-01` — débito, mesma natureza do item acima (formatação).
+17. `BUG-QA-FE00-02` — débito, polimento, sem prazo formal.
+18. `BUG-QA-BE02-01` — débito, ausência de FK/constraint entre
+    `lancamento_pontos` e tabela relacionada, sem prazo formal.
+19. `BUG-QA-BE03-01` — débito/informativo, limitação conhecida do ambiente
+    local, sem prazo formal.
+20. `BUG-QA-FE10-01` — débito, polimento de acessibilidade, sem prazo
+    formal.
+
+### Tier 4 — Ressalvas próprias da iniciativa de redesign v2.0, ainda em aberto (`CTO-REVIEW.md`, Gate 1 desta iniciativa, 2026-09-04)
+
+21. Artefato de origem não versionado no repositório — o mockup existe hoje
+    só como Artifact do `claude.ai`
+    (`https://claude.ai/code/artifact/75a686fe-5e8f-46fe-8c98-c3a2120e428b`),
+    aprovado pelo usuário, mas não persistido/versionado.
+22. Cobertura de apenas 6 das 11 telas — risco ao Guardrail 31 (duas
+    linguagens visuais coexistindo sem decisão explícita de extensão ou
+    plano de migração faseado).
+23. Ambiguidade da paleta dupla Grupo Rola/marinho-dourado vs. Clube
+    Comary/verde — não esclarecida.
+24. Assets de marca `logo.jpg`/`logo_comary.jpg` fora de processo governado
+    (sem convenção de path, sem confirmação de direito de uso).
+25. Fonte externa (Google Fonts) vs. CSP (`DEBT-03`) a decidir em conjunto
+    — mesmo item 8 do Tier 1, citado aqui apenas para referência cruzada.
+26. Rótulo "v2.0" prematuro — reforçado, não enfraquecido, pelo fato novo
+    2 desta atualização: se nem a v1 nem a v2 têm usuário real hoje, rotular
+    esta iniciativa como "versão 2.0" antes de qualquer versão ter validado
+    uso real cria uma expectativa de numeração de release que a realidade
+    do produto ainda não sustenta. Mantida a recomendação de tratar como
+    "adendo/revisão de design system" até a v1 ter uso real validado.
+
+### Direcionamento formal ao PM
+
+Libero/instruo o PM a validar esta lista priorizada (Tiers 1-4 acima) junto
+com as mudanças de Design já aprovadas como mockup (mesma referência de
+Artifact do item 21), como próxima etapa do fluxo de planejamento já em
+curso (PM → Business Analyst → Software Architect → UX/UI → Tech Lead). Isto
+não é autorização para o Tech Lead comprometer capacidade de Backend/
+Frontend na implementação do redesenho — essa autorização segue condicionada
+à recomendação de sequenciamento revertida na seção anterior (não antes do
+início real de entrega ao grupo, sem exceção de negócio ativa hoje). A
+validação do PM é sobre **conteúdo e prioridade relativa** das pendências e
+do mockup, não sobre início de implementação.
+
+### Verificação de `BLOCKERS.md`
+
+Revisei as 6 entradas de `BLOCKERS.md` (`BLOCKER-001` a `BLOCKER-006`) à luz
+dos dois fatos novos desta retomada. **A leitura de que todas seguem
+`Resolvido` permanece válida — nenhuma reabertura é necessária.** Nenhum dos
+dois fatos novos (correção de Hipótese A/B; ausência de usuário real em v1 e
+v2) contradiz ou reabre o mérito técnico de nenhuma das seis resoluções
+registradas (mecanismo de explicação de conflito de T09; anonimização de
+atleta; plano de saída do ADR-002; campo de ausências no ranking público —
+duas entradas; e correção de CVE crítico do Next.js) — todas tratam de
+decisões técnicas/de contrato de dado já fechadas por seus donos, sem
+relação com motivação de negócio do redesenho ou com o tamanho do público
+real atual. Os fatos novos afetam exclusivamente a priorização/sequenciamento
+desta iniciativa de redesign (registrado acima) e a urgência temporal de
+itens já cobertos pela Nota de Governança Ad Hoc — nenhum dos dois é, por
+natureza, um bloqueio entre agentes no formato de `BLOCKERS.md`.
