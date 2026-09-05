@@ -24,3 +24,5 @@ export * from "./Skeleton";
 export * from "./Stepper";
 export * from "./AppNav";
 export * from "./SessionExpiryBanner";
+export * from "./Icon";
+export * from "./BrandCrest";

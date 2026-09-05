@@ -91,7 +91,17 @@
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   text-decoration: none;
+}
+
+.brandCrest {
+  /* Compacto o suficiente para não competir com o texto da marca ao lado —
+     UX-SPEC.md Parte II Seção 3.2 (BrandCrest compacto no TopNav). */
+  width: 24px;
+  height: 28px;
 }

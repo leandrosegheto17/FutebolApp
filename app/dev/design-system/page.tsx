@@ -5,12 +5,15 @@ import {
   Accordion,
   AppNav,
   Badge,
+  BrandCrest,
   Button,
   Card,
   CardFooter,
   CardHeader,
   DateInput,
   EmptyState,
+  Icon,
+  type IconName,
   Modal,
   NumberInput,
   PasswordInput,
@@ -40,6 +43,16 @@ import styles from "./page.module.css";
  * de rotas (implementação), não uma mudança de UX-SPEC — nenhum conteúdo
  * deste arquivo foi alterado, só o caminho.
  */
+const ICON_NAMES: IconName[] = [
+  "lock",
+  "alert-triangle",
+  "eye",
+  "eye-off",
+  "zap",
+  "more-vertical",
+  "menu",
+];
+
 export default function StyleGuidePage() {
   const { showToast } = useToast();
   const [presenca, setPresenca] = useState<string | null>("presente");
@@ -270,6 +283,38 @@ export default function StyleGuidePage() {
             <Skeleton height={20} width="80%" />
             <Skeleton height={20} width="40%" />
           </SkeletonGroup>
+        </section>
+
+        <section className={styles.section}>
+          <h2>Icon (FE-R00)</h2>
+          <p>
+            Substitui apenas os emoji da Parte I sem evidência no mockup real — os 5 emoji
+            confirmados no mockup (🥇🥈🥉⚽🟨🟥🔄✓) permanecem emoji, não migram para este
+            componente (UX-SPEC.md Parte II Seção 3.4).
+          </p>
+          <div className={styles.row}>
+            {ICON_NAMES.map((name) => (
+              <span
+                key={name}
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                <Icon name={name} aria-label={name} />
+                <code>{name}</code>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2>BrandCrest (FE-R00)</h2>
+          <p>
+            Placeholder até PM+stakeholder confirmarem direito de uso do brasão real
+            (`logo.jpg`, RNF-D04) — ver comentário em `BrandCrest.tsx`.
+          </p>
+          <div className={styles.row} style={{ alignItems: "center" }}>
+            <BrandCrest size="large" />
+            <BrandCrest size="compact" />
+          </div>
         </section>
 
         <section className={styles.section}>

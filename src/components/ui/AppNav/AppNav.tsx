@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { BrandCrest } from "../BrandCrest";
 import styles from "./AppNav.module.css";
 
 export interface NavItem {
@@ -73,6 +74,10 @@ export function TopNav({
     <nav aria-label="Navegação principal" className={styles.topNav}>
       {brand && (
         <a href="/" className={cn(styles.brand)}>
+          {/* `decorative` — o texto `brand` ao lado já identifica a marca por
+              extenso; duplicar o rótulo no crest confundiria o nome
+              acessível do link (FE-R00, UX-SPEC.md Parte II Seção 3.2). */}
+          <BrandCrest size="compact" decorative className={styles.brandCrest} />
           {brand}
         </a>
       )}
