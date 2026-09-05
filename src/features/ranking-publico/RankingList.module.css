@@ -58,15 +58,14 @@
 }
 
 .nameCell {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
   font-weight: var(--font-weight-medium);
   white-space: normal;
 }
 
-th.nameCell {
-  display: table-cell;
+.nameCellContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 .positionIndicator {

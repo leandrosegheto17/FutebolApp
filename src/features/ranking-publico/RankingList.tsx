@@ -178,16 +178,18 @@ export function RankingList() {
                 return (
                   <tr role="row" key={item.atleta_id} className={styles.row}>
                     <td role="cell" className={cn(styles.cell, styles.nameCell)}>
-                      <span className={styles.positionIndicator}>
-                        {position <= 3 ? (
-                          <MedalBadge position={position as 1 | 2 | 3} />
-                        ) : (
-                          <span className={styles.ordinal}>
-                            {formatOrdinal(position)}
-                          </span>
-                        )}
+                      <span className={styles.nameCellContent}>
+                        <span className={styles.positionIndicator}>
+                          {position <= 3 ? (
+                            <MedalBadge position={position as 1 | 2 | 3} />
+                          ) : (
+                            <span className={styles.ordinal}>
+                              {formatOrdinal(position)}
+                            </span>
+                          )}
+                        </span>
+                        <span>{item.nome_exibicao}</span>
                       </span>
-                      <span>{item.nome_exibicao}</span>
                     </td>
                     {columns.map((column, columnIndex) => {
                       const status = statusForColumn(recente, column);
