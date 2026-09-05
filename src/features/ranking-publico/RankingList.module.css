@@ -8,8 +8,11 @@
  * tabela também no wireframe mobile do mockup real (Seção 2.2), então não há
  * necessidade de uma segunda representação visual "cartão" só para telas
  * estreitas. `.scrollArea` (overflow-x: auto) resolve o caso em que o total
- * de colunas visíveis (nome + até 5 datas + pontos, em `base`/`sm`) não cabe
- * na largura da viewport, sem quebrar a semântica de tabela (WCAG 1.3.1).
+ * de colunas visíveis (nome + até 2 datas + pontos, em `base`/`sm`; até 5
+ * datas em `lg`, `matrix.ts`) não cabe na largura da viewport, sem quebrar a
+ * semântica de tabela (WCAG 1.3.1) — na prática, com os limites atuais
+ * (ajuste 2026-09-05, pedido do organizador para eliminar rolagem na home),
+ * `.scrollArea` deixa de ser acionado no caso comum.
  */
 
 .wrapper {

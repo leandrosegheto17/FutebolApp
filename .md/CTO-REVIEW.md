@@ -2538,3 +2538,105 @@ Gate 4 (fechamento, registro após o deploy do DevOps desta iniciativa — sem
 poder de veto).
 
 ---
+
+## Gate 4 — Fechamento (registro, sem poder de veto) — Iniciativa "Redesenho Visual" — 2026-09-05
+
+**Natureza deste gate**: puramente de registro, conforme
+`PIPELINE-CONVENTIONS.md` (Gates do CTO) — o deploy já ocorreu, com
+autorização explícita do usuário/organizador; não há aqui decisão de
+aprovar/reprovar a publicação em si, só consolidar o fechamento do ciclo e
+listar o que segue em aberto para acompanhamento.
+**Input avaliado**: `DEPLOY.md` Seção 7.9 (lida na íntegra), `QA-REPORT.md`
+Seções 18-25 (dupla aprovação por lote), `SECURITY-REVIEW.md` Seções 70-109
+(aprovação DevSecOps por lote), `BLOCKERS.md` (BLOCKER-009 a 012, status
+vigente), `EXECUTION-LOG.md` (fechamento dos 7 lotes pelo Coordenador).
+
+### Publicação confirmada
+
+**Resultado**: **Deploy real de produção bem-sucedido.** Commit `01549d3`,
+publicado via CLI direta da Vercel (`vercel --prod`, `gh` indisponível na
+sessão — mesmo padrão já registrado nos deploys anteriores desta série).
+Produção confirmada saudável no momento da checagem: `HTTP 200` na home
+pública, `/api/health` retornando `{"status":"ok"}`, headers de segurança
+presentes na resposta real (`Content-Security-Policy`,
+`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`). Migration aditiva `20260904090000` (view
+`app.ranking_publico_recentes`, `BE-R01`) aplicada com sucesso contra o
+banco de produção real, sem erro, sem alteração de tabela/coluna/view
+existente. Composição visual nova (`PublicHomeShell` e componentes do
+redesenho) confirmada servida e fresca (não cache anterior ao deploy).
+
+**Lotes incluídos nesta publicação** (Parte II do `TASK.md`, Iniciativa
+"Redesenho Visual", 7 lotes): `RD0` (Fundação do Redesenho), `RD1` (Telas
+Públicas Redesenhadas), `RD2` (Login e Lançamento de Rodada Redesenhados),
+`RD3` (Histórico e Times Redesenhados), `RD4` (Aplicação Leve),
+`Refatoração Lote-RD1` e `Refatoração Lote-RD3` (correção de débito de
+formatação). Todos os 7 lotes com dupla aprovação QA + DevSecOps registrada
+(`QA-REPORT.md` Seções 18-25, `SECURITY-REVIEW.md` Seções 70-109) e
+checagem estrutural do Coordenador — nenhum achado de severidade
+alta/crítica ou compliance obrigatório em aberto em nenhum lote.
+
+**Ressalva de processo, já registrada por quem executou o deploy, que
+reafirmo aqui por completude**: o caminho mecanicamente governado
+(`gh workflow run deploy-production.yml`, com gate automático de dupla
+aprovação embutido) não estava disponível nesta sessão — a dupla aprovação
+foi verificada manualmente, por leitura direta dos artefatos, não pelo gate
+automático. Isso não invalida o resultado (verificação manual foi
+completa e documentada), mas é o mesmo padrão de risco de processo já
+sinalizado nos deploys anteriores desta série; não é matéria nova deste
+Gate 4, só não deve ser esquecido em revisões futuras de maturidade de
+CI/CD.
+
+**Staging**: permanece bloqueado por `BLOCKER-009` (sem projeto Supabase
+dedicado) — decisão de risco aceito, mesmo padrão já usado para os Lotes
+L0-L6 anteriormente. Este deploy foi direto a produção, com autorização
+explícita do usuário/organizador, sem esperar a resolução de `BLOCKER-009`.
+
+### Pendências/débitos que seguem em aberto — não resolvidas por este deploy, registradas para acompanhamento (não bloqueiam o fechamento deste Gate 4)
+
+- [ ] `BLOCKER-009` (staging sem projeto Supabase dedicado) — decisão de
+      custo pendente do usuário/organizador.
+- [ ] `BLOCKER-010` (ambiguidade `UX-SPEC.md` vs. dado real em T03/`FE-R03`)
+      — pendente de UX-UI/Software Architect.
+- [ ] `BLOCKER-011` item 2 (ação estrutural — checklist/hook de pre-commit
+      para `format:check`) — pendente do Tech Lead.
+- [ ] `BLOCKER-012` — QA e Coordenador já reconfirmaram que a implementação
+      está correta; falta só a correção textual da Seção 2.4 do
+      `UX-SPEC.md`, de alçada UX/UI.
+- [ ] `REF-RD4-01` (Não iniciada) — corrige o emoji não substituído em
+      `AtletaForm.tsx` (`BUG-QA-RD4-01`), achado simples, não bloqueante.
+- [ ] Verificação de renderização client-side de `RankingList`/
+      `ranking_publico_recentes` no navegador real — não foi possível
+      nesta sessão (bloqueio do classificador de segurança do ambiente numa
+      tentativa de leitura de env var). Recomendo teste visual manual ou via
+      `playwright-skill` antes de considerar o ciclo totalmente fechado.
+- [ ] Achado de infraestrutura não corrigido: `.vercel/project.json` local
+      aponta para o projeto Vercel errado (`futebol-ranking-comary`, não
+      `futebol-app`) — risco real para sessões futuras publicarem no
+      projeto errado sem perceber; recomendo correção do link local ou
+      documentação explícita em `infra/README.md` exigindo
+      `VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` explícitos em qualquer deploy
+      manual futuro.
+- [ ] Janela de observação de 24h pós-deploy e observabilidade de
+      aplicação (logs estruturados, métricas, alertas) seguem sem registro
+      formal de início/responsável — lacuna já herdada de deploys
+      anteriores desta série (`DEPLOY.md` Seção 8), não nova deste Gate 4.
+
+### Veredito de fechamento: **Registrado — publicação em produção confirmada, sem veto (fora da minha alçada neste gate)**
+
+O ciclo de implementação/validação/publicação da Iniciativa "Redesenho
+Visual" (7 lotes) está formalmente encerrado do ponto de vista de
+governança do CTO. As pendências acima não bloqueiam este registro — são
+itens de acompanhamento com dono e, onde já definido, prazo, a tratar nos
+respectivos fluxos (BLOCKERS.md para os itens escalados, backlog de
+refatoração para `REF-RD4-01`, e a próxima sessão/DevOps para a checagem
+visual e a correção do link local). Se qualquer uma delas revelar, na
+prática, incompatibilidade com uma decisão estratégica já validada (ex.:
+custo real de reativar staging conflitar com a postura de orçamento mínimo
+adotada no Gate 3 original), o ponto volta a este CTO como reabertura ad
+hoc, não como reavaliação automática deste Gate 4.
+
+O próximo ponto de atuação formal do CTO é ad hoc (arbitragem de conflito
+escalado ou nova mudança estrutural em `GUARDRAILS.md`).
+
+---

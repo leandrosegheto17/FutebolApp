@@ -69,10 +69,12 @@ describe("buildRankingColumns", () => {
       (_, i) => [`r${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`, "presente"],
     );
     const columns = buildRankingColumns([item("a", rodadas)], DESKTOP_COLUMN_LIMIT);
-    expect(columns).toHaveLength(7);
-    // As 2 mais antigas (r0, r1) ficam de fora do corte.
+    expect(columns).toHaveLength(5);
+    // As 4 mais antigas (r0-r3) ficam de fora do corte.
     expect(columns.map((c) => c.rodadaId)).not.toContain("r0");
     expect(columns.map((c) => c.rodadaId)).not.toContain("r1");
+    expect(columns.map((c) => c.rodadaId)).not.toContain("r2");
+    expect(columns.map((c) => c.rodadaId)).not.toContain("r3");
     expect(columns[columns.length - 1]!.rodadaId).toBe("r8");
   });
 
@@ -83,9 +85,9 @@ describe("buildRankingColumns", () => {
 
 describe("firstMobileVisibleColumnIndex", () => {
   it("esconde as mais antigas, mantendo as MOBILE_COLUMN_LIMIT mais recentes", () => {
-    expect(firstMobileVisibleColumnIndex(7)).toBe(7 - MOBILE_COLUMN_LIMIT);
-    expect(firstMobileVisibleColumnIndex(5)).toBe(0);
-    expect(firstMobileVisibleColumnIndex(3)).toBe(0);
+    expect(firstMobileVisibleColumnIndex(5)).toBe(5 - MOBILE_COLUMN_LIMIT);
+    expect(firstMobileVisibleColumnIndex(2)).toBe(0);
+    expect(firstMobileVisibleColumnIndex(1)).toBe(0);
   });
 });
 

@@ -518,6 +518,122 @@ não o histórico completo de dispatches/fix-loops (esse fica em
   (`logo.jpg`, `TASK.md` Seção 1.6-R/4.3) segue em aberto, bloqueando apenas
   o merge futuro do asset real, não este lote.
 
+## Lote RD1 — Telas Públicas Redesenhadas (Ranking e Presença)
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `BE-R01` (Exposição pública da matriz de últimas N
+  rodadas — view `app.ranking_publico_recentes`), `FE-R02` (T02 — Ranking
+  Público, redesenho: matriz atleta×rodadas + `MedalBadge` + painel "Resumo da
+  temporada"), `FE-R03` (T03 — Presença Mensal, público, redesenho). Todas
+  `Concluída` em `TASK.md` Parte II Seção 3.2, Lote `RD1`, dependendo apenas de
+  `FE-R00` (`Concluída`, Lote RD0) para o merge final — independente de
+  RD2/RD3/RD4 (`TASK.md` Seção 4.1).
+- **Veredito de QA**: **Aprovado com ressalvas** (`QA-REPORT.md` Seção 19,
+  veredito agregado na linha 4413, reconfirmado de forma independente em sessão
+  posterior na Seção 19.10, linha 4464, contra `HEAD` dois commits à frente do
+  commit que originou o veredito, nenhum deles tocando arquivo de propriedade
+  de RD1 — nenhuma mudança de código, veredito mantido sem alteração). As 3
+  tarefas validadas de forma independente: leitura linha a linha da migration
+  de `BE-R01`, de `MedalBadge.tsx`/`PresenceDot.tsx`/`matrix.ts`/
+  `RankingList.tsx`/`PublicHomeShell.tsx`/`PresencaMensal.tsx`, e da view real
+  `app.presenca_mensal_publica` consumida por `FE-R03`; reexecução real de
+  `npm test` (853/853), `lint`/`typecheck`/`build`, `npm run test:integration`
+  (190 passando + 2 puladas de 192, incluindo os 5 testes novos de `BE-R01`
+  contra Supabase local real); confirmação em 3 camadas independentes de que
+  `contato`/`data_nascimento` nunca circulam pelas duas rotas públicas;
+  `jest-axe` com 0 violações em todos os componentes/telas novos. A ressalva é
+  um único débito, baixa severidade, sem efeito de comportamento:
+  `BUG-QA-RD1-01` — `npm run format:check` reprova 7 arquivos das 3 tarefas
+  (conteúdo correto, só formatação Prettier pendente), escalado ao Tech Lead
+  via `BLOCKER-011` por ser a 3ª ocorrência consecutiva do mesmo tipo. Nenhum
+  bug de severidade alta/crítica em aberto.
+- **Veredito de DevSecOps**: **Aprovado** (`SECURITY-REVIEW.md` Seções 79-85,
+  veredito na linha 3432), nenhum achado de segurança novo. Confirmado por
+  verificação direta (não aceite de alegação): migration
+  `20260904090000_create_ranking_publico_recentes_view.sql` segue exatamente o
+  mesmo padrão de `GRANT`/`REVOKE`/ausência de `security_invoker` já aprovado
+  para `ranking_publico`/`presenca_mensal_publica` (L2); nenhuma dependência
+  nova (`package.json`/`package-lock.json`/`vercel.json` intocados, `git diff`
+  direto); `rankingRecentesApi.ts`/`presencaMensalApi.ts` usam allowlist
+  explícita de coluna, nunca `select("*")`; zero `console.*`/
+  `dangerouslySetInnerHTML`. `BUG-QA-RD1-01`/`BLOCKER-011` reconfirmado **sem
+  componente de segurança real** (diff Prettier reexecutado linha a linha).
+  `DEBT-01`/`DEBT-02`/`DEBT-04` (herdados) reconfirmados sem mudança.
+- **Checagem estrutural do Coordenador**: **Validado (com ressalvas
+  carregadas, sem impedimento ao fechamento)** — confirmado: `BE-R01`,
+  `FE-R02` e `FE-R03` estão `Concluída` em `TASK.md` Parte II Seção 3.2, Lote
+  `RD1`; dependência de `FE-R00` satisfeita (`Concluída`, Lote RD0), nenhuma
+  dependência órfã/inconsistente na Seção 3.0/4 do `TASK.md` (RD1 independente
+  de RD2/RD3/RD4, conforme Seção 4.1); nenhuma tarefa do lote em `Bloqueada`.
+  Dois bloqueios referenciam este lote, ambos já classificados como
+  débito/pendência carregada pelas validações originais, não como impedimento
+  ao fechamento: `BLOCKER-010` (divergência entre `UX-SPEC.md` Seção 2.3 e o
+  dado real disponível para `FE-R03`, avaliada de forma independente em
+  `QA-REPORT.md` Seção 19.6 e confirmada como achado de dado/especificação,
+  mesma régua já usada para `BLOCKER-004`/`BLOCKER-005` — não bloqueante,
+  `Status: Aberto`) e `BLOCKER-011` (achado `BUG-QA-RD1-01`, cujo item 1
+  — correção imediata dos 7 arquivos deste lote — já foi resolvido pelo Lote
+  Refatoração RD1/`REF-RD1-01`; o item 2, ação estrutural de processo, segue
+  `Aberto`, sem endereçar). Nenhuma tarefa nova necessária em `Refatoração
+  Lote-RD1` além da já existente (`REF-RD1-01`, criada a partir deste mesmo
+  achado).
+- **Bloqueio durante a execução**: nenhum novo além dos já registrados
+  (`BLOCKER-010`, `BLOCKER-011`), ambos reconfirmados acima, nenhum dos dois
+  reaberto ou reclassificado por esta checagem.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `BLOCKER-010` (sem prazo formal, `BLOCKERS.md`); `BLOCKER-011` item 2 (sem
+  prazo formal além de "recomendado antes do início de RD2", já ultrapassado);
+  `BUG-QA-RD1-01` (item 1 de `BLOCKER-011`, resolvido pelo Lote Refatoração
+  RD1); `DEBT-01`/`DEBT-02`/`DEBT-04` (`SECURITY-REVIEW.md`) reconfirmados sem
+  mudança, fora do escopo desta validação.
+
+## Lote RD3 — Histórico e Times Redesenhados
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `BE-R02` (Backend do histórico de rodadas/confronto),
+  `SPK-02` (spike de disponibilidade de dado de time/gol por atleta em rodadas
+  migradas do legado, para a coluna "Confronto" de T06), `FE-R09` (T09 —
+  Montagem de Times, redesenho), `FE-R06` (T06 — Histórico de Rodadas,
+  redesenho), `FE-R11` (T11 — Substituição no Intervalo, aplicação leve). Todas
+  `Concluída` em `TASK.md` Parte II Seção 3.2, Lote `RD3` (fechamento completo
+  registrado na nota de conclusão de `FE-R06`, `TASK.md` linha 960),
+  dependendo apenas de `FE-R00` (`Concluída`, Lote RD0) — independente de
+  RD1/RD2/RD4 (`TASK.md` Seção 4.1).
+- **Veredito de QA**: **Aprovado com ressalvas** (`QA-REPORT.md` Seção 20,
+  veredito agregado na linha 4778). Único achado, baixa severidade:
+  `BUG-QA-RD3-01` — `npm run format:check` reprova 8 arquivos das tarefas do
+  lote (conteúdo correto, só formatação Prettier pendente), já resolvido pelo
+  Lote Refatoração RD3/`REF-RD3-01`. Nenhum bug de severidade alta/crítica em
+  aberto nas 5 tarefas.
+- **Veredito de DevSecOps**: **Aprovado** (`SECURITY-REVIEW.md` Seções 86-92,
+  veredito na linha 3698), nenhum achado de segurança novo. Nenhuma
+  dependência nova (`package.json`/`package-lock.json`/`vercel.json`
+  intocados, confirmado por `git diff` direto). `BUG-QA-RD3-01` reconfirmado
+  **sem componente de segurança real** (diff Prettier reexecutado arquivo a
+  arquivo). `DEBT-01`/`DEBT-02`/`DEBT-04` (herdados) reconfirmados sem
+  mudança.
+- **Checagem estrutural do Coordenador**: **Validado (sem ressalvas
+  estruturais, débito de formatação já resolvido)** — confirmado: `BE-R02`,
+  `SPK-02`, `FE-R09`, `FE-R06` e `FE-R11` estão `Concluída` em `TASK.md` Parte
+  II Seção 3.2, Lote `RD3`; dependência de `FE-R00` satisfeita (`Concluída`,
+  Lote RD0), nenhuma dependência órfã/inconsistente na Seção 3.0/4 do
+  `TASK.md` (`FE-R11` corretamente sequenciada com `FE-R09` por mesma área de
+  contexto, RD3 independente de RD1/RD2/RD4); nenhuma tarefa do lote em
+  `Bloqueada`. Lembrete operacional de retomada confirmado: `FE-R06` está
+  commitada — faz parte do commit `01549d3`, já enviado a `origin/main`
+  (referenciado em `QA-REPORT.md` e `SECURITY-REVIEW.md` como `HEAD` das
+  auditorias deste lote). Nenhuma tarefa nova necessária em `Refatoração
+  Lote-RD3` além da já existente (`REF-RD3-01`, criada a partir de
+  `BUG-QA-RD3-01`).
+- **Bloqueio durante a execução**: nenhum novo — nenhuma entrada em
+  `BLOCKERS.md` referenciando este lote diretamente (`BLOCKER-011` referencia
+  o achado de formatação compartilhado com RD1, já contabilizado na entrada de
+  fechamento do Lote RD1 acima).
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `BUG-QA-RD3-01` (resolvido pelo Lote Refatoração RD3); `DEBT-01`/`DEBT-02`/
+  `DEBT-04` (`SECURITY-REVIEW.md`) reconfirmados sem mudança, fora do escopo
+  desta validação.
+
 ## Lote Refatoração RD1 — Correção de Formatação (`REF-RD1-01`, achado `BUG-QA-RD1-01`/`BLOCKER-011` item 1 sobre o Lote RD1)
 
 - **Fechado em (QA)**: 2026-09-05
@@ -628,3 +744,168 @@ não o histórico completo de dispatches/fix-loops (esse fica em
   antes do início de RD2" (já ultrapassado, agora cobrindo também o período
   RD3); demais débitos herdados (`DEBT-01`/`DEBT-02`/`DEBT-04`) inalterados,
   fora do escopo deste lote.
+
+## Lote RD2 — Login e Lançamento de Rodada Redesenhados (Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `FE-R01` (T01 — Login: hero navy full-bleed +
+  `BrandCrest` grande + título real "Acesso interno" + link de retorno com
+  contraste corrigido, zero mudança de lógica de formulário/erro/redirect) e
+  `FE-R05` (T05 — Lançamento de Rodada: reescrita de `Stepper` de 3 etapas
+  para lista contínua única com stat-tiles + eventos revelados
+  progressivamente + modal de confirmação final, zero mudança de regra de
+  negócio, RN-D06). Ambas `Concluída` em `TASK.md` Parte II Seção 3.2, Lote
+  `RD2`, dependendo apenas de `FE-R00` (`Concluída`, Lote RD0). Este lote
+  nunca havia passado pelo chapéu QA/DevSecOps antes (gap de processo
+  identificado e registrado por ambos — `QA-REPORT.md` Seção 23 "Contexto",
+  `SECURITY-REVIEW.md` Seção 95) — esta é a primeira validação formal, feita
+  diretamente sobre `HEAD` (`01549d3`), não sobre a nota de conclusão do
+  Executor.
+- **Veredito de QA**: **Aprovado, sem ressalva** (`QA-REPORT.md` Seção 23,
+  vereditos individuais em 23.1/23.2, agregado em 23.7). Reconfirmado por
+  leitura direta de código e `git diff 2188f76 HEAD`: hero navy/`BrandCrest`/
+  título real de `FE-R01` sem nenhuma alteração de lógica de
+  formulário/erro/redirect; reescrita estrutural de `FE-R05` (lista contínua,
+  modal único, `POST /api/rodadas` disparado uma única vez) preservando
+  RNF-10/RF-02.6/RF-02.8. Suíte completa reexecutada (899 testes/111
+  arquivos), `lint`/`typecheck`/`build` limpos, `npm run format:check`
+  restrito aos 9 arquivos das duas tarefas sem pendência (23.3/23.4). Nenhum
+  bug ou débito de código novo (23.5). `BLOCKER-012` (divergência entre a
+  nota de mockup da Seção 2.4 do `UX-SPEC.md` e RF-02.3/RF-02.4/RF-02.5 sobre
+  eventos para atleta "Lesionado") reconfirmado de forma independente e
+  empírica (leitura de `AtletaParticipacaoRow.tsx` linha 45 + reexecução do
+  teste "atleta lesionado mantém eventos habilitados") — comportamento de
+  código correto, divergência é só de especificação, mesmo padrão de
+  precedente de `BLOCKER-005`/`BLOCKER-010`, não gera achado nem tarefa de
+  `Refatoração Lote-RD2`.
+- **Veredito de DevSecOps**: **Aprovado, sem débito novo**
+  (`SECURITY-REVIEW.md` Seções 95-101, veredito consolidado na Seção 101:
+  "Lote RD2 (`FE-R01`, `FE-R05`): APROVADO"). `git diff -- package.json
+  package-lock.json` vazio (nenhuma dependência nova); `redirectTarget.ts`
+  confirmado fora do diff de `FE-R01` (open redirect de `BUG-QA-FE01-01`
+  permanece corrigido desde L1); `POST /api/rodadas` confirmado como única
+  chamada de escrita de `FE-R05`, disparada uma única vez; nenhum dado
+  sensível (`contato`/`data_nascimento`) exposto pelas composições novas
+  (`AtletaParticipacaoRow.tsx`/`RodadaStatTiles.tsx`); nenhum requisito de
+  arquitetura de segurança (`SDD.md` Seção 7) violado. `DEBT-01`/`DEBT-02`/
+  `DEBT-04` reconfirmados sem mudança de severidade/escopo — débitos
+  herdados, não atribuíveis a este lote.
+- **Checagem estrutural do Coordenador**: **Validado (sem ressalvas)** —
+  confirmado: `FE-R01` e `FE-R05` estão `Concluída` em `TASK.md` Parte II
+  Seção 3.2, Lote `RD2`; ambas dependem apenas de `FE-R00` (`Concluída`,
+  Lote RD0) — nenhuma dependência órfã/inconsistente na Seção 3.0/4 do
+  `TASK.md` (RD2 segue mutuamente independente de RD1/RD3/RD4, conforme
+  Seção 4.2); nenhuma tarefa do lote em `Bloqueada`. QA (Seção 23) e
+  DevSecOps (Seções 95-101) aprovaram ambas as tarefas sem ressalva/débito
+  novo — nenhuma tarefa nova em `Refatoração Lote-RD2` é necessária.
+- **`BLOCKER-012` (decisão do Coordenador sobre a parte de sua alçada nesta
+  checagem)**: o QA reconfirmou, de forma independente e empírica (não só
+  por leitura estática), que `FE-R05` preserva corretamente RF-02.3/RF-02.4/
+  RF-02.5 (eventos habilitados para "Presente" e "Lesionado", bloqueados só
+  para "Ausente") — a leitura (1) da sugestão do próprio bloqueio ("a nota
+  do mockup na Seção 2.4 do `UX-SPEC.md` é imprecisa/generalizou demais a
+  partir de um único exemplo sem lesionado") é, à luz dessa reconfirmação, a
+  mais consistente com os requisitos funcionais já aprovados — concordância
+  registrada aqui. Dito isso, **este registro não marca `BLOCKER-012` como
+  `Resolvido`**: fechar o bloqueio de fato exige reescrever a redação da
+  Seção 2.4 do `UX-SPEC.md` (ação de drafting de UX-SPEC, não uma checagem
+  estrutural de fechamento de lote) — mesma distinção já aplicada por este
+  agente ao item (2) de `BLOCKER-011` nas checagens de `Refatoração
+  Lote-RD1`/`Refatoração Lote-RD3` (não decidir, dentro de uma checagem
+  pontual, algo que pertence a um chapéu/ação diferente do que motivou esta
+  chamada). `TASK.md` Parte II, linha `FE-R05`, já documenta a divergência e
+  a decisão de implementação de forma completa e não-silenciosa — nenhuma
+  edição adicional necessária ali. `BLOCKER-012` **permanece Aberto** em
+  `BLOCKERS.md`, com esta análise anexada como atualização, para que uma
+  sessão dedicada de UX/UI (mesmo agente, chapéu diferente, fora do escopo
+  desta checagem estrutural) redija a correção da Seção 2.4 quando
+  despachada para isso.
+- **Bloqueio durante a execução**: nenhum novo. `BLOCKER-012` reconfirmado
+  (não resolvido) conforme acima.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `BLOCKER-012` (redação da Seção 2.4 do `UX-SPEC.md`, sem prazo formal,
+  não bloqueia fechamento de lote); `BLOCKER-011` item (2) (ainda sem
+  prazo endereçado); demais débitos herdados (`DEBT-01`/`DEBT-02`/
+  `DEBT-04`) inalterados, fora do escopo deste lote.
+
+## Lote RD4 — Aplicação Leve (Telas Internas Restantes) (Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `FE-R04` (T04 — Cadastro/Edição de Atleta), `FE-R07`
+  (T07 — Correção/Estorno, detalhe), `FE-R08` (T08 — Log de Auditoria) e
+  `FE-R10` (T10 — Gestão de Restrições) — aplicação leve do redesenho visual
+  às telas internas restantes, sem mudança de regra de negócio. Todas
+  `Concluída` em `TASK.md` Parte II Seção 3.2, Lote `RD4`, dependendo apenas
+  de `FE-R00` (`Concluída`, Lote RD0).
+- **Veredito de QA**: **Aprovado com ressalvas** (`QA-REPORT.md` Seção 24).
+  Um achado, baixa severidade: `BUG-QA-RD4-01` — `AtletaForm.tsx` (`FE-R04`)
+  usa o caractere literal "⚠" em vez do componente `Icon`
+  (`name="alert-triangle"`) do design system para o indicador visual de erro/
+  aviso. Achado Simples/Baixa severidade, sem nenhum outro bug de nenhuma
+  severidade nas 4 tarefas do lote.
+- **Veredito de DevSecOps**: **Aprovado, sem débito novo**
+  (`SECURITY-REVIEW.md` Seções 102-109). Nenhum achado de segurança novo
+  atribuível às 4 tarefas do lote.
+- **Checagem estrutural do Coordenador**: **Validado com ressalvas** —
+  confirmado: `FE-R04`, `FE-R07`, `FE-R08` e `FE-R10` estão `Concluída` em
+  `TASK.md` Parte II Seção 3.2, Lote `RD4`; todas dependem apenas de
+  `FE-R00` (`Concluída`, Lote RD0) — nenhuma dependência órfã/inconsistente
+  na Seção 3.0/4 do `TASK.md`; nenhuma tarefa do lote em `Bloqueada`. Por
+  causa do achado `BUG-QA-RD4-01` (Simples/Baixa, não bloqueante), criada
+  `REF-RD4-01` em `TASK.md` Seção 3.3 (lote `Refatoração Lote-RD4`),
+  referenciando `QA-REPORT.md` Seção 24 — posicionada depois de todos os
+  lotes já existentes na ordem de execução da Seção 4, sem reabrir nenhuma
+  das 4 tarefas de origem do Lote RD4. A linha "Refatoração Lote-RD4"
+  correspondente foi incluída na Seção 3.0 do `TASK.md`.
+- **Bloqueio durante a execução**: nenhum novo — nenhuma entrada em
+  `BLOCKERS.md` referenciando este lote.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `REF-RD4-01` (`Não iniciada`, esforço XS, dono a definir, `TASK.md` Seção
+  3.3, referenciando `BUG-QA-RD4-01`/`QA-REPORT.md` Seção 24); demais
+  débitos herdados (`DEBT-01`/`DEBT-02`/`DEBT-04`) inalterados, fora do
+  escopo deste lote.
+
+## Confirmação final do Validador — quarta rodada, `HEAD` = `01549d3` (2026-09-05)
+
+- **Escopo**: quarta e última rodada de confirmação da Seção 3 do Comando 3
+  (`EXECUTION-FLOW.md`) antes de `/deploy`, cobrindo os 7 lotes da
+  Iniciativa "Redesenho Visual" (`RD0`, `RD1`, `RD2`, `RD3`, `RD4`,
+  `Refatoração Lote-RD1`, `Refatoração Lote-RD3`). Detalhe completo em
+  `QA-REPORT.md` Seção 25.
+- **Três pilares reconfirmados por leitura direta** (não por aceitar nota
+  de conclusão): todos os 7 lotes têm veredito de QA, veredito de
+  DevSecOps e checagem estrutural do Coordenador registrados —
+  nenhuma das 3 lacunas das rodadas anteriores reapareceu (`QA-REPORT.md`
+  Seção 25.1, com linha exata de cada veredito).
+- **Integração cruzada entre os 7 lotes**: confirmado, por leitura direta
+  de `src/components/ui/index.ts` e dos arquivos-fonte dos 6 componentes
+  novos (`Icon`, `BrandCrest`, `MedalBadge`, `PresenceDot`,
+  `PitchBackground`, `PlayerChip`), que nenhum nome exportado colide entre
+  lotes; `FE-R09`/`FE-R11` (RD3) são os únicos a tocar
+  `src/features/times/`; árvore de rotas do `npm run build` sem colisão
+  (`QA-REPORT.md` Seção 25.2).
+- **Suíte completa reexecutada do zero sobre `HEAD`**: `npm test`
+  (899/899), `npm run lint` (limpo), `npx tsc --noEmit` (limpo),
+  `npm run build` (limpo, 21 rotas), `npm run format:check` (limpo) — os
+  cinco gates que compõem o CI real (`.github/workflows/ci.yml` linhas
+  34-46) estão verdes. `npm run test:integration` apresentou 6 falhas de
+  192, investigadas até a causa raiz por consulta direta ao Postgres do
+  Supabase local (`docker exec supabase_db_turma-do-rola-comary psql`):
+  506 linhas de `app.rodada` com a data-âncora reservada desta suíte já
+  excedem o teto `limit=200` que o próprio teste usa (acúmulo de
+  execuções manuais anteriores em ambiente multi-sessão, harness que
+  nunca é resetado, conforme já documentado no próprio arquivo de teste).
+  `test:integration` não integra o gate de CI; achado classificado como
+  ambiental (higiene de dados de teste local), sem indício de regressão
+  de código — não bloqueia este fechamento (`QA-REPORT.md` Seção 25.4).
+- **Veredito**: **LIBERADO PARA DEPLOY EM STAGING** (`QA-REPORT.md` Seção
+  25.5). Encerra a Seção 3 do Comando 3; a execução real do deploy
+  (Seção 4, chapéu DevOps) é responsabilidade de quem despachar essa
+  próxima etapa.
+- **Bloqueio durante a execução**: nenhum novo.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante, sem
+  mudança nesta rodada): `BLOCKER-011` item (2), `BLOCKER-012` (redação da
+  Seção 2.4 do `UX-SPEC.md`), `REF-RD4-01` (`Refatoração Lote-RD4`,
+  `Não iniciada`), débitos herdados `DEBT-01`/`DEBT-02`/`DEBT-04`; novo
+  item de baixa prioridade sem prazo formal — higiene de dados do harness
+  local de `test:integration` (`QA-REPORT.md` Seção 25.4).

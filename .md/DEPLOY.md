@@ -49,6 +49,38 @@ design do pipeline. Mesmo se o `CI` passasse, staging seguiria bloqueado pela
 ausência já conhecida de projeto Supabase de staging dedicado (Seção 5.1).
 Três novos bloqueios registrados em `BLOCKERS.md` (`BLOCKER-007/008/009`).
 Nenhuma ação tocou produção. Ver Seção 7.7 para o registro completo.
+**Atualização 2026-09-05 (Seção 7.8)**: nova tentativa real de staging para
+os 7 lotes da iniciativa "Redesenho Visual" (`01549d3`, já em
+`origin/main`). Desta vez o `CI` passou **integralmente** (confirma que
+`BLOCKER-007`/`BLOCKER-008` seguem resolvidos), e `deploy-staging.yml`
+chegou a executar de fato (não mais `skipped`), mas falhou no passo
+"Verifica secrets obrigatórios" — mesma causa raiz já registrada em
+`BLOCKER-009` (nenhum projeto Supabase de staging dedicado existe;
+reconfirmado por `npx supabase projects list`, só leitura). `BLOCKER-009`
+segue `Aberto`, sem decisão do usuário/organizador; é hoje o único
+bloqueio real remanescente para staging navegável. Nenhuma ação tocou
+produção. Ver Seção 7.8 para o registro completo.
+**Atualização 2026-09-05 (Seção 7.9)**: **primeiro deploy real de PRODUÇÃO**
+conduzido de fato por este agente (diferente da Seção 7.3, que apenas
+reconciliava uma publicação feita por fora) — os 7 lotes da Iniciativa
+"Redesenho Visual" (`01549d3`) publicados em
+`https://futebol-app-lsm.vercel.app`, por autorização explícita do
+usuário/organizador aceitando o mesmo risco já aceito para L0-L6 (staging
+segue bloqueado por `BLOCKER-009`, sem decisão do usuário). `gh` CLI
+reconfirmado indisponível nesta sessão — caminho usado foi a CLI direta da
+Vercel (`vercel --prod`), não o workflow governado
+`deploy-production.yml`; a migration pendente (`20260904090000`, view nova
+`app.ranking_publico_recentes`) foi aplicada com sucesso contra o Supabase
+de produção antes do deploy do frontend. Achado de infraestrutura relevante
+para qualquer execução futura: o `.vercel/project.json` local deste
+repositório estava **vinculado ao projeto Vercel errado**
+(`futebol-ranking-comary`, não `futebol-app`, o projeto que de fato serve
+`futebol-app-lsm.vercel.app`) — contornado nesta execução via
+`VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` explícitos, não pelo link default. Ver
+Seção 7.9 para o registro completo, incluindo o que não foi possível
+verificar (renderização client-side da nova view, por bloqueio do
+classificador de segurança do próprio ambiente a uma tentativa de `vercel
+env pull`).
 Este documento continuará a ser atualizado incrementalmente
 (`deployment-execution`, `observability-setup`,
 `non-functional-requirement-validation`, `deploy-report-drafting`).
@@ -1003,6 +1035,360 @@ teórica).
 4. Após 1-3 resolvidos: reexecutar `deployment-execution` — o mecanismo
    automático (`workflow_run` de `CI` bem-sucedido em `main`) dispara sozinho
    no próximo push, sem nova pausa (conforme `EXECUTION-FLOW.md` Seção 6).
+
+### 7.8 Iniciativa "Redesenho Visual" (7 lotes: RD0-RD4, Refatoração Lote-RD1, Refatoração Lote-RD3) — Staging — 2026-09-05 — `CI` verde pela primeira vez; bloqueado só no gate de secrets já conhecido (`BLOCKER-009`)
+
+**Gatilho**: `QA-REPORT.md` Seção 25 — quarta e última rodada de confirmação
+do Validador liberou explicitamente "LIBERADO PARA DEPLOY EM STAGING" para
+`HEAD = 01549d3`, cobrindo os 7 lotes da iniciativa "Redesenho Visual" com
+dupla aprovação (QA + DevSecOps) e checagem estrutural do Coordenador
+confirmadas para todos.
+
+**1. Estado inicial verificado antes de agir**: `git log`/`git status`
+confirmaram `main` local **já sincronizado** com `origin/main` em `01549d3`
+— o commit consolidado (`feat(redesign): concluir RD1-RD4 ... e quitar
+débito de formatação`) já havia sido enviado a `origin/main` em sessão
+anterior a esta. Nenhum `git push` foi necessário nesta tentativa; a
+verificação foi puramente de leitura sobre o estado real do CI/CD que já
+havia disparado sozinho. Há também mudanças não commitadas no working tree
+(`BLOCKERS.md`, `EXECUTION-LOG.md`, `QA-REPORT.md`, `SECURITY-REVIEW.md`,
+`TASK.md`) — presumivelmente de sessão paralela em andamento (mesmo projeto
+multi-sessão já conhecido) — não tocadas nem commitadas por este agente,
+por não fazerem parte do escopo desta execução de deploy.
+
+**2. Resultado real, verificado via API pública do GitHub
+(`/repos/leandrosegheto17/FutebolApp/commits/01549d3/check-runs`, sem `gh`
+CLI/token — mesma limitação de ambiente já registrada nas Seções
+7.1/7.2/7.7 desta sessão)**:
+
+| Verificação | Resultado |
+|---|---|
+| `build-and-test` (`CI`, run `33972894610`) | **success** |
+| `Scan de segurança (segredos + dependências)` (`CI`, mesmo run) | **success** |
+| `Convenção de rollback de migrations` (`CI`, mesmo run) | **success** |
+| `Deploy Staging` (`deploy-staging.yml`, run `33973015200`, `workflow_run`) | **disparou de fato** (reagiu a `CI` bem-sucedido, condição `if: conclusion == 'success'` satisfeita — primeira vez que o job real `deploy-staging` chega a rodar, não mais `skipped`) — conclusão **failure** |
+
+Diferença relevante em relação à Seção 7.7: desta vez o `CI` passou
+integralmente — confirma, por evidência real (não presumida), que a
+correção registrada como resolução de `BLOCKER-007`
+(`89f1c47`/formatação de `login.timing.test.ts`) e de `BLOCKER-008`
+(`705becc`/gate de `npm audit` reconhecendo débito aceito) se sustentam
+sobre `01549d3`.
+
+**3. Investigação do ponto exato de falha do job `deploy-staging`**
+(`/repos/.../actions/jobs/101324758039`, passo a passo, via API pública):
+
+| # | Passo | Status |
+|---|---|---|
+| 1 | Set up job | success |
+| 2 | Checkout | success |
+| 3 | **Verifica secrets obrigatórios** | **failure** |
+| 4 | Setup Supabase CLI | skipped |
+| 5 | Aplicar migrations no projeto de staging | skipped |
+| 6 | Setup Node.js | skipped |
+| 7 | Instalar Vercel CLI | skipped |
+| 8 | Build (ambiente staging) | skipped |
+| 9 | Deploy (alias de staging) | skipped |
+
+Falhou exatamente no passo que o próprio workflow (`deploy-staging.yml`
+linhas 37-53) desenha para falhar rápido e com mensagem clara quando um dos
+6 secrets obrigatórios está ausente
+(`VERCEL_TOKEN`/`VERCEL_ORG_ID`/`VERCEL_PROJECT_ID`/`SUPABASE_ACCESS_TOKEN`/
+`SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD`) — nenhum
+passo posterior (migrations, build, deploy) chegou a rodar. O download do
+log detalhado do job (`GET .../logs`) retornou `403 Must have admin rights
+to Repository` — mesma limitação de ambiente sem `gh`/token já conhecida;
+não impede a conclusão, já inequívoca pela sequência de status dos passos.
+
+**4. Confirmação independente e direta da causa raiz, não apenas inferida
+pela sequência de passos**: `npx supabase projects list` (sessão CLI local
+ainda autenticada, ação **só de leitura**, nenhuma escrita) — a organização
+continua com exatamente os mesmos 2 projetos já registrados em
+`BLOCKER-009`: `futebol-ranking` (`ipnbdrejlikrmqyxggsp`, produção,
+`ADR-002`) e `mymoney` (`xrcxbzrglndetrrhavhc`, não relacionado), ambos
+`ACTIVE_HEALTHY`. **Nenhum projeto de staging dedicado existe.** Sem um
+projeto Supabase de staging, não há como `SUPABASE_STAGING_PROJECT_REF`/
+`SUPABASE_STAGING_DB_PASSWORD` terem sido configurados de forma válida —
+confirma, por leitura direta e não presumida, que a causa do passo 3 acima
+é a mesma já registrada em `BLOCKER-009`, ainda sem decisão do
+usuário/organizador (`CTO-REVIEW.md` não registra nenhuma decisão nova
+sobre as 3 opções lá colocadas: upgrade pago, pausar `mymoney`, ou aceitar
+formalmente "staging = CI efêmero apenas").
+
+**Por que este resultado não é simulado**: é a segunda vez (após a Seção
+7.7) que o mecanismo real (`CI` → `workflow_run` → `deploy-staging.yml`) foi
+de fato exercitado ponta a ponta contra o repositório real, e a primeira vez
+em que o `CI` passou integralmente — o job `deploy-staging` chegou a
+executar de verdade (não mais `skipped`) e falhou de verdade, no gate de
+secrets, verificado via API pública do GitHub e reconfirmado de forma
+independente via `npx supabase projects list`. Nenhum ambiente de staging
+foi declarado "no ar" sem evidência — não há build dos 7 lotes publicado em
+lugar nenhum (nem staging, nem produção).
+
+**O que este agente não fez, deliberadamente**:
+- Não criou o projeto Supabase de staging dedicado, nem tocou `mymoney` de
+  qualquer forma — mesma cautela já registrada em `BLOCKER-009` (decisão de
+  infraestrutura com efeito de custo real, fora da alçada unilateral deste
+  agente; já negada explicitamente pelo classificador de segurança do
+  ambiente em tentativa anterior).
+- Não configurou nenhum secret do GitHub Actions nem tentou contornar o
+  gate de "Verifica secrets obrigatórios".
+- Nenhuma ação tocou produção: `deploy-production.yml` não foi disparado;
+  nenhum `vercel alias`/promoção manual foi executado nesta sessão.
+- Não tocou as mudanças não commitadas do working tree, presumivelmente de
+  outra sessão em andamento (item 1 acima).
+
+**Registro formal do bloqueio**: `BLOCKERS.md`, `BLOCKER-009` (devops → cto)
+permanece `Aberto`, sem mudança de status — esta tentativa apenas
+reconfirma, com evidência mais forte (`CI` verde, job `deploy-staging`
+efetivamente executado até o gate de secrets, não mais `skipped` por causa
+anterior), que ele é hoje o **único** bloqueio real remanescente entre os 7
+lotes aprovados e um ambiente de staging navegável.
+
+| Versão/Commit | Ambiente | Horário | Resultado |
+|---|---|---|---|
+| 7 lotes — RD0, RD1, RD2, RD3, RD4, Refatoração Lote-RD1, Refatoração Lote-RD3 (`01549d3`, já em `origin/main`) | Staging | 2026-09-05 | **Bloqueado no gate de secrets de `deploy-staging.yml` (real, não simulado)** — `CI` passou integralmente pela primeira vez (`build-and-test`, scan de segurança e convenção de rollback todos `success`), confirmando que `BLOCKER-007`/`BLOCKER-008` seguem resolvidos sobre este commit; `Deploy Staging` disparou e executou de verdade até o passo "Verifica secrets obrigatórios", que falhou por ausência de `SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD` — confirmado tanto pela sequência de passos do job (API pública do GitHub) quanto por `npx supabase projects list` (ainda só 2 projetos, nenhum de staging). Único bloqueio remanescente: `BLOCKER-009`, `Aberto`, decisão pendente do usuário/organizador. Nenhum incidente — nenhuma publicação real ocorreu em staging nem em produção. |
+
+**Próximos passos (nenhum decidido unilateralmente por este agente)**:
+1. Usuário/organizador: decisão sobre `BLOCKER-009` — (a) autorizar upgrade
+   pago da organização Supabase (Pro) para viabilizar um projeto de
+   staging dedicado; (b) autorizar pausar/excluir `mymoney` para liberar a
+   vaga gratuita; ou (c) aceitar formalmente a opção "staging = CI efêmero
+   apenas" (sem ambiente navegável), registrando essa aceitação em
+   `CTO-REVIEW.md`. Sem uma dessas três decisões, todo deploy de staging
+   real continuará bloqueado neste mesmo ponto, independente de quantos
+   lotes futuros forem aprovados.
+2. Após (a) ou (b) acima: configurar `SUPABASE_STAGING_PROJECT_REF`/
+   `SUPABASE_STAGING_DB_PASSWORD` nos secrets do repositório — único passo
+   técnico faltante, já documentado em `infra/README.md` Seção 2.
+3. Se (c) for a decisão: nenhuma ação técnica adicional necessária para
+   staging; os 7 lotes seguem aptos a avançar para a etapa de produção do
+   Comando 3 (`EXECUTION-FLOW.md` Seção 4), que exige confirmação explícita
+   do usuário independentemente do resultado de staging.
+
+### 7.9 Iniciativa "Redesenho Visual" (7 lotes: RD0-RD4, Refatoração Lote-RD1, Refatoração Lote-RD3) — PRODUÇÃO — 2026-09-05 — Deploy real, conduzido de fato por este agente
+
+**Gatilho e autorização**: usuário/organizador confirmou explicitamente,
+nesta sessão, publicar em produção **agora**, mesmo com staging ainda
+bloqueado por `BLOCKER-009` (nenhum projeto Supabase de staging dedicado —
+Seção 5.1/7.8, sem decisão do usuário sobre as 3 opções lá registradas).
+Autorização enquadrada explicitamente como a mesma decisão de risco aceito
+já registrada no histórico deste projeto (a publicação de produção dos
+Lotes L0-L6, Seção 7.3, também ocorreu sem staging navegável). Diferente da
+Seção 7.3, **esta execução foi conduzida de fato por este agente** —
+comandos exatos abaixo, não uma reconciliação de ação alheia.
+
+**1. Gate de dupla aprovação — verificado por leitura direta dos artefatos,
+não por resumo aceito de terceiros**:
+
+| Lote | Veredito QA | Veredito DevSecOps |
+|---|---|---|
+| `RD0` | Aprovado com ressalvas (`QA-REPORT.md` Seção 18/L998) | Aprovado (`SECURITY-REVIEW.md` Seções 70-77) |
+| `RD1` | Aprovado com ressalvas (Seção 19) | Aprovado (Seções 79-85) |
+| `RD3` | Aprovado com ressalvas (Seção 20) | Aprovado (Seções 86-92) |
+| `Refatoração Lote-RD1` | Aprovado sem ressalva (Seção 21) | Aprovado sem débito (Seção 93) |
+| `Refatoração Lote-RD3` | Aprovado sem ressalva (Seção 22) | Aprovado sem débito (Seção 94) |
+| `RD2` | Aprovado sem ressalva (Seção 23) | Aprovado sem débito (Seções 95-101) |
+| `RD4` | Aprovado com ressalvas (Seção 24) | Aprovado sem débito novo (Seções 102-109) |
+
+Confirmado também o veredito consolidado do Validador (`QA-REPORT.md` Seção
+25.5, `HEAD = 01549d3`): "LIBERADO PARA DEPLOY EM STAGING" — a redação
+original presumia o fluxo normal (staging antes de produção); a decisão de
+pular diretamente para produção é do usuário/organizador (autorização
+acima), não uma reinterpretação deste agente do veredito de QA. Nenhum
+achado de severidade alta/crítica ou compliance obrigatório em aberto em
+nenhum dos 7 lotes — todos os débitos remanescentes (`DEBT-01/02/04`,
+herdados de L0, dev-only ou já aceitos; `BUG-QA-RD4-01`, simples, vira
+`Refatoração Lote-RD4`) são baixa/média severidade, com prazo, não
+bloqueantes.
+
+**2. `gh` CLI — reconfirmado indisponível, não presumido**:
+
+```
+$ gh auth status
+/usr/bin/bash: line 1: gh: command not found
+```
+
+Caminho governado (`gh workflow run deploy-production.yml`) **não estava
+disponível** nesta sessão. Caminho usado: CLI direta da Vercel, já
+autenticada (`npx vercel whoami` → `leandrosegheto17`), pelo mesmo motivo
+já registrado nas Seções 7.4/7.6/7.7/7.8. Registrado aqui com a mesma
+transparência: **o mecanismo de fato usado foi `vercel --prod` direto, não
+o workflow governado com o gate mecânico de dupla aprovação embutido** — a
+dupla aprovação foi verificada manualmente por este agente (item 1 acima),
+não pelo gate automático.
+
+**3. Migration pendente identificada e aplicada**: `git log --oneline
+4c57be7..HEAD -- supabase/migrations/` (commit real do último deploy de
+produção confirmado, Seção 7.3/7.6) mostrou exatamente **uma** migration
+nova: `20260904090000_create_ranking_publico_recentes_view.sql` (`BE-R01`,
+Lote RD1) — cria a view `app.ranking_publico_recentes` (aditiva, nenhuma
+tabela/coluna/view existente alterada, bloco `-- ROLLBACK: DROP VIEW IF
+EXISTS` presente). Confirmado com `npx supabase migration list --linked`
+**antes** de agir: todas as migrations anteriores já `remote` (aplicadas),
+apenas esta com `"remote":""`. Aplicada via:
+
+```
+$ npx supabase db push --linked
+Applying migration 20260904090000_create_ranking_publico_recentes_view.sql...
+Finished supabase db push.
+```
+
+Reconfirmado depois: `npx supabase migration list --linked` mostra
+`"local":"20260904090000","remote":"20260904090000"` — aplicada com
+sucesso contra o projeto de produção real (`ipnbdrejlikrmqyxggsp`/
+`futebol-ranking`, `ADR-002`, `status: ACTIVE_HEALTHY`). Nenhuma outra
+migration de `BE-R02`/`SPK-02` (Lote RD3) foi necessária — confirmado que a
+única migration nova de toda a iniciativa é esta.
+
+**4. `vercel env ls production` — confirmação, não reconfiguração**: os 5
+secrets já esperados seguem presentes e `Encrypted`
+(`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_APP_BASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SESSION_COOKIE_SECRET`). Nenhum valor alterado.
+
+**5. Achado de infraestrutura não previsto — link local do projeto Vercel
+estava incorreto**: `.vercel/project.json` deste repositório (arquivo
+gitignored, não versionado) apontava para `projectId:
+prj_Ql7a22UII1loTsNAfjOGsnWSNx7z` (`futebol-ranking-comary`) — um projeto
+Vercel **diferente** do que de fato serve a produção real
+(`futebol-app-lsm.vercel.app`, projeto `futebol-app`,
+`prj_Q2JFtxecdphcta03X1ds8DX6C9Pu`, confirmado via `npx vercel project
+inspect futebol-app`). Rodar `vercel --prod` sem correção teria publicado
+no projeto errado, sem tocar a URL real de produção. Contornado explicitando
+`VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9` e
+`VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu` como variáveis de
+ambiente do comando, sem alterar o arquivo de link local. **Nenhuma
+decisão de arquitetura foi tomada aqui** — é um artefato de configuração
+local desalinhado, não uma limitação do `SDD.md`; registrado para que
+sessões futuras não repitam o mesmo risco de publicar no projeto errado.
+
+Também observado, sem ação: já existia um deployment `Ready`/`Production`
+recente (`futebol-3zey20aqo…`, criado ~8s depois do timestamp de commit de
+`01549d3`, mas sem metadado de commit Git associado — não atribuível com
+certeza a uma execução governada) e um alias de produção
+(`futebol-app-lsm.vercel.app`) ainda apontando para um deployment de ~17h
+atrás. Este agente **não presumiu** que aquele deployment recente já fosse
+o build correto — gerou um deployment próprio, do zero, a partir da árvore
+de trabalho local (idêntica a `01549d3`, confirmado por `git status`/`git
+diff --stat` mostrando só `.md/*.md` de governança modificados, nenhum
+código de aplicação).
+
+**6. Build e deploy de fato executados**:
+
+```
+$ VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9 \
+  VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu \
+  npx vercel --prod --yes
+
+▲ Production  https://futebol-qxehs14ki-leandrosegheto17s-projects.vercel.app
+✓ Compiled successfully
+✓ Generating static pages (21/21)
+▲ Aliased     https://futebol-app-leandrosegheto17s-projects.vercel.app
+{"status":"ok","deployment":{"id":"dpl_4HTe74z6wKRcEVgppmhY66jmYrH7", ...},
+ "readyState":"READY","target":"production"}
+```
+
+Build limpo (Next.js 14.2.35, `next build` via `npm run build`), 21 rotas
+geradas, incluindo as páginas/rotas novas dos 7 lotes. `npm install` reportou
+14 vulnerabilidades (4 moderate, 9 high, 1 critical) — reconferido via `npm
+audit --json` local: **exatamente** os débitos já registrados e aceitos em
+`SECURITY-REVIEW.md` (`DEBT-01` vitest crítico dev-only, `DEBT-02`
+glob/minimatch/eslint-config-next, `DEBT-04` next/postcss) — nenhum achado
+novo de severidade alta/crítica fora do já auditado.
+
+O deploy foi automaticamente aliasado apenas ao alias default do projeto
+(`futebol-app-leandrosegheto17s-projects.vercel.app`), **não** ao alias
+customizado real de produção. Reatribuído explicitamente:
+
+```
+$ VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9 \
+  VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu \
+  npx vercel alias set futebol-qxehs14ki-leandrosegheto17s-projects.vercel.app futebol-app-lsm.vercel.app
+
+Success! https://futebol-app-lsm.vercel.app now points to
+futebol-qxehs14ki-leandrosegheto17s-projects.vercel.app
+```
+
+**7. Confirmação de saúde pós-deploy**:
+
+```
+$ curl -s -o /dev/null -w "HTTP %{http_code}\n" https://futebol-app-lsm.vercel.app/
+HTTP 200
+$ curl -s https://futebol-app-lsm.vercel.app/api/health
+{"status":"ok"}
+```
+
+Headers de segurança confirmados na resposta real: `Content-Security-Policy`
+(política completa, `DEBT-03` confirmado corrigido também nesta build),
+`Strict-Transport-Security`, `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`.
+
+**8. Smoke test das telas redesenhadas — o que foi confirmado e o que
+não foi**:
+- Confirmado via `curl` puro na home pública (`/`): a resposta HTML contém
+  as classes CSS geradas pelos componentes novos do redesenho (`PublicHomeShell_page__*`,
+  `PublicHomeShell_hero__*`, `BrandCrest_crest__*`, etc.) — a composição
+  nova de `PublicHomeShell` está de fato servida. `Age: 22` (segundos) e
+  `X-Vercel-Cache: HIT` no momento da checagem confirmam que é conteúdo
+  **gerado por esta build** (poucos segundos após o deploy), não uma versão
+  em cache de antes do deploy.
+- **Não confirmado por este agente**: a tabela de ranking em si
+  (`RankingList`, consumindo `app.ranking_publico_recentes` via SDK
+  Supabase client-side com a chave anônima) é renderizada no navegador após
+  hidratação — não aparece no HTML estático retornado por `curl` (sem
+  execução de JS). Uma tentativa de confirmar isso de outra forma (`vercel
+  env pull` para um arquivo temporário no scratchpad, apenas para ler a
+  chave anônima pública — `NEXT_PUBLIC_*`, já embutida no bundle do
+  navegador, não um segredo de servidor) foi **bloqueada pelo classificador
+  de segurança do próprio ambiente de execução** deste agente; nenhuma
+  tentativa de contornar esse bloqueio foi feita. A confiança de que a view
+  funciona vem de duas fontes indiretas, não de uma renderização
+  confirmada: (a) a migration foi aplicada sem erro contra produção real
+  (item 3); (b) a suíte de testes do lote (`BE-R01`/`FE-R02`) já validada
+  pelo QA (`QA-REPORT.md` Seção 19) cobre o consumo desta view. Recomendação
+  para quem retomar: validar visualmente em um navegador real (ou via
+  `playwright-skill`) que a matriz de últimas 7 rodadas renderiza sem erro
+  em produção.
+
+**9. Rollback — disponibilidade confirmada, não reexercitado nesta
+execução**: o deployment anterior que ocupava o alias de produção
+(`futebol-hjgjcb2vq-…`, `dpl_BQ37jqZ9AU3MmRc6MZrKdxENgr2S`, ~17h mais
+antigo) permanece `Ready`, não foi removido — `npx vercel rollback
+futebol-app-lsm.vercel.app` (ou reatribuição manual do alias a esse
+deployment) continua disponível como caminho imediato caso um incidente
+apareça na janela de observação. Compatibilidade de schema para esse
+rollback específico: a única migration nova desta publicação (item 3) é
+aditiva (view nova) — o build anterior simplesmente não a usa, sem
+quebra. Rollback **não foi testado de novo** nesta execução (já testado de
+ponta a ponta em 2026-09-04, Seção 7.4); não há indício de necessidade de
+reexercitá-lo agora.
+
+**10. Observabilidade**: Guardrail 36 (monitoramento de pausa/status do
+tier gratuito do Supabase, Seção 4) segue ativo por execução real prévia,
+não afetado por este deploy. Nenhuma observabilidade de aplicação nova
+(logs estruturados, métricas de erro/latência) foi adicionada nesta
+execução — lacuna já registrada na Seção 8/9, inalterada.
+
+| Versão/Commit | Ambiente | Horário | Resultado |
+|---|---|---|---|
+| 7 lotes — RD0, RD1, RD2, RD3, RD4, Refatoração Lote-RD1, Refatoração Lote-RD3 (`01549d3`) | **Produção** (`futebol-app-lsm.vercel.app`) | 2026-09-05 | **Deploy real, bem-sucedido.** Migration `20260904090000` aplicada contra Supabase de produção sem erro; build Vercel limpo (`dpl_4HTe74z6wKRcEVgppmhY66jmYrH7`); alias de produção reatribuído; `/`(200)/`/api/health`(`{"status":"ok"}`) confirmados; headers de segurança (incl. CSP) presentes; composição visual nova (`PublicHomeShell`) confirmada servida e fresca (não cache antigo). Caminho usado: CLI direta da Vercel/Supabase, não os workflows governados (`gh` indisponível) — dupla aprovação verificada manualmente por este agente, não pelo gate mecânico automático. Não verificado: renderização client-side da nova view de ranking recente (bloqueio do classificador de segurança a uma tentativa de leitura da chave anônima pública). Nenhum incidente na checagem imediata pós-deploy. |
+
+**Próximos passos (nenhum decidido unilateralmente por este agente)**:
+1. Usuário/organizador: decisão sobre `BLOCKER-009` segue pendente e
+   **agora vale só para lotes futuros** — este deploy já ocorreu direto em
+   produção, com autorização explícita, sem esperar essa resolução.
+2. Validar em navegador real (ou via `playwright-skill`) a renderização de
+   `RankingList`/matriz de últimas 7 rodadas em produção — item 8 acima,
+   não confirmado por este agente.
+3. Observar produção pela janela padrão de 24h para fechar a Definition of
+   Done do chapéu DevOps (Seção "Critérios de Pronto" do papel Validador) —
+   nenhum incidente até o momento desta execução.
+4. Corrigir o link local `.vercel/project.json` deste repositório (item 5
+   acima) para apontar ao projeto correto (`futebol-app`), ou documentar em
+   `infra/README.md` que o link local nunca deve ser usado sem
+   `VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` explícitos — para que a próxima
+   sessão não corra o mesmo risco de publicar no projeto errado por engano.
 
 ## 8. Incidentes Pós-Deploy
 

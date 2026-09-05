@@ -4942,6 +4942,234 @@ Coordenador — sem retorno ao `executor`.
 
 ## **Lote Refatoração RD3 (`REF-RD3-01`): APROVADO (sem ressalva)**
 
+---
+
+## 23. Lote RD2 — Login e Lançamento de Rodada Redesenhados
+
+**Contexto**: uma auditoria de confirmação pré-deploy encontrou que este
+relatório não continha nenhuma seção "Lote RD2", apesar de `FE-R01`/`FE-R05`
+constarem `Concluída` no `TASK.md` desde antes de `RD3`/`RD4`. Isto é um
+**gap de processo** (o lote nunca passou pelo chapéu QA), não um veredito
+implícito de aprovação — esta seção é a primeira validação real do lote,
+executada sobre `HEAD` (`01549d3`), sem aceitar a nota de conclusão do
+Executor como base: todo critério foi reconferido lendo o código-fonte real
+e reexecutando a suíte de forma independente.
+
+### 23.1 `FE-R01` — T01 Login (redesenho)
+
+**Critério de aceite literal (`TASK.md` Seção 3.2)**: hero navy full-bleed +
+`BrandCrest` grande + título real "Acesso interno" (não wordmark) + link de
+retorno com contraste corrigido (Seção 1.5-R) + **nenhuma mudança de lógica
+de formulário/erro/redirect**.
+
+Verificado por leitura direta de `src/features/login/LoginForm.tsx`/
+`.module.css` e por `git diff 2188f76 HEAD -- src/features/login/`:
+
+- **Hero navy full-bleed**: `.page` em `LoginForm.module.css` usa
+  `radial-gradient(...) , var(--color-brand-navy)` cobrindo `min-height:
+  100vh` — full-bleed confirmado.
+- **`BrandCrest` grande**: `<BrandCrest size="large" decorative
+  className={styles.crest} />` substitui o antigo texto solto "Turma do
+  Rola"/"Comary" — confirmado.
+- **Título real**: `<h1 className={styles.heading}>Acesso interno</h1>`,
+  não o wordmark — confirmado; subtítulo "Organização · Turma do Rola"
+  identifica a marca por extenso, coerente com `decorative` no `BrandCrest`.
+- **Link de retorno com contraste corrigido**: `.backLink` fica fora do
+  cartão, `color: #ffffff` sublinhado sobre o hero navy, nunca dourado/verde
+  isolado como único indicador — confirmado batendo com UX-SPEC.md Parte II
+  Seção 2.1/5.4 (WCAG 1.4.1: sublinhado como reforço além de cor).
+- **Zero mudança de lógica de formulário/erro/redirect**: `git diff`
+  restrito a `src/features/login/` toca **só** `LoginForm.tsx`/
+  `LoginForm.module.css`/`LoginForm.test.tsx` (82/25/42 linhas). Nenhum
+  diff em `redirectTarget.ts`, `loginApi.ts` ou `constants.ts`. Dentro de
+  `LoginForm.tsx`, `handleSubmit`/`getSafeRedirectTarget`/tratamento de
+  `LoginError` permanecem textualmente idênticos ao HEAD anterior —
+  confirmado, não presumido a partir da nota do Executor.
+- `LoginForm.test.tsx`: os 11 casos de lógica pré-existentes (estado
+  inicial, toggle de senha, loading, erro genérico sob rate limiting,
+  redirect seguro/malicioso, 2× `jest-axe`) mais o novo caso de composição
+  (heading real, ausência de heading duplicado, `BrandCrest` sem
+  `role="img"` duplicado) — todos passando na reexecução (23.4).
+
+**Veredito**: **Aprovado**, sem ressalva.
+
+### 23.2 `FE-R05` — T05 Lançamento de Rodada (redesenho)
+
+**Critério de aceite literal (`TASK.md` Seção 3.2)**: reescrita de `Stepper`
+de 3 etapas para lista contínua única (stat-tiles + `SegmentedControl` +
+eventos revelados progressivamente) + modal de confirmação final
+(preservando a intenção de RNF-10) + emoji reais com rótulo textual
+adjacente — maior reestimativa da iniciativa, zero mudança de regra de
+negócio (RN-D06).
+
+Verificado por leitura direta de `LancamentoRodadaForm.tsx`,
+`AtletaParticipacaoRow.tsx`, `RodadaStatTiles.tsx`, `RevisaoStep.tsx` e por
+`git diff 2188f76 HEAD -- src/features/rodadas/ app/api/rodadas/`:
+
+- **Reescrita estrutural confirmada**: `PresencaStep.tsx`/`EventosStep.tsx`
+  deletados; lista contínua (`<ul>` de `AtletaParticipacaoRow`) + stat-tiles
+  (`RodadaStatTiles`, alimentado por `resumirParticipacoes`) + botão único
+  "Salvar rodada" que abre um `Modal` reaproveitando `RevisaoStep`
+  (alteração só de comentário nesse arquivo, 17 linhas, sem mudança de
+  composição/lógica) — confirmado.
+- **Chamada única `POST /api/rodadas`**: `submit()` chama `lancarRodada(body)`
+  uma única vez, dentro do `try`; nenhuma chamada por etapa. Confirmado
+  também pelo teste "confirmar dentro do modal dispara uma única transação
+  atômica" (`lancarRodada` chamado com `toHaveBeenCalledTimes(1)`) passando
+  na reexecução.
+- **RNF-10 preservado**: em erro genérico, `setModalState` não muda —
+  modal de confirmação permanece aberto, `RODADA_SUBMIT_ERROR_MESSAGE`
+  contém "Nada foi salvo" (confirmado por teste que lê o próprio texto da
+  constante); em `409`, o modal de confirmação é substituído pelo de
+  duplicidade (`ModalState` como união discriminada, nunca os dois
+  simultâneos) — confirmado por leitura e pelo teste de duplicidade.
+- **RF-02.6 (bloqueio de evento para "Ausente")**: `AtletaParticipacaoRow.tsx`
+  linha 45, `const bloqueado = participacao.status === "ausente"` —
+  controles de evento somem (não só desabilitam) e texto explicativo
+  aparece só quando `status === "ausente"`. Confirmado também que ao
+  virar "Ausente" os contadores são zerados (`handleStatusChange` em
+  `LancamentoRodadaForm.tsx`), evitando eventos "pendurados" implícitos —
+  mesma regra já validada na Seção 15 (`Lote L4`), agora só reapresentada
+  em nova composição.
+- **RF-02.8 (alerta de duplicidade)**: modal de duplicidade dedicado,
+  reenvia com `confirmar_duplicidade: true` só após confirmação explícita
+  — confirmado por leitura e por teste passando.
+- **Cálculo automático de pontos**: nenhuma lógica de cálculo existe no
+  Frontend (responsabilidade do Backend, `app.lancar_rodada`/`BE-08`,
+  já validado na Seção 15); `participacaoState.ts`/`rodadasApi.ts`/
+  `types.ts`/`statusParticipacao.ts` (onde estaria qualquer lógica de
+  payload) **não aparecem no `git diff`** desta tarefa — zero risco de
+  regressão nesse ponto, confirmado por diff vazio, não por alegação.
+- `app/api/rodadas/route.ts` tem 4 linhas de diff nesta janela, mas são
+  de `BE-R02` (comentário de cabeçalho documentando `confronto`/
+  `status_correcao`, Lote RD3, já aprovado na Seção 20) — não pertence a
+  `FE-R05`, confirmado por leitura do diff completo.
+
+**`BLOCKER-012` — reconfirmação independente do QA**: o achado alega que a
+implementação preserva RF-02.3/RF-02.4/RF-02.5 (eventos habilitados também
+para "Lesionado") contra uma leitura literal divergente da nota de mockup
+citada em `UX-SPEC.md` Parte II Seção 2.4. Verificado de forma
+independente, sem aceitar a alegação do Executor:
+
+- `PRD-TECNICO.md` linhas 70-81: RF-02.3 exige que um atleta "Lesionado"
+  seja tratado como presente para pontuação, **"permitindo ainda registrar
+  eventos ocorridos até o momento da lesão"**; RF-02.4/RF-02.5 autorizam
+  gol/cartão para atleta "presente **ou lesionado**"; RF-02.6 é a única
+  regra que bloqueia eventos, e é exclusiva de "Ausente" — texto conferido
+  literalmente, não parafraseado.
+- `AtletaParticipacaoRow.tsx` linha 45: `bloqueado = status === "ausente"`
+  — logicamente, isso implica que para `status === "lesionado"` (e
+  `"presente"`), `bloqueado` é `false` e a `<div className={eventosRow}>`
+  com os três `StepperCounter` (gol/amarelo/vermelho) é renderizada e
+  habilitada. Não há nenhum outro guard/condição que desabilite os
+  `StepperCounter` para "Lesionado" em nenhum outro ponto do componente ou
+  de `LancamentoRodadaForm.tsx`.
+- Teste `LancamentoRodadaForm.test.tsx` linha 214 ("atleta lesionado mantém
+  eventos habilitados") confirma isso **empiricamente**, não só por leitura
+  estática: seleciona "Lesionado" via `SegmentedControl`, clica no botão
+  "Aumentar Gols", e afirma que o contador real avançou para `1`
+  (`aria-valuenow="1"`) — reexecutado nesta validação, passou.
+
+**Conclusão do QA**: a leitura de `BLOCKER-012` está correta — a
+implementação de `FE-R05` preserva o comportamento de negócio exigido por
+RF-02.3/RF-02.4/RF-02.5, e a divergência é, de fato, só contra a
+generalização da nota de mockup na Seção 2.4 do `UX-SPEC.md` (mesmo padrão
+de `BLOCKER-005`/`BLOCKER-010`, já precedentes aceitos pelo QA nas Seções
+15/19.6). **`BLOCKER-012` reconfirmado por QA** — o `Status` permanece
+`Aberto` em `BLOCKERS.md` (a pergunta de fundo, qual leitura do
+`UX-SPEC.md` é a correta, continua sem resposta do
+`coordenador`/`ux-ui`), mas o comportamento de código está correto e não
+gera reprovação nesta validação.
+
+**Veredito**: **Aprovado**, sem ressalva.
+
+### 23.3 `cross-platform-integration-testing`
+
+- `npm run test:integration` — **190 passed | 2 skipped (192), 20
+  arquivos**, incluindo `app/api/auth/__tests__/auth.integration.test.ts`
+  (contrato real de `POST /api/auth/login`, consumido por `FE-R01` via
+  `loginApi.ts`, inalterado) e
+  `app/api/rodadas/__tests__/rodadas.integration.test.ts` (contrato real de
+  `POST /api/rodadas`, consumido por `FE-R05` via `rodadasApi.ts`,
+  inalterado) — nenhuma quebra de contrato entre Frontend redesenhado e
+  Backend real.
+- `API-CONTRACT.yaml`: `POST /api/rodadas` conferido contra
+  `buildLancarRodadaBody`/`lancarRodada` (`participacaoState.ts`/
+  `rodadasApi.ts`, ambos fora do diff desta tarefa) — payload
+  (`data`, `confirmar_duplicidade`, `participacoes[].{atleta_id,status,
+  eventos}`) idêntico ao já validado na Seção 15 (`Lote L4`); nenhuma
+  fragmentação em chamadas por etapa introduzida por `FE-R05`.
+
+### 23.4 Non-functional validation
+
+- **Suíte completa** (`npm test -- --run`): **899 passed (111 arquivos)**,
+  reexecutada nesta validação sobre `HEAD` — nenhuma falha, nenhum teste
+  pulado.
+- **Lint**: `npm run lint` → `✔ No ESLint warnings or errors`.
+- **Typecheck**: `npx tsc --noEmit` → limpo, sem saída.
+- **Build**: `npm run build` → `✓ Compiled successfully`, 21 rotas geradas
+  (inclui `/login` e `/rodadas/nova`).
+- **`npm run format:check` restrito às 2 tarefas**: `npx prettier --check`
+  nos 9 arquivos de propriedade de `FE-R01`/`FE-R05`
+  (`LoginForm.tsx`/`.module.css`/`.test.tsx`;
+  `LancamentoRodadaForm.tsx`/`.module.css`/`.test.tsx`,
+  `AtletaParticipacaoRow.tsx`, `RodadaStatTiles.tsx`, `RevisaoStep.tsx`) →
+  **"All matched files use Prettier code style!"**; nenhum desses 9
+  arquivos aparece na saída do `npm run format:check` completo do
+  repositório (débito de formatação pré-existente de outras
+  tarefas/sessões, fora do escopo deste lote).
+- **Acessibilidade**: `jest-axe` em `LoginForm.test.tsx` (2 casos) e
+  `LancamentoRodadaForm.test.tsx` ("sem violação de acessibilidade na lista
+  contínua e nos dois modais") passando; `role="group"`/
+  `aria-label="Resumo da rodada"` aplicado no `<div>` externo das
+  stat-tiles (não no `<dl>` em si), evitando órfãar `<dt>`/`<dd>` — achado
+  correto conforme leitura de `RodadaStatTiles.tsx`.
+- **Usabilidade (`UX-SPEC.md`)**: emoji de evento sempre acompanhado de
+  rótulo textual visível adjacente ("gol"/"cartão amarelo"/"cartão
+  vermelho"), nunca só emoji — confirmado em `AtletaParticipacaoRow.tsx`.
+
+### 23.5 Achados do QA (bugs/débitos)
+
+Nenhum bug ou débito de código novo encontrado neste lote. O único achado
+em aberto (`BLOCKER-012`) foi avaliado em 23.2 e reconfirmado como
+divergência de especificação (não de implementação) — mesmo tratamento já
+dado a `BLOCKER-005`/`BLOCKER-010`, não gera entrada em `Refatoração
+Lote-RD2`.
+
+### 23.6 Checklist de "Pronto" (Definition of Done de QA, por lote)
+
+- [x] Todo critério de aceite de cada tarefa do lote foi testado e está
+      passando (`FE-R01`: 23.1; `FE-R05`: 23.2)
+- [x] Nenhuma reprovação crítica em aberto
+- [x] Nenhuma reprovação simples em aberto (nenhum achado de código; achado
+      de especificação de `BLOCKER-012` já tratado pelo precedente
+      `BLOCKER-005`/`BLOCKER-010`, sem exigir tarefa em `Refatoração
+      Lote-RD2`)
+- [x] Testes de integração cruzada executados e passando (23.3 — contrato
+      real de `POST /api/auth/login` e `POST /api/rodadas` verificado de
+      ponta a ponta, sem quebra)
+- [x] Requisito não funcional relevante ao lote validado (23.4 —
+      acessibilidade/`jest-axe`, build/lint/typecheck/format, usabilidade)
+
+### 23.7 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `FE-R01` | Aprovado | Seção 23.1 |
+| `FE-R05` | Aprovado (`BLOCKER-012` reconfirmado por QA, sem reprovação — divergência é de especificação, não de implementação) | Seção 23.2 |
+
+**Encaminhamento**: lote elegível para seguir à auditoria completa do
+DevSecOps sobre `RD2` (`SECURITY-REVIEW.md`), conforme `EXECUTION-FLOW.md`
+§5 — este QA não dispara essa etapa, apenas libera o gate. Nenhuma entrada
+nova em `Refatoração Lote-RD2` é necessária. `BLOCKER-012` permanece
+`Aberto` em `BLOCKERS.md`, sob responsabilidade do `coordenador`/`ux-ui`
+para a decisão de fundo sobre a redação da Seção 2.4 do `UX-SPEC.md` — não
+é condição para este veredito de QA nem para o `/deploy` deste lote.
+
+## **Lote RD2 — Login e Lançamento de Rodada Redesenhados: APROVADO (sem ressalva)**
+
+---
+
 Os 8 arquivos de propriedade de `BE-R02`/`FE-R09` (Lote RD3, já aprovado
 com ressalvas na Seção 20) foram confirmados como 100% reformatação
 Prettier — nenhuma string, token, valor de asserção ou lógica alterada,
@@ -4960,6 +5188,309 @@ inalterado por este lote.
 lote (`SECURITY-REVIEW.md`) e, com a dupla aprovação, para a checagem
 estrutural do Coordenador. Nenhuma entrada nova em `BLOCKERS.md` — nenhum
 achado deste lote exige retorno ao time de implementação.
+
+---
+
+## 24. Lote RD4 — Aplicação Leve (Telas Internas Restantes)
+
+**Contexto**: `FE-R04`, `FE-R07`, `FE-R08`, `FE-R10` (`TASK.md` Seção 3.2,
+Parte II, Lote RD4), todas `Concluída`. **Gap de processo identificado**:
+este lote nunca havia recebido uma seção própria neste relatório — as 4
+tarefas foram implementadas e marcadas `Concluída` sem validação funcional
+formal do QA. Esta seção fecha esse gap, imediatamente antes do
+`/deploy`, tratando o commit atual (`01549d3`) como o build a validar.
+Validado de forma independente: releitura do critério de aceite literal de
+cada linha (Seção 3.2, texto exato citado abaixo), leitura do código real
+(`git show`/`Read`, nunca a nota de conclusão do Executor como base de
+aprovação) e reexecução direta de toda a suíte.
+
+### 24.1 FE-R04 — T04 Cadastro/Edição de Atleta
+
+**Critério de aceite (TASK.md Seção 3.2, texto exato da célula)**: "Aplicação
+'leve': herda `TextInput`/`Button`/`Modal`/`TypedConfirmationModal`
+repintados; substitui 🔒 por `Icon name=\"lock\"` no aviso de privacidade;
+nenhuma composição nova."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Herda componentes repintados sem composição nova | Leitura de `AtletaForm.tsx` completo | ✅ nenhuma composição de design system nova; `TextInput`/`Button`/`Modal`/`NumberInput`/`DateInput`/`AlertBanner`/`Skeleton`/`SkeletonGroup` usados como já existiam |
+| 🔒 substituído por `Icon name="lock"` no aviso de privacidade | Leitura de `AtletaForm.tsx` linhas 303-306 + `AtletaForm.test.tsx` linha 106-112 | ✅ `<Icon name="lock" />` presente dentro do `AlertBanner variant="info"` do topo; emoji 🔒 literal ausente do JSX; teste dedicado confirma `svg[aria-hidden='true']` sem `aria-label` |
+
+**Achado — `BUG-QA-RD4-01` (não coberto pela nota de conclusão do
+Executor)**: a nota de fechamento de `FE-R04` afirma que "⚠ do bloco de
+consentimento não consta na lista de glifos migráveis da Seção 1.4-R para
+T04, mantido como estava" — **esta afirmação está incorreta**, verificado
+de forma independente contra o próprio texto da Seção 1.4-R do `TASK.md`
+("⚠ (T04/T09-conflito)", linha 747) e contra a tabela de mapeamento do
+`UX-SPEC.md` Seção 3.4 ("⚠ | T04, T09 (estado de conflito) | `Icon
+name=\"alert-triangle\"` | Texto do aviso/conflito, inalterado", linha
+1916) — ambas citam T04 explicitamente para o glifo ⚠, e o wireframe da
+Parte I (`UX-SPEC.md` linha 270, "⚠ Menor de 18 anos detectado") é
+literalmente o bloco de consentimento presente em `AtletaForm.tsx` linha
+366 hoje: `<AlertBanner variant="warning">⚠ Menor de 18 anos
+detectado</AlertBanner>` — emoji ⚠ literal ainda em produção, não
+substituído por `Icon name="alert-triangle"`.
+- **Severidade**: **Simples** — não compromete o critério de aceite
+  central da linha `FE-R04` (que cita só 🔒 explicitamente), não exige
+  mudança de escopo/arquitetura, não quebra nenhuma outra tarefa do lote;
+  é uma substituição pontual de baixo esforço (mesmo padrão já aplicado a
+  🔒/⚡ nas outras 2 linhas deste lote). A tarefa `FE-R04` **permanece
+  `Concluída`** no `TASK.md`.
+- **Ação**: registrar como tarefa em `Refatoração Lote-RD4` (coordenador,
+  checagem estrutural deste mesmo comando `/validar`), com prazo — trocar
+  `⚠ Menor de 18 anos detectado` por `<Icon name="alert-triangle" /> Menor
+  de 18 anos detectado` em `AtletaForm.tsx`, decorativo (`aria-hidden`
+  default do próprio `Icon`, sem `aria-label`, texto adjacente já
+  descreve o significado — mesma convenção de `Icon name="lock"` na linha
+  acima).
+- **Por que não bloqueia o deploy**: `jest-axe` não relatou violação (o
+  emoji atual já é acessível via texto adjacente); é uma pendência de
+  consistência visual do redesenho, não uma regressão funcional ou de
+  acessibilidade.
+
+**Veredito**: **FE-R04: Aprovado com ressalvas** (1 achado Simples,
+`BUG-QA-RD4-01`, não bloqueante — vira tarefa em `Refatoração Lote-RD4`).
+
+### 24.2 FE-R07 — T07 Correção/Estorno
+
+**Critério de aceite (TASK.md Seção 3.2, texto exato da célula)**:
+"Aplicação 'leve': `DiffViewer` herda tokens sem composição nova; `Icon
+name=\"more-vertical\"` se ação secundária mantida."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| `DiffViewer`/telas de T07 herdam tokens sem composição nova | Busca isolada por hex hardcoded em `src/features/correcao-rodada/*.module.css` | ✅ nenhuma ocorrência de `#RRGGBB`/`#RGB` — só `var(--color-...)`/`var(--spacing-...)`/`var(--font-...)`, confirmado por `grep`, não presumido |
+| `Icon name="more-vertical"` **se** ação secundária mantida | Busca isolada por "⋮"/"more-vertical"/"menu" em `src/features/correcao-rodada/` | ✅ **nenhuma ocorrência real de componente** — as únicas 5 ocorrências são comentários de auditoria em `CorrecaoRodadaDetalhe.tsx` (linhas 81-92) documentando a investigação; a única ação secundária real de T07 é o botão de texto "Excluir rodada" (`<Button variant="danger">`), nunca um ícone isolado. O menu contextual "⋮" (`RodadaActionMenu`) existe em `src/features/historico/` (T06/`FE-R06`, lote RD3, já `Concluída`, fora do escopo de T07) — confirmado por leitura direta, a alegação da nota de conclusão do Executor está correta |
+
+**Veredito**: **FE-R07: Aprovado**, sem ressalva — zero-esforço legítimo
+confirmado de forma independente, condição "se ação secundária mantida"
+não se aplica hoje a T07.
+
+### 24.3 FE-R08 — T08 Log de Auditoria
+
+**Critério de aceite (TASK.md Seção 3.2, texto exato da célula)**:
+"Aplicação 'leve': lista somente-leitura herda tokens sem composição
+nova."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| Lista somente-leitura herda tokens sem composição nova | Busca isolada por hex hardcoded em `src/features/log-auditoria/` (todos os arquivos, não só `.module.css`) | ✅ nenhuma ocorrência de cor hardcoded; as únicas 3 ocorrências de `#` no diretório são o exemplo de ID anonimizado em comentário/teste ("Atleta #a1b2c3d4"), não cor |
+
+**Veredito**: **FE-R08: Aprovado**, sem ressalva — zero-esforço legítimo
+confirmado de forma independente.
+
+### 24.4 FE-R10 — T10 Gestão de Restrições Obrigatórias
+
+**Critério de aceite (TASK.md Seção 3.2, texto exato da célula)**:
+"Aplicação 'leve': CRUD simples herda tokens; `Icon name=\"zap\"` para
+conflito."
+
+| Item do critério | Verificado por QA | Resultado |
+|---|---|---|
+| CRUD herda tokens sem composição nova | Busca isolada por hex hardcoded em `src/features/restricoes/` | ✅ nenhuma ocorrência |
+| `Icon name="zap"` para indicador de conflito | Leitura de `RestricoesList.tsx` linhas 215-223 | ✅ `<Icon name="zap" />` presente entre `atleta_a_nome`/`atleta_b_nome`; emoji ⚡ literal ausente; comentário de auditoria consistente com a implementação real |
+
+**Débito preexistente confirmado, não reaberto**: `BUG-QA-FE10-01`
+(`Combobox` sem `aria-haspopup="listbox"`, severidade baixa) — fora do
+escopo de `FE-R04`/`FE-R07`/`FE-R08`/`FE-R10` (é achado da validação
+funcional original de T10, Seção 11.5, não do redesenho visual).
+Confirmado que continua registrado em `QA-REPORT.md` Seção 11.5 (linha
+2670) com dono definido ("atribuído ao Frontend", sem prazo formal) —
+nenhuma ação necessária aqui, conforme instrução explícita de não reabrir.
+
+**Veredito**: **FE-R10: Aprovado**, sem ressalva nova (o débito
+`BUG-QA-FE10-01` já constava como ressalva da validação original de T10 e
+não é reintroduzido aqui).
+
+### 24.5 Suíte reexecutada de forma independente (commit `01549d3`, `HEAD`)
+
+| Comando | Resultado |
+|---|---|
+| `npm test -- --run` (1ª rodada) | ⚠️ 2 arquivos falharam: `AtletaForm.test.tsx` (2 casos, valores de asserção corrompidos — ex. `nome_completo` recebido como `"7João"` em vez de `"João Pedro"`) e `LancamentoRodadaForm.test.tsx` (1 timeout) — 896/899 |
+| `npx vitest run src/features/atletas/AtletaForm.test.tsx` (isolado) | ✅ **20/20 passando**, nenhuma falha — confirma que a falha da 1ª rodada foi ambiental (carga da máquina com sessão paralela concorrente, `MEMORY.md`/nota do usuário confirma múltiplas sessões simultâneas sobre este repositório), não uma regressão real de `FE-R04` |
+| `npm test -- --run` (2ª rodada, repositório inteiro) | ✅ **111/111 arquivos, 899/899 testes passando**, sem nenhuma falha — bate exatamente com a contagem relatada por `FE-R10` (última tarefa concluída do lote) |
+| `npm run lint` | ✅ `✔ No ESLint warnings or errors` |
+| `npx tsc --noEmit` | ✅ limpo, sem saída |
+| `npm run build` | ✅ `✓ Compiled successfully`, todas as rotas geradas, incluindo `/atletas`, `/atletas/[id]`, `/atletas/novo`, `/historico/auditoria`, `/rodadas/[id]/corrigir`, `/restricoes` |
+| `npm run format:check` (repositório inteiro) | ✅ `All matched files use Prettier code style!` — nenhum arquivo das 4 tarefas (nem de nenhuma outra) pendente de formatação nesta data |
+
+**Nota sobre a flakiness observada**: a 1ª rodada da suíte completa falhou
+de forma não determinística (valores de string trocados entre casos de
+teste diferentes, típico de contenção de recursos sob carga, não de
+lógica quebrada) enquanto outra sessão validava o Lote RD2 em paralelo
+sobre o mesmo repositório. Reexecutada isoladamente e depois por completo,
+ambas 100% verdes — não é um achado de `FE-R04`, registrado aqui só para
+transparência do método.
+
+### 24.6 Checklist de "Pronto" (Definition of Done de QA, por lote)
+
+- [x] Todo critério de aceite de cada tarefa do lote foi testado e está
+      passando (24.1-24.4)
+- [x] Nenhuma reprovação **crítica** em aberto
+- [x] Toda reprovação/achado **simples** (`BUG-QA-RD4-01`) mapeado para
+      virar tarefa em `Refatoração Lote-RD4`
+- [x] Testes de integração cruzada executados e passando (nenhuma das 4
+      tarefas altera contrato de API — `atletasApi.ts`/`restricoesApi.ts`
+      seguem os mesmos endpoints já validados por `BE-06`/`BE-12`; suíte
+      completa, incluindo testes de integração, 899/899)
+- [x] Requisito não funcional relevante ao lote validado (`jest-axe` sem
+      violação em `AtletaForm.test.tsx`/`RestricoesList.test.tsx`; zero
+      hex hardcoded confirmado por busca isolada nas 4 features)
+
+### 24.7 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `FE-R04` | Aprovado com ressalvas (`BUG-QA-RD4-01`, Simples, não bloqueante) | Seção 24.1 |
+| `FE-R07` | Aprovado, sem ressalva | Seção 24.2 |
+| `FE-R08` | Aprovado, sem ressalva | Seção 24.3 |
+| `FE-R10` | Aprovado, sem ressalva nova (débito preexistente `BUG-QA-FE10-01` confirmado, não reaberto) | Seção 24.4 |
+
+## **Lote RD4 — Aplicação Leve (Telas Internas Restantes): APROVADO (com ressalvas)**
+
+As 4 tarefas do lote foram validadas de forma independente contra o texto
+literal do critério de aceite de cada uma (`TASK.md` Seção 3.2), sem
+aceitar a nota de conclusão do Executor como base de aprovação. Um achado
+de severidade **Simples** foi identificado e documentado
+(`BUG-QA-RD4-01`, FE-R04 — glifo ⚠ do bloco de consentimento não migrado
+para `Icon name="alert-triangle"`, apesar de `TASK.md` Seção 1.4-R e
+`UX-SPEC.md` Seção 3.4 exigirem essa migração explicitamente para T04):
+não bloqueia o lote, a tarefa `FE-R04` permanece `Concluída`, e o achado
+deve virar uma tarefa em `Refatoração Lote-RD4` na checagem estrutural do
+Coordenador, com prazo. Suíte completa reexecutada de forma independente
+neste commit (`01549d3`): 899/899 testes, lint limpo, typecheck limpo,
+build de produção bem-sucedido, `format:check` limpo em todo o
+repositório. Nenhuma reprovação crítica.
+
+**Encaminhamento**: liberado para a auditoria completa do DevSecOps sobre
+este mesmo lote (`SECURITY-REVIEW.md`) — nenhum achado crítico que
+justifique retorno ao `executor`. `BUG-QA-RD4-01` deve virar a tarefa
+`Refatoração Lote-RD4` (coordenador) antes do próximo `/deploy` deste
+lote ou de qualquer lote subsequente que toque `AtletaForm.tsx` — não é,
+porém, condição para este veredito de QA nem para a auditoria de
+DevSecOps.
+
+---
+
+## 25. Confirmação final do Validador — quarta rodada de fechamento, `HEAD` = `01549d3` (2026-09-05)
+
+Quarta e última rodada de confirmação da Seção 3 do Comando 3
+(`EXECUTION-FLOW.md`) antes de `/deploy`, cobrindo os 7 lotes da
+Iniciativa "Redesenho Visual": `RD0`, `RD1`, `RD2`, `RD3`, `RD4`,
+`Refatoração Lote-RD1`, `Refatoração Lote-RD3`. As 3 rodadas anteriores já
+haviam corrigido 3 lacunas (RD2/RD4 sem QA/DevSecOps; RD4 e RD1/RD3
+originais sem checagem estrutural do Coordenador registrada em
+`EXECUTION-LOG.md`). Esta rodada confirma por leitura direta, sem aceitar
+nenhuma nota de conclusão como base.
+
+### 25.1 Os três pilares, por lote (confirmado por leitura direta)
+
+| Lote | Veredito de QA | Veredito de DevSecOps | Checagem estrutural do Coordenador |
+|---|---|---|---|
+| `RD0` | Aprovado com ressalvas (`QA-REPORT.md` Seção 18) | Aprovado (`SECURITY-REVIEW.md` Seções 70-77) | "Aprovação do Tech Lead" — `EXECUTION-LOG.md` linha 485 (mesma função, nomenclatura anterior à padronização do termo) |
+| `RD1` | Aprovado com ressalvas (Seção 19, linha 4413) | Aprovado (Seções 79-85, linha 3432) | `EXECUTION-LOG.md` linha 562 |
+| `RD3` | Aprovado com ressalvas (Seção 20, linha 4778) | Aprovado (Seções 86-92, linha 3698) | `EXECUTION-LOG.md` linha 615 |
+| `Refatoração Lote-RD1` | Aprovado sem ressalva (Seção 21, linha 4851) | Aprovado sem débito (Seção 93, linha 3797) | `EXECUTION-LOG.md` linha 659 |
+| `Refatoração Lote-RD3` | Aprovado sem ressalva (Seção 22, linha 4943) | Aprovado sem débito (Seção 94, linha 3860) | `EXECUTION-LOG.md` linha 720 |
+| `RD2` | Aprovado sem ressalva (Seção 23, linha 5169) | Aprovado sem débito (Seções 95-101, linha 4015) | `EXECUTION-LOG.md` linha 793 |
+| `RD4` | Aprovado com ressalvas (Seção 24, linha 5349) | Aprovado sem débito novo (Seções 102-109, linha 4182) | `EXECUTION-LOG.md` linha 849 |
+
+Todos os 7 lotes têm os três pilares presentes. Nenhuma lacuna
+remanescente das 3 já corrigidas em rodadas anteriores.
+
+### 25.2 Integração cruzada real entre os 7 lotes
+
+Verificado por inspeção direta (não apenas "os testes passam"):
+
+- `src/components/ui/index.ts` (barrel do Design System): 32 `export *`,
+  um por componente/diretório. Os 6 componentes novos das rodadas RD0/RD1/
+  RD3 (`Icon`, `BrandCrest`, `MedalBadge`, `PresenceDot`, `PitchBackground`,
+  `PlayerChip`) foram lidos arquivo a arquivo — nenhum nome exportado
+  (tipo, interface ou função) colide entre si nem com os componentes
+  pré-existentes. `npx tsc --noEmit` (que acusaria ambiguidade de
+  reexportação) limpo.
+- `FE-R09`/`FE-R11` (RD3) tocam exclusivamente `src/features/times/`; nenhum
+  outro lote toca esse diretório (`git log --oneline -- src/features/times`
+  mostra só o commit consolidado `01549d3` e os dois commits anteriores à
+  iniciativa de redesenho).
+- `FE-R05` (RD2) e `FE-R06` (RD3) — sem conflito de merge real a checar: é
+  o mesmo commit `01549d3`, já materializado sem marcadores de conflito.
+- `npm run build` gerou a árvore de rotas completa sem colisão (nenhuma
+  rota duplicada entre `/atletas`, `/historico`, `/login`, `/restricoes`,
+  `/rodadas/*`, `/times`, `/dev/design-system` e os `app/api/*`
+  correspondentes).
+
+Nenhuma duplicação de definição de componente/tipo/rota encontrada.
+
+### 25.3 Suíte completa reexecutada do zero sobre `HEAD` (`01549d3`)
+
+| Comando | Resultado |
+|---|---|
+| `npm test` | 899/899 testes, 111 arquivos — verde |
+| `npm run lint` | "No ESLint warnings or errors" |
+| `npx tsc --noEmit` | limpo, sem saída |
+| `npm run build` | build de produção concluído, 21 rotas geradas, sem erro |
+| `npm run format:check` | "All matched files use Prettier code style!" |
+| `npm run test:integration` | 184/192 passando, 2 puladas, **6 falhando** — ver 25.4 |
+
+### 25.4 Achado em `test:integration` — investigado e classificado como ambiental, não regressão de código
+
+`app/api/rodadas/__tests__/listar.integration.test.ts` falhou em 6 dos seus
+casos (todos no bloco que usa `getRodadas(buildGetRequest("limit=200"))`),
+com o erro "Rodada ... não encontrada na listagem (limit=200)". Investigado
+até a causa raiz antes de qualquer classificação:
+
+- Consulta direta ao Postgres do Supabase local (`docker exec
+  supabase_db_turma-do-rola-comary psql ...`) mostrou **553 linhas** em
+  `app.rodada`, das quais **506** têm `data >= '2036-01-01'` — a âncora de
+  data reservada por esta suíte para nunca colidir com outras. O próprio
+  arquivo de teste já documenta, em comentário (linhas 17-23 e 150-158),
+  que este harness "nunca é resetado entre execuções" e que o teto já
+  precisou ser elevado uma vez (de 50 para 200) por causa desse acúmulo —
+  o teto de 200 agora também foi ultrapassado (506 > 200) por sessões
+  adicionais rodadas desde então (ambiente multi-sessão, mesmo Supabase
+  local compartilhado entre chamadas paralelas deste projeto).
+- As 6 falhas ocorrem todas na etapa de localizar a rodada recém-criada
+  dentro da resposta paginada — **antes** de qualquer asserção de regra de
+  negócio (soma de gols do confronto, `status_correcao`, contagem de
+  presentes) ser avaliada. Não há evidência de que a lógica de
+  `GET /api/rodadas` em si esteja incorreta; o sintoma é 100% explicado
+  pelo volume de dados de execuções anteriores excedendo o teto que o
+  próprio teste usa.
+- `test:integration` **não faz parte do gate de CI** — `.github/workflows/
+  ci.yml` linhas 34-46 executam apenas `lint`, `typecheck`, `format:check`,
+  `npm test` (unitário) e `build`; todos os cinco confirmados limpos na
+  Seção 25.3. `test:integration` é uma suíte manual, dependente de
+  `supabase start` local, usada como camada extra de confiança pelo QA,
+  não como portão de deploy.
+- Nenhuma tarefa nova foi adicionada a este arquivo nesta rodada (o total
+  de 192 testes é o mesmo já registrado em fechamentos anteriores de
+  `RD1`/`RD3`), reforçando que a degradação é temporal/ambiental
+  (acúmulo contínuo), não uma mudança de código desta validação.
+
+**Classificação**: achado ambiental de higiene de dados de teste local,
+não uma reprovação funcional. Registrado aqui para rastreabilidade, não
+bloqueia este veredito nem o deploy — o ambiente de staging/produção
+começa com banco limpo, sem o acúmulo dos 506 registros de execuções
+manuais passadas. Recomendação de baixa prioridade, sem prazo formal, para
+uma sessão futura de manutenção: adicionar rotina de limpeza (`TRUNCATE
+... CASCADE`, respeitando `on delete restrict`) ou filtrar a consulta do
+teste por `runId`, para este harness não voltar a degradar com o tempo.
+
+### 25.5 Veredito final
+
+Todos os 7 lotes têm os três pilares confirmados (25.1); nenhuma
+duplicação estrutural entre lotes (25.2); os cinco gates que compõem o
+CI real (`lint`, `typecheck`, `format:check`, `npm test`, `build`) estão
+limpos sobre `HEAD` (25.3); a única suíte com falha (`test:integration`)
+foi investigada até a causa raiz e confirmada como ambiental, fora do gate
+de CI, sem indício de regressão de código (25.4).
+
+**LIBERADO PARA DEPLOY EM STAGING.**
+
+Esta confirmação encerra a Seção 3 do Comando 3 (`EXECUTION-FLOW.md`). A
+Seção 4 (execução real do deploy em staging, chapéu DevOps) é
+responsabilidade de quem despachou esta validação, não desta chamada.
 
 ---
 

@@ -3874,3 +3874,339 @@ checagem estrutural do Coordenador (`EXECUTION-FLOW.md` §5). Nenhuma
 entrada nova em `BLOCKERS.md` originada por este agente.
 
 ---
+
+## 95. Contexto e Método — Lote RD2 (Login e Lançamento de Rodada Redesenhados, Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+**Gatilho**: `QA-REPORT.md` Seção 23 — Lote RD2 (`FE-R01` + `FE-R05`)
+aprovado sem ressalva pelo QA em 2026-09-05. Como o próprio QA registra em
+23 ("Contexto"), este é um **gap de processo**: o lote nunca havia passado
+pelo chapéu QA nem pelo chapéu DevSecOps antes, apesar de `FE-R01`/`FE-R05`
+constarem `Concluída` desde antes de `RD3`/`RD4` (já auditados, Seções
+79-92). Esta é a **primeira auditoria de segurança** deste lote — nenhuma
+seção "Lote RD2" preexistia neste relatório.
+
+**Escopo**: `FE-R01` (redesenho puramente visual do login, T01) e `FE-R05`
+(reescrita de composição do lançamento de rodada, T05, de `Stepper` de 3
+etapas para lista contínua única) — ambas sobre `HEAD` (`01549d3`). Auditoria
+completa (não enxuta), dado que nenhuma das duas tarefas havia sido
+auditada antes (diferente de `REF-RD1-01`/`REF-RD3-01`, refatorações sobre
+código já auditado).
+
+**Método**: leitura direta do `git diff 2188f76 HEAD -- src/features/login/
+src/features/rodadas/ app/api/rodadas/` (mesma janela usada pelo QA em
+23.1/23.2), não a nota de conclusão do Executor nem o relatório do QA como
+base de aprovação — usados apenas como roteiro de onde olhar. `npm audit`
+(`--omit=dev` e completo) reexecutado nesta data para reconfirmar
+`DEBT-01`/`DEBT-02`/`DEBT-04` sem mudança, já que `package.json`/
+`package-lock.json` não aparecem no `git diff` (confirmado abaixo).
+
+## 96. `static-security-analysis` — Lote RD2
+
+| Verificação | Resultado |
+|---|---|
+| `git diff -- package.json package-lock.json` (raiz do repositório, não restrito ao lote) | ✅ **vazio** — nenhuma dependência nova introduzida por nenhum commit desde o último estado auditado; `01549d3` (que inclui `FE-R01`/`FE-R05`) não toca nenhum dos dois arquivos, confirmado por `git show 01549d3 --stat` |
+| `npm audit --omit=dev --json` | Reconfirma **`DEBT-04`**: 2 altas (`next`/`postcss` transitivo), idêntico ao já registrado desde `RD0`/`RD1`/`RD3` — não atribuível a `RD2` |
+| `npm audit --json` (completo) | Reconfirma **`DEBT-01`**/**`DEBT-02`**: 1 crítica/9 altas/4 moderadas, total 14 — número idêntico ao de `BLOCKER-008`/Seções 78/80/87, sem mudança de escopo ou severidade |
+| `console.*` nos arquivos tocados (`LoginForm.tsx`, `AtletaParticipacaoRow.tsx`, `RodadaStatTiles.tsx`, `LancamentoRodadaForm.tsx`, `RevisaoStep.tsx`) | ✅ nenhuma ocorrência |
+| `dangerouslySetInnerHTML` nos mesmos arquivos | ✅ nenhuma ocorrência |
+| `redirectTarget.ts` (histórico: `BUG-QA-FE01-01`, open redirect corrigido em L1) | ✅ **fora do `git diff`** de `FE-R01` — `git log -- src/features/login/redirectTarget.ts` mostra o último toque em `8925bfb`/`1143735` (lotes L0/L1, já auditados), nenhum commit do redesenho o modifica; `LoginForm.tsx` continua importando `getSafeRedirectTarget` do mesmo arquivo, sem reimplementar a lógica localmente |
+| `app/api/rodadas/route.ts` — endpoint/payload de `POST /api/rodadas` | ✅ inalterado por `FE-R05` — as 4 linhas de diff nesta janela pertencem a `BE-R02` (comentário de cabeçalho, Lote RD3, já auditado nas Seções 86-92), confirmado por leitura do diff completo; `participacaoState.ts`/`rodadasApi.ts`/`types.ts`/`statusParticipacao.ts` (onde estaria qualquer lógica de payload) não aparecem no diff de `FE-R05` |
+
+**Achados de SAST**: nenhum. Código deste lote é composição/apresentação
+(JSX + CSS Modules + estado local em memória) sem lógica de rede, parsing
+de entrada não confiável, serialização ou I/O nova.
+
+## 97. `security-requirement-validation` — Lote RD2
+
+Contra `SDD.md` Seção 7:
+
+- **7.1 Autenticação**: `FE-R01` é puramente visual — `handleSubmit`,
+  `getSafeRedirectTarget`, tratamento de `LoginError`/rate limiting
+  permanecem textualmente idênticos ao `HEAD` anterior (confirmado por
+  leitura, não pela nota do Executor); nenhuma mudança em `loginApi.ts`
+  nem em `redirectTarget.ts`. A tela de lançamento de rodada (`FE-R05`)
+  já está atrás do middleware de sessão da área interna, inalterado por
+  este lote — nenhum arquivo de middleware/sessão aparece no diff.
+- **7.2 Autorização**: modelo binário (sessão válida = acesso total,
+  RN-12) inalterado — `FE-R05` não introduz nenhuma verificação de
+  permissão diferenciada nem novo estado de acesso.
+- **7.3 Criptografia**: nenhum segredo, hash ou chave manipulado por
+  nenhum dos arquivos tocados; nenhuma variável de ambiente nova
+  referenciada.
+- **7.5 Superfície de Exposição**: `POST /api/rodadas` continua sendo a
+  única chamada de escrita desta tela, disparada uma única vez a partir
+  do modal de confirmação (`submit()` dentro do `try`, sem chamada por
+  etapa) — confirmado por leitura de `LancamentoRodadaForm.tsx` e
+  reforçado pelo teste citado pelo QA (23.2) que afirma
+  `toHaveBeenCalledTimes(1)`. Nenhum novo endpoint, nenhum novo parâmetro
+  de payload.
+- Guardrail de sessão (`GUARDRAILS.md` item 16, cookie `httpOnly`/
+  `Secure`/`SameSite=Strict`) e guardrail de `service role` (item 7):
+  nenhum arquivo deste lote toca sessão, cookie ou chave de serviço —
+  inalterados.
+
+Nenhum requisito de segurança de arquitetura violado.
+
+## 98. `compliance-validation` — LGPD (nível de implementação, escopo Lote RD2)
+
+`AtletaParticipacaoRow.tsx` (novo) exibe `participacao.nome` — o mesmo
+campo já exibido pelo antigo `PresencaStep.tsx` (`<span
+className={styles.atletaNome}>{participacao.nome}</span>`, confirmado por
+`git show 01549d3^:src/features/rodadas/PresencaStep.tsx`), portanto **não
+é exposição nova**. Nenhum dos dois arquivos novos (`AtletaParticipacaoRow.tsx`,
+`RodadaStatTiles.tsx`) manipula `contato` ou `data_nascimento` (os dois
+campos sensíveis identificados no `PRD-TECNICO.md`/SDD.md 7.6) — `RodadaStatTiles.tsx`
+exibe exclusivamente contagens agregadas (`presentes`/`lesionados`/
+`ausentes`/`total`), sem nenhum dado individualizável por atleta. Nenhum
+achado de compliance obrigatório em aberto no escopo do Lote RD2.
+
+## 99. `sensitive-data-exposure-check` — conclusão dedicada (Lote RD2)
+
+- **Logs/mensagens de erro**: `RODADA_SUBMIT_ERROR_MESSAGE`/
+  `LOGIN_TECHNICAL_ERROR_MESSAGE` permanecem os mesmos textos genéricos já
+  auditados em lotes anteriores — nenhuma nova mensagem expõe detalhe de
+  implementação, stack trace ou dado de atleta.
+- **Armazenamento local**: nenhum dos arquivos tocados grava em
+  `localStorage`/`sessionStorage`/cookies próprios — estado 100% em
+  memória de componente (`useState`).
+- **Payload de API**: `buildLancarRodadaBody`/`lancarRodada` (fora do
+  diff de `FE-R05`, confirmado) constroem o mesmo payload já auditado —
+  `data`, `confirmar_duplicidade`, `participacoes[].{atleta_id, status,
+  eventos}` — nenhum campo novo, nenhum campo sensível (`contato`/
+  `data_nascimento`) adicionado.
+- **Composição visual nova**: emojis (⚽/🟨/🟥) e stat-tiles são só
+  apresentação de dados já calculados em memória a partir do mesmo estado
+  (`resumirParticipacoes`); nenhuma segunda fonte de verdade nem
+  vazamento de estado entre atletas.
+
+Nenhum achado novo de exposição de dado sensível.
+
+## 100. Requisitos de segurança operacional para o DevOps (Lote RD2)
+
+Nenhum requisito novo — lote não toca infraestrutura, pipeline, variável de
+ambiente ou configuração de rede/firewall. Reforços herdados e inalterados:
+
+- `DEBT-01`/`DEBT-02` (dependências de desenvolvimento/toolchain, prazo já
+  vigente desde `BLOCKER-006`/`BLOCKER-008`) e `DEBT-04` (`next@14.2.35`/
+  `postcss` transitivo, roadmap de migração major `next@15`/`16`)
+  permanecem no radar do próximo `/deploy`, sem mudança de escopo trazida
+  por este lote.
+- CSP pendente (débito de segurança operacional herdado, ver Seções 84/91)
+  permanece sem prazo cumprido — reforço, não achado novo deste lote.
+
+## 101. Checklist de "Pronto" do Lote RD2 (Definition of Done do DevSecOps)
+
+- [x] Nenhum achado de severidade alta/crítica em aberto — nenhum achado
+      novo identificado (96-99); `DEBT-01`/`DEBT-02`/`DEBT-04` são débitos
+      herdados já com prazo registrado, reconfirmados sem mudança.
+- [x] Todo achado de compliance obrigatório resolvido, não registrado como
+      débito — não aplicável, nenhum achado desta classe (98).
+- [x] Todo achado de baixa/média severidade virou tarefa em
+      `Refatoração Lote-X`, com prazo — não aplicável, nenhum achado novo
+      de código; débitos herdados já rastreados fora deste lote.
+- [x] Requisitos de segurança operacional definidos para o próprio DevOps
+      (100) — nenhum requisito novo além dos já vigentes.
+- [x] Todo achado de relevância estratégica sinalizado ao Gestor — nenhum
+      achado técnico deste lote exige decisão de negócio nova; `BLOCKER-012`
+      (divergência de especificação, não de segurança) permanece sob
+      responsabilidade do `coordenador`/`ux-ui`, já registrado pelo QA
+      (23.7), sem componente de segurança a escalar aqui.
+
+## **Lote RD2 (`FE-R01`, `FE-R05`): APROVADO**
+
+---
+
+Redesenho de `FE-R01` confirmado como 100% visual — `redirectTarget.ts`
+permanece intocado desde os lotes L0/L1 (onde `BUG-QA-FE01-01`, o open
+redirect original, foi corrigido), e nenhuma outra lógica de
+autenticação/erro foi alterada. Redesenho de `FE-R05` confirmado como
+mudança de composição/apresentação — o mesmo `POST /api/rodadas`, com o
+mesmo payload, continua sendo a única chamada de escrita, disparada uma
+única vez a partir do modal de confirmação; nenhum dado sensível de atleta
+passa a ser exposto pelas duas novas composições (`AtletaParticipacaoRow.tsx`,
+`RodadaStatTiles.tsx`). Nenhuma dependência nova (`package.json`/
+`package-lock.json` sem diff). `DEBT-01`/`DEBT-02`/`DEBT-04` reconfirmados
+sem mudança de severidade/escopo (14 vulnerabilidades totais, idêntico ao
+já registrado desde `BLOCKER-008`).
+
+**Encaminhamento**: **nenhum achado bloqueante** — lote com dupla aprovação
+(QA Seção 23 + DevSecOps aqui) sobre o mesmo build, liberado para a
+checagem estrutural do Coordenador (`EXECUTION-FLOW.md` §5). Nenhuma
+entrada nova em `BLOCKERS.md` originada por este agente. Débitos de
+dependência herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`) e a pendência de CSP
+permanecem no radar do próximo `/deploy`, sem impedir o avanço deste lote —
+severidade baixa/média com prazo já registrado, conforme guardrail deste
+agente.
+
+---
+
+## 102. Contexto e Método — Lote RD4 (Aplicação Leve, Telas Internas Restantes, Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+**Contexto**: `FE-R04`, `FE-R07`, `FE-R08`, `FE-R10` (`TASK.md` Parte II,
+Lote RD4), todas `Concluída`. Build a auditar: commit `01549d3` (`HEAD`).
+QA aprovou com ressalvas (`QA-REPORT.md` Seção 24) — 1 achado Simples,
+`BUG-QA-RD4-01` (`AtletaForm.tsx` mantém o emoji ⚠ literal no bloco de
+consentimento em vez de `Icon name="alert-triangle"`), não bloqueante,
+tarefa `FE-R04` permanece `Concluída`. Primeira auditoria de DevSecOps
+sobre este lote — dupla aprovação (QA + DevSecOps) ainda pendente até o
+fechamento desta seção.
+
+**Método**: leitura direta do `git diff`/`git show 01549d3` dos 4 arquivos
+de produção do lote e seus testes — nunca a nota de conclusão do Executor
+como base de aprovação — mais reconfirmação dos débitos herdados
+(`DEBT-01`, `DEBT-02`, `DEBT-04`) por diff vazio de manifesto de
+dependências.
+
+**Escopo confirmado do commit `01549d3` para este lote** (via
+`git show --stat`): `src/features/atletas/AtletaForm.tsx` (+ teste),
+`src/features/correcao-rodada/CorrecaoRodadaDetalhe.tsx`,
+`src/features/log-auditoria/LogAuditoriaList.tsx`,
+`src/features/restricoes/RestricoesList.tsx`. Nenhum arquivo de
+`middleware.ts`, RPC/rota de API, validação de schema ou controle de
+autorização consta na lista de 47 arquivos alterados pelo commit — a
+premissa de "repintura visual pura, sem mudança de lógica de negócio/
+autorização" está confirmada por inspeção do `diff`, não presumida a
+partir da nota do Executor.
+
+## 103. `static-security-analysis` — Lote RD4
+
+| Item | Verificação | Resultado |
+|---|---|---|
+| `AtletaForm.tsx` — diff real | `git show 01549d3 -- src/features/atletas/AtletaForm.tsx` | Duas mudanças: (1) import de `Icon`; (2) `<span aria-hidden="true">🔒</span>` → `<Icon name="lock" />` no `AlertBanner` de privacidade; a desestruturação do `catch` (whitelist `DEBT-10`) só foi reformatada (quebra de linha Prettier), texto/campos idênticos |
+| `CorrecaoRodadaDetalhe.tsx` — diff real | `git show 01549d3` | Só acréscimo de comentário de auditoria (JSDoc); zero linha de código executável alterada |
+| `LogAuditoriaList.tsx` — diff real | `git show 01549d3` | Só acréscimo de comentário de auditoria (JSDoc); zero linha de código executável alterada |
+| `RestricoesList.tsx` — diff real | `git show 01549d3` | Duas mudanças: import de `Icon`; `<span aria-hidden="true">⚡</span>` → `<Icon name="zap" />` entre os nomes dos atletas em conflito. Nenhuma outra linha tocada |
+| Uso de `dangerouslySetInnerHTML`/`innerHTML` no componente `Icon` ou em qualquer componente de `src/components/ui` | `grep` recursivo | ✅ nenhuma ocorrência — `Icon` renderiza SVG estático por `name` (união de literais), sem interpolação de string externa; troca de emoji por `Icon` não introduz vetor de injeção |
+| `npm audit` / manifestos de dependência | `git diff -- package.json package-lock.json` (working tree) e `git show 01549d3 --stat -- package.json package-lock.json` (commit do lote) | ✅ ambos vazios — nenhuma dependência nova/alterada por este lote; `DEBT-01`/`DEBT-02`/`DEBT-04` (Seção 3) reconfirmados **sem necessidade de reexecutar `npm audit`**, pois o manifesto é bit-idêntico ao já auditado em RD3 (Seção 87) |
+
+**Conclusão da Seção 103**: nenhum achado de análise estática neste lote. As
+4 tarefas trocam glifo Unicode decorativo por componente `Icon` (SVG
+estático, `aria-hidden` por padrão) ou apenas documentam a ausência de
+mudança necessária — nenhuma superfície de ataque nova.
+
+## 104. `security-requirement-validation` — Lote RD4
+
+Requisitos de segurança do `SDD.md` Seção 7 (autenticação, autorização,
+isolamento multi-tenant, criptografia) não são tocados por nenhuma das 4
+tarefas — confirmado por ausência de qualquer arquivo de `middleware`,
+RPC, rota de API ou lógica de validação de schema na lista de arquivos do
+commit `01549d3` atribuíveis a este lote (Seção 102). Especificamente:
+
+- **`FE-R04` (`AtletaForm.tsx`)**: a whitelist explícita de campos
+  preservados em `sessionStorage` no `catch (SessionExpiredError)` —
+  origem de `DEBT-10` (Seção 42), corrigida antes desta tarefa — foi
+  verificada linha a linha contra o `diff`: os 4 campos desestruturados
+  (`nome_completo`, `apelido_exibicao`, `pontuacao_inicial`,
+  `consentimento_responsavel_obtido`) são exatamente os mesmos de antes da
+  mudança; `contato`/`data_nascimento` continuam **fora** da whitelist,
+  não reintroduzidos. A única alteração real na função é a quebra de linha
+  do Prettier — confirmado que `DEBT-10` permanece corrigido, sem
+  regressão.
+- **`FE-R07`/`FE-R08`**: zero linha de código executável alterada (só
+  comentário) — nenhum requisito de segurança a reavaliar além da
+  reconfirmação de que a auditoria do Executor (isenção de composição
+  nova) está correta, o que já foi verificado de forma independente na
+  Seção 103.
+- **`FE-R10`**: a troca do glifo ⚡ por `Icon name="zap"` no indicador de
+  conflito de restrição não altera a lógica de detecção/exibição de
+  conflito (`atleta_a_nome`/`atleta_b_nome` continuam vindo do mesmo
+  estado); débito preexistente `BUG-QA-FE10-01` (`Combobox` sem
+  `aria-haspopup`, Baixa) é de acessibilidade, não de segurança, e não é
+  reaberto aqui, mesma leitura do QA (Seção 24.4).
+
+**Conclusão da Seção 104**: nenhum requisito de segurança do `SDD.md`
+Seção 7 comprometido. Débitos herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`)
+reconfirmados sem mudança (Seção 103).
+
+## 105. `compliance-validation` — LGPD (nível de implementação, escopo Lote RD4)
+
+`FE-R04` é a única tarefa do lote em área de dado pessoal (`AtletaForm.tsx`
+— nome, apelido, contato, data de nascimento de atleta, potencialmente
+menor de idade). A mudança de código real (emoji → `Icon`) é
+exclusivamente no bloco de aviso de privacidade e não altera o texto do
+aviso, o consentimento do responsável (Art. 14 §1º) nem a minimização de
+dados em `sessionStorage` (`DEBT-10`, reconfirmado corrigido na Seção 104).
+Nenhum novo campo de dado pessoal é coletado, exibido ou logado por
+nenhuma das 4 tarefas. **Nenhum achado de conformidade novo.**
+
+## 106. `sensitive-data-exposure-check` — Lote RD4
+
+| Tarefa | Verificação | Resultado |
+|---|---|---|
+| `FE-R04` | Whitelist de `sessionStorage` (`DEBT-10`) linha a linha vs. `diff` | ✅ inalterada — `contato`/`data_nascimento` seguem fora |
+| `FE-R07` | Comentário adicionado não introduz log/exposição — nenhuma linha executável | ✅ nada a verificar |
+| `FE-R08` | `LogAuditoriaList`/`entryPresenter`/`DiffViewer` (anonimização de log de auditoria) — nenhuma linha executável alterada | ✅ modo de falha fechado de anonimização intocado, mesma conclusão do QA (24.3) |
+| `FE-R10` | `RestricoesList.tsx` não expõe dado sensível além de nome de atleta (já público no app) | ✅ nada novo |
+
+**Conclusão da Seção 106**: nenhuma exposição de dado sensível introduzida
+por este lote, em código, log ou armazenamento local.
+
+## 107. Requisitos de segurança operacional para o DevOps (Lote RD4)
+
+Nenhum requisito novo — lote é puramente de apresentação (substituição de
+glifo Unicode por componente `Icon`/SVG estático já auditado em `FE-R00`).
+Reforço, herdado e inalterado por este lote: `DEBT-01`/`DEBT-02`/`DEBT-04`
+(dependências, Seção 3) e o requisito de CSP (`DEBT-03`) permanecem
+válidos e sem mudança de prazo.
+
+## 108. Checklist de "Pronto" do Lote RD4 (Definition of Done do DevSecOps)
+
+- [x] Nenhum achado de severidade alta/crítica em aberto (Seções 103-106:
+      zero achados)
+- [x] Nenhum achado de compliance obrigatório em aberto (Seção 105)
+- [x] Achado de QA não-bloqueante (`BUG-QA-RD4-01`) confirmado, de forma
+      independente, sem componente de segurança — ver análise abaixo
+- [x] Débitos herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`) reconfirmados sem
+      mudança (Seção 103, diff de manifesto vazio)
+- [x] Requisitos de segurança operacional para o DevOps definidos (Seção
+      107 — nenhum novo)
+- [x] Nenhum achado de relevância estratégica a sinalizar ao Gestor neste
+      lote
+
+**Análise dedicada de `BUG-QA-RD4-01`**: o achado do QA (emoji ⚠ literal
+não substituído por `Icon name="alert-triangle"` no bloco de consentimento
+de `AtletaForm.tsx`) foi conferido de forma independente por este agente —
+não apenas aceito do relatório do QA. É puramente uma pendência de
+consistência visual do design system: o glifo permanece renderizado como
+texto Unicode dentro do mesmo `AlertBanner variant="warning"`, com o texto
+adjacente ("Menor de 18 anos detectado") já comunicando o significado por
+extenso, sem dependência de `aria-label`/leitor de tela específico do
+glifo. Não há vetor de injeção (é literal estático no JSX, não
+interpolação de dado do usuário), não expõe dado sensível, não altera
+controle de acesso e não é tratado como falha por nenhuma ferramenta de
+SAST/lint deste repositório. **Confirmado: zero componente de segurança**
+— concordância integral com a classificação Simples do QA (Seção 24.1).
+
+## 109. Veredito
+
+## **Lote RD4 (FE-R04, FE-R07, FE-R08, FE-R10): APROVADO**
+
+Auditoria completa (`static-security-analysis`, `security-requirement-
+validation`, `compliance-validation`, `sensitive-data-exposure-check`)
+sobre o build já aprovado funcionalmente pelo QA (`QA-REPORT.md` Seção
+24). Nenhum achado de segurança novo, alto ou baixo — as 4 tarefas são,
+de fato, repintura visual pura (substituição de glifo Unicode por
+componente `Icon`, SVG estático) confirmada por leitura direta do `git
+diff`/`git show 01549d3`, sem nenhuma linha de `middleware`, RPC,
+validação de schema ou controle de autorização tocada. A whitelist de
+`sessionStorage` de `DEBT-10` (`AtletaForm.tsx`) foi reverificada linha a
+linha e permanece correta. Manifesto de dependências (`package.json`/
+`package-lock.json`) bit-idêntico ao já auditado em RD3 — `DEBT-01`,
+`DEBT-02`, `DEBT-04` reconfirmados sem mudança, sem necessidade de
+reexecutar `npm audit`. O achado de QA (`BUG-QA-RD4-01`) foi conferido de
+forma independente e confirmado como puramente visual/de consistência de
+design system, sem componente de segurança — concordância integral com a
+classificação Simples do QA, sem reclassificação para achado de
+segurança.
+
+**Encaminhamento**: dupla aprovação (QA Seção 24 + DevSecOps aqui) sobre o
+mesmo build — **liberado para a checagem estrutural do Coordenador**
+(`EXECUTION-FLOW.md` §5) e, em seguida, para o chapéu DevOps executar o
+deploy deste lote. `BUG-QA-RD4-01` deve virar a tarefa `Refatoração
+Lote-RD4` (coordenador), com prazo, mas isso não é condição para este
+veredito nem para o deploy — é ajuste de baixo esforço sem componente de
+segurança. Nenhuma entrada nova em `BLOCKERS.md` originada por este
+agente; nenhum achado de relevância estratégica a escalar ao Gestor neste
+lote.
+
+---

@@ -549,6 +549,19 @@ aplicável (ex.: UX-SPEC.md).
     (projetos pausados por inatividade não contam contra o limite, mas
     pausar `mymoney` ativamente para abrir vaga é a ação (ii) acima, não
     decidida unilateralmente).
+- **Atualização (2026-09-05, devops — nova tentativa real de deploy de
+  staging, 7 lotes da iniciativa "Redesenho Visual", `01549d3`, `DEPLOY.md`
+  Seção 7.8)**: reconfirmado, desta vez com `CI` **verde** (diferente da
+  tentativa de RD0 na Seção 7.7, onde o `CI` já falhava antes de chegar ao
+  gate de secrets). O job `deploy-staging` chegou a executar de fato
+  (não mais `skipped`) e falhou no passo "Verifica secrets obrigatórios"
+  (`https://github.com/leandrosegheto17/FutebolApp/actions/runs/33973015200/job/101324758039`).
+  `npx supabase projects list` (só leitura) reconfirmado: ainda apenas
+  `futebol-ranking` e `mymoney`, nenhum projeto de staging. Nenhuma nova
+  ação de infraestrutura tentada — mesma cautela já registrada acima.
+  Este é hoje o **único** bloqueio real remanescente entre os 7 lotes
+  aprovados (dupla aprovação QA+DevSecOps confirmada, `QA-REPORT.md` Seção
+  25) e um ambiente de staging navegável.
 - **Status**: Aberto (impedimento de custo real confirmado — não é mais uma
   suposição teórica; decisão de próximo passo devolvida ao
   usuário/organizador)
@@ -823,6 +836,44 @@ item (2) ser endereçado; não é marcado `Resolvido` nesta atualização.
   uma nota de mockup de uma seção do `UX-SPEC.md`); bloqueia apenas um
   eventual sign-off (RF-D02) de T05 contra a leitura literal da Seção 2.4
   como está escrita hoje, se o organizador confirmar a leitura (2).
+- **Reconfirmação independente do QA (Validador, chapéu QA, 2026-09-05,
+  `QA-REPORT.md` Seção 23.2)**: verificado de forma independente, sem
+  aceitar a alegação do Frontend — RF-02.3/RF-02.4/RF-02.5
+  (`PRD-TECNICO.md` linhas 70-78) confirmadas literalmente como exigindo
+  gol/cartão habilitado para "presente **ou** lesionado", só RF-02.6
+  bloqueia (exclusiva de "Ausente"); `AtletaParticipacaoRow.tsx` linha 45
+  (`bloqueado = status === "ausente"`) confirmado por leitura direta como
+  implementando exatamente essa regra; teste
+  `LancamentoRodadaForm.test.tsx` ("atleta lesionado mantém eventos
+  habilitados") reexecutado nesta validação e passou, confirmando
+  empiricamente (clique real no contador, valor avança para 1) que o
+  comportamento é o alegado, não só a intenção declarada em comentário. QA
+  concorda que a leitura (1) é a correta e que a implementação de `FE-R05`
+  preserva o comportamento de negócio já aprovado — **não altera o
+  `Status` acima** (a decisão de fundo sobre a redação da Seção 2.4 do
+  `UX-SPEC.md` continua pendente do `coordenador`/`ux-ui`), apenas
+  reconfirma que o código está correto contra o requisito funcional.
+- **Atualização (2026-09-05, coordenador — checagem estrutural de fechamento
+  do Lote RD2)**: concordância registrada com a reconfirmação do QA — à luz
+  da verificação empírica e independente (leitura de `AtletaParticipacaoRow.tsx`
+  linha 45 + reexecução do teste "atleta lesionado mantém eventos
+  habilitados"), a leitura (1) da sugestão acima ("a nota do mockup na Seção
+  2.4 é imprecisa/generalizou demais a partir de um único exemplo sem
+  lesionado") é a mais consistente com RF-02.3/RF-02.4/RF-02.5 já aprovados;
+  nenhum elemento novo aponta para a leitura (2). Esta concordância, porém,
+  **não fecha este bloqueio**: a resolução de fato exige reescrever a
+  redação da Seção 2.4 do `UX-SPEC.md` — uma ação de drafting de UX-SPEC
+  (chapéu UX/UI do Coordenador), não uma decisão que caiba dentro do escopo
+  desta checagem estrutural pontual de fechamento de lote (mesma distinção
+  já aplicada por este agente ao item (2) de `BLOCKER-011` nas checagens de
+  `Refatoração Lote-RD1`/`Refatoração Lote-RD3` — não decidir, dentro de uma
+  checagem pontual, uma ação que pertence a um chapéu/despacho diferente do
+  que motivou a chamada). `TASK.md` Parte II, linha `FE-R05`, já documenta a
+  divergência e a decisão de implementação de forma completa — nenhuma
+  edição adicional necessária ali. `Status` **permanece Aberto**, não
+  marcado `Resolvido` unilateralmente nesta atualização; a correção da
+  redação da Seção 2.4 do `UX-SPEC.md` fica para uma sessão dedicada ao
+  chapéu UX/UI. Detalhe completo em `EXECUTION-LOG.md`, entrada "Lote RD2".
 
 ---
 

@@ -1,12 +1,17 @@
 import type { RankingPublicoRecentesItem, RodadaRecenteStatus } from "./types";
 
 /**
- * `N` de rodadas exibidas em desktop (`lg`) — TASK.md Parte II Seção 6.2-R
- * item 2 ("Tech Lead fixa N=7"). Mobile exibe um subconjunto responsivo das
- * mesmas últimas 7 (decisão de `FE-R02`, mesma Seção): 5 mais recentes.
+ * `N` de rodadas exibidas em desktop (`lg`) — reduzido de 7 para 5 a pedido
+ * direto do organizador (ajuste pós-deploy, 2026-09-05): a matriz completa de
+ * 7 colunas fazia a home pública precisar de rolagem; a API (`BE-R01`,
+ * `app.ranking_publico_recentes`) continua devolvendo uma janela de N=7 por
+ * atleta (`TASK.md` Parte II Seção 6.2-R item 2, inalterado) — o corte para 5
+ * é só de apresentação, feito aqui, sem tocar a view/migration. Mobile exibe
+ * um subconjunto responsivo das mesmas últimas 5: 2 mais recentes (também
+ * reduzido de 5 para 2 pelo mesmo pedido).
  */
-export const DESKTOP_COLUMN_LIMIT = 7;
-export const MOBILE_COLUMN_LIMIT = 5;
+export const DESKTOP_COLUMN_LIMIT = 5;
+export const MOBILE_COLUMN_LIMIT = 2;
 
 export interface RankingColumn {
   rodadaId: string;
