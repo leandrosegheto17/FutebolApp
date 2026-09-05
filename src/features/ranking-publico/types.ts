@@ -21,3 +21,34 @@ export interface RankingPublicoItem {
   presencas: number;
   cartoes: number;
 }
+
+/**
+ * Espelham `RodadaRecenteStatus`/`RankingPublicoRecentesItem` de
+ * `API-CONTRACT.yaml` (v0.13.0, view `app.ranking_publico_recentes`,
+ * `BE-R01`, já `Concluída` — integração real, não mock). Mesma disciplina de
+ * `RankingPublicoItem` acima: nunca inclui `contato`/`data_nascimento`.
+ */
+export type StatusParticipacao = "presente" | "ausente" | "lesionado";
+
+export interface RodadaRecenteStatus {
+  rodada_id: string;
+  /** Formato ISO `YYYY-MM-DD` (PostgREST `date`). */
+  data: string;
+  status: StatusParticipacao;
+}
+
+export interface RankingPublicoRecentesItem {
+  atleta_id: string;
+  nome_exibicao: string;
+  /**
+   * Janela própria por atleta (não um conjunto fixo de datas compartilhado
+   * entre atletas), ordenada mais-recente-primeiro, até `N=7` elementos —
+   * ver `RankingList.tsx`/`matrix.ts` para como isso é reconciliado com o
+   * cabeçalho único de colunas do mockup real.
+   */
+  rodadas_recentes: RodadaRecenteStatus[];
+  /** Estatística de GRUPO — mesmo valor repetido em toda linha da view. */
+  rodadas_jogadas: number;
+  /** Estatística de GRUPO (%) — mesmo valor repetido em toda linha da view. */
+  media_presenca: number;
+}

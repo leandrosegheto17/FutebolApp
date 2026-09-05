@@ -1,0 +1,87 @@
+/* PlayerChip — UX-SPEC.md Parte II Seção 2.6/3.2. Vive sobre o campo verde
+   (`PitchBackground`), nunca sobre navy — texto claro/branco (Seção 5.4:
+   "Nomes de jogador sobre o campo usam texto claro/branco... ≥4,5:1"; branco
+   sobre `--color-primary`/`-hover` já verificado em `tokens.css`, ≈6,23:1). */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Foco sobre o campo verde: dourado, nunca o verde padrão de `--color-focus-ring`
+   (herdado de `.pitch` em `PitchBackground.module.css`, UX-SPEC.md Parte II
+   Seção 5.3 regra 2/5.4) — evita o erro comum de um anel verde se confundir
+   com o próprio fundo do campo. */
+.chip:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1024px) {
+  .chip[draggable="true"] {
+    cursor: grab;
+  }
+}
+
+.pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-brand-navy);
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+@media (min-width: 1024px) {
+  .pin {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+.nome {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  max-width: 88px;
+  overflow-wrap: break-word;
+}
+
+/* Rótulo decorativo (ATA/MEI/VOL/LAT/ZAG) — texto real visível, não
+   `aria-hidden` (ver comentário em `PlayerChip.tsx`). Mesmo branco do nome
+   (nunca opacidade reduzida) para não introduzir um novo par de contraste a
+   calcular — herda a mesma verificação de 6,23:1 já feita para `.nome`. */
+.posicao {
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}

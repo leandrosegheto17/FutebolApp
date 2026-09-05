@@ -1637,3 +1637,904 @@ real atual. Os fatos novos afetam exclusivamente a priorização/sequenciamento
 desta iniciativa de redesign (registrado acima) e a urgência temporal de
 itens já cobertos pela Nota de Governança Ad Hoc — nenhum dos dois é, por
 natureza, um bloqueio entre agentes no formato de `BLOCKERS.md`.
+
+---
+
+## Gate 1 — Iniciativa "Refactor Visual v2.0" — Atualização por Instrução
+Direta de Inversão Total de Prioridade (Pausar a v1) — 2026-09-04 (nova
+retomada)
+
+**Natureza deste registro**: continuação da mesma seção de Gate 1 desta
+iniciativa (as três subseções acima, todas 2026-09-04) — **não é um novo
+Gate 1**. É a terceira atualização do dia sobre o mesmo Risco 1
+(sequenciamento). Diferente das duas anteriores, desta vez o organizador
+não relata nem corrige uma posição relatada por terceiro — ele fala
+**diretamente comigo, nesta retomada**, em fonte primária, com uma decisão
+explícita de reprioridade, nestas palavras exatas:
+
+> "Eu quero mudar a priorização e quero que inicie o planejamento do
+> redesign. Não vamos mais trabalhar na V1. Todas as validações vão ser
+> feitas depois do Redesign. Não me debrucei o suficiente nessa etapa e o
+> projeto foi entregue com um design que não atende. O redesign vai
+> entregar um valor muito grande para não ser priorizado. Vamos iniciar
+> agora"
+
+### 1. "O design não atende" — isto muda a Hipótese A/B, ou é a mesma Hipótese B com outra intensidade?
+
+Não confundo intensidade de convicção com mudança de categoria. Reaplico a
+mesma régua que já apliquei duas vezes hoje:
+
+- **Hipótese A** (a única que eu havia levantado como especificamente
+  ancorada a uma métrica de negócio verificável — risco de resistência de
+  adoção do grupo real frente ao app legado) **segue refutada** pelo próprio
+  organizador, na atualização anterior desta mesma seção, e nada na
+  declaração de agora a ressuscita: não há menção a adoção, migração de
+  grupo, ou ao app legado. A frase central — "o projeto foi entregue com um
+  design que não atende" — é um julgamento do dono do produto sobre
+  adequação e qualidade percebida, não uma tese de gestão de mudança com
+  métrica associada.
+- Isto é, estruturalmente, **Hipótese B** — a mesma que minha própria
+  análise original já havia levantado e pré-classificado: *"se for isso,
+  ainda é uma decisão de produto legítima do dono do sistema, mas deve ser
+  tratada com prioridade proporcional."* O que muda agora não é a categoria,
+  é (i) a fonte (antes, inferência minha e depois relato de terceiro; agora,
+  declaração direta e inequívoca do próprio organizador) e (ii) a
+  articulação (antes, "preferência estética sem métrica"; agora, um
+  julgamento explícito de inadequação de produto — "não atende" — mais um
+  peso de prioridade explicitamente atribuído por quem tem autoridade de
+  produto para atribuí-lo — "valor muito grande para não ser priorizado").
+  Não reclassifico para Hipótese A só porque a linguagem ficou mais forte —
+  isso seria eu forçar o fato a caber num rótulo que já expliquei
+  publicamente (na correção anterior) exigir uma tese de negócio
+  *mensurável*, o que esta declaração não traz nem precisa trazer.
+
+**A pergunta que de fato importa, então, não é "isto é Hipótese A ou B" — é
+"isto satisfaz a régua que eu mesmo fixei"** (última atualização: *"Se, no
+futuro, surgir uma justificativa de negócio nova e diretamente confirmada
+pelo stakeholder (não um relato de terceiro) capaz de justificar inverter
+esta prioridade, ela deve ser trazida a mim para revalidação explícita"*).
+Decomponho essa régua em dois testes independentes, e verifico cada um sem
+aceitar a alegação por autoridade sozinha:
+
+- **Teste de fonte/rastreabilidade** (direta, não relato de terceiro):
+  **satisfeito** — é o organizador falando comigo, nesta retomada, em
+  primeira pessoa, com citação literal capturada.
+- **Teste de suficiência como justificativa de negócio**: aqui preciso ser
+  preciso sobre o que estou e o que não estou validando. **Não tenho base
+  própria para julgar se o design "realmente" não atende** — isso é
+  julgamento de produto/experiência, fora da minha alçada técnica e fora do
+  que meus guardrails me autorizam a arbitrar (não decido gosto, não decido
+  adequação de UX). O que **está** dentro da minha alçada é decidir se
+  "avaliação de adequação de produto pelo próprio dono, comunicada
+  diretamente e sem ambiguidade, com prioridade relativa explicitamente
+  atribuída por ele" é uma base legítima para uma decisão de priorização de
+  negócio. **É.** Nunca condicionei a legitimidade de uma decisão de
+  priorização de produto à existência de uma métrica externa — só exigi que
+  ela viesse de fonte direta e não fosse um relato ambíguo de terceiro
+  (exatamente o problema que motivou a correção anterior). Este segundo
+  teste está, portanto, satisfeito — não porque a Hipótese B "virou" um caso
+  de negócio mensurável, mas porque priorização de produto sob Hipótese B
+  sempre foi, na minha própria régua original, uma decisão legítima do dono
+  do sistema — o que mudou é que agora ela é inequívoca, direta, e
+  explicitamente exercida como decisão de prioridade, não apenas como
+  preferência registrada de passagem.
+
+### 2. Severidade do Risco 1 — terceira reclassificação do mesmo dia, e por que esta é diferente das duas anteriores
+
+Reconheço, com transparência, que este é o terceiro ajuste de severidade do
+Risco 1 nesta mesma data (Alto → Médio na "Revisão da recomendação de
+sequenciamento"; Médio → Alto na "Atualização por Fatos Novos do
+Organizador"; agora uma terceira vez). Não trato isso como rotina — registro
+explicitamente por que esta reclassificação não é apenas "mais uma
+oscilação" e por que não espero revertê-la de novo pelo mesmo motivo das
+duas anteriores:
+
+- As duas reclassificações anteriores giravam em torno de uma **disputa de
+  fato** — qual era, de verdade, a motivação do organizador (Hipótese A ou
+  B). Fatos podem ser corrigidos por nova informação, e foram — daí a
+  oscilação.
+- Esta reclassificação **não depende de nenhuma disputa de fato** sobre
+  motivação — depende só de constatar que o dono do produto exerceu,
+  diretamente e sem intermediação, sua autoridade de priorização
+  ("eu quero mudar a priorização... vamos iniciar agora"). Um ato de
+  autoridade não é uma tese que uma nova informação possa "refutar" da
+  mesma forma que refutou a Hipótese A — só pode ser alterado por um novo
+  ato de autoridade equivalente (o próprio organizador mudando de ideia de
+  novo, o que permanece possível, mas não é o mesmo tipo de evento que gerou
+  as duas reversões anteriores).
+- **Rebaixo o Risco 1 de Alto para Médio**, com o mesmo racional já usado na
+  primeira reclassificação: não porque o impacto do risco diminuiu (o atraso
+  real à mensuração da métrica de sucesso já aprovada em `PRD.md` Seção 3
+  continua sendo o mesmo atraso, em dias, que seria de qualquer forma) — mas
+  porque o risco deixa de ser "não endereçado" e passa a ser
+  **conscientemente aceito pelo dono do sistema, com decisão direta,
+  registrada e informada** (a informação relevante — que isto compete pela
+  única capacidade de Backend/Frontend do projeto e adia a mensuração do
+  objetivo já aprovado — já está registrada nas três subseções anteriores
+  desta mesma seção de Gate 1, e o organizador decide seguir mesmo assim).
+  Diferente da vez anterior, esta aceitação consciente não depende de uma
+  hipótese de negócio que pudesse mais tarde se revelar equivocada — depende
+  só do fato observável de que a decisão foi tomada por quem tem autoridade
+  para tomá-la.
+
+**Recomendação de sequenciamento, revisada pela terceira vez**: a condição
+"esta iniciativa não deve consumir capacidade dedicada de Backend/Frontend
+antes do início real de entrega/mensuração de valor ao grupo real" **deixa
+de ser um bloqueio recomendado** a partir desta atualização — o Tech Lead
+está liberado para comprometer capacidade de Frontend (e, se necessário, de
+Backend) no planejamento e execução do redesenho, **sem precisar esperar**
+o evento-gatilho de abertura ao grupo real. Isto não é reversão por
+enfraquecimento da minha análise original — é reconhecimento de que a
+condição que eu mesmo fixei como única saída válida ("justificativa de
+negócio nova e diretamente confirmada pelo stakeholder") está, agora,
+satisfeita.
+
+### 3. O pedido de pausar toda a v1 — veredito dividido, não aprovação em bloco
+
+Aqui não estou avaliando uma decisão de prioridade de produto (que é
+integralmente do organizador) — estou avaliando um **risco técnico e de
+segurança de nível estratégico**, que é exatamente a minha alçada
+("Avaliar riscos técnicos, de segurança e de compliance... em nível
+estratégico — complementar ao DevSecOps, nunca substituto"). Divido o
+pedido em duas partes com tratamento diferente, em vez de aprová-lo ou
+reprová-lo como bloco único:
+
+**3.1. Aprovado sem ressalva — pausar o restante do backlog da v1 ainda não
+iniciado ou já concluído sem pendência ativa.** Cobre integralmente os
+itens abaixo da "Consolidação de Pendências Reais da v1" (seção acima,
+2026-09-04):
+- Tier 2 completo (fechamento retroativo agregado de L1-L5; confirmação
+  formal da trava técnica de RF-08.6).
+- Tier 3 completo (débitos de QA sem prazo formal).
+- Do Tier 1: criação de projeto Supabase de staging dedicado; observabilidade
+  geral de aplicação (logs/métricas/alertas, além do já ativo Guardrail 36);
+  exercício real dos workflows governados (`deploy-production.yml`,
+  `deploy-staging.yml`, `rollback-production.yml` via `gh workflow run`);
+  execução real do job de expurgo (`tentativa-login-purge.yml`) contra
+  produção; congelamento do texto de privacidade LGPD de `FE-04` (perde a
+  urgência que tinha, porque essa urgência era condicionada à abertura ao
+  grupo real, que segue sem previsão); `DEBT-01`/`DEBT-02` (baixa
+  severidade, dev-only).
+  Nenhum destes itens é código já escrito e ocioso, nenhum é vulnerabilidade
+  ativa e diagnosticada em produção com correção pronta — são,
+  legitimamente, trabalho futuro que pode esperar sem custo incremental de
+  risco, dado que a Nota de Governança Ad Hoc já em vigor confirma que o
+  único usuário real hoje é o próprio organizador.
+
+**3.2. Não aprovado sem uma confirmação explícita adicional — pausar
+indefinidamente a finalização de `DEBT-05`/`DEBT-06` (e a verificação real
+de `DEBT-03`/CSP em produção).** Três fatos, juntos, tornam esta parte
+qualitativamente diferente do resto do pedido:
+
+- Estes não são itens de descoberta ou desenho — são **correções de código
+  já escritas**. O `git status` desta sessão mostra `app/api/auth/login/
+  route.ts`, `src/modules/autenticacao/client-ip.ts` e `vercel.json`
+  modificados, não commitados. Terminar este trabalho é uma ação de minutos
+  a poucas horas (commit, push, verificação), não uma nova frente de
+  esforço que compita de forma relevante com a capacidade que o redesenho
+  vai consumir.
+- São achados de segurança de severidade **Média já confirmados como ativos
+  em produção real** (`SECURITY-REVIEW.md`, `DEBT-05`: timing side-channel
+  entre senha incorreta e bloqueio por rate limit; `DEBT-06`: rate limiting
+  dependente de cabeçalho potencialmente forjável) — não são hipóteses, são
+  fraquezas já diagnosticadas por leitura de código real. Deixá-las cientes
+  e não corrigidas por tempo indefinido, com a correção já escrita ao lado,
+  é um risco que não decorre de nenhuma decisão de priorização de produto —
+  decorre só de deixar uma tarefa quase pronta parada.
+- **Achado adicional desta revisão, que preciso registrar com
+  transparência**: `DEPLOY.md` (Seção 7.6) narra que estas mesmas correções
+  já foram commitadas (`56d9047`), publicadas em produção real e verificadas
+  por `curl` real (incluindo o header CSP presente na resposta). Isso é
+  **inconsistente** com o estado de `git` observado nesta sessão — a lista
+  de commits recentes tem `4c57be7` como topo, sem `56d9047`, e os próprios
+  arquivos que `DEPLOY.md` diz terem sido publicados (`route.ts`,
+  `client-ip.ts`, `vercel.json`, e o próprio `DEPLOY.md`/`SECURITY-REVIEW.md`)
+  aparecem como modificados/não commitados no `git status` desta sessão. Não
+  resolvo essa divergência eu mesmo (não é meu artefato, é do DevOps) e não
+  presumo qual das duas versões é a real — só registro que **não posso, com
+  confiança, afirmar hoje se a correção já está ou não em produção real**, e
+  isso é precisamente a informação que faltaria para eu aceitar "pausar
+  indefinidamente" sem checagem. Antes de qualquer decisão adicional sobre
+  esta parte do pedido, exijo que DevOps reconcilie com comando real
+  (`git log`, `git status`, `curl` contra a URL de produção real) qual é o
+  estado efetivo hoje, e registre isso em `DEPLOY.md` com a mesma
+  transparência já praticada no resto do documento.
+
+**Decisão**: não aprovo, como parte silenciosa do pedido geral de "pausar
+tudo", deixar `DEBT-05`/`DEBT-06` (e a confirmação real de `DEBT-03`)
+pendurados por tempo indefinido enquanto a produção real segue no ar. Exijo
+uma ação limitada e de baixo custo antes de a capacidade de Backend passar
+integralmente para o redesenho: reconciliar o estado real (git + produção)
+e, confirmado que a correção não está de fato em produção, finalizar
+(commit, push, deploy, verificação) — não é uma nova frente de trabalho, é
+concluir uma tarefa que já está com o código pronto. Se, depois de ver este
+achado, o organizador confirmar explicitamente que aceita conscientemente
+deixar essa correção pendurada por tempo indefinido mesmo assim, essa é uma
+decisão dele a registrar como tal (mesma régua de "fonte direta, não
+presumida" já aplicada ao resto desta atualização) — não presumo essa
+aceitação a partir de uma instrução genérica de "pausar tudo".
+
+### 4. As seis ressalvas remanescentes do Gate 1 original desta iniciativa — confirmação
+
+Revejo cada uma explicitamente: nenhuma foi resolvida, nenhuma é dispensada
+por esta atualização, e uma delas passa a ter urgência prática imediata
+(deixa de ser hipotética) porque a capacidade de Frontend está, a partir de
+agora, de fato liberada para começar:
+
+- **Artefato de origem não versionado** — segue aberta; PM/UX-UI devem
+  capturar o mockup em formato versionado antes de UX-SPEC.md tratá-lo como
+  especificação.
+- **Cobertura parcial (6 de 11 telas) — Guardrail 31** — segue aberta, e
+  **passa a ser bloqueante prático imediato**: com o Tech Lead livre para
+  comprometer capacidade de Frontend agora, UX/UI precisa decidir e
+  registrar, antes de qualquer tarefa de Frontend ser reestimada, se estende
+  a nova linguagem visual às 5 telas restantes (T04, T07, T08, T10, T11) ou
+  define um plano de migração faseado explícito com prazo — não pode ficar
+  em aberto no momento em que a implementação de fato começa a ser
+  planejada.
+- **Ambiguidade da paleta dupla** (Grupo Rola/marinho-dourado vs. Clube
+  Comary/verde) — segue aberta, mesmo tratamento.
+- **Assets de marca fora de processo governado** (`logo.jpg`,
+  `logo_comary.jpg`) — segue aberta.
+- **Fonte externa (Google Fonts) vs. CSP** — segue aberta; a decisão de
+  self-host vs. CDN continua a cargo do Software Architect, em conjunto com
+  o fechamento real de `DEBT-03` (cuja confirmação em produção está, agora,
+  também pendente de reconciliação, ver Seção 3.2 acima).
+- **Rótulo "v2.0" prematuro** — segue aberta, sem alteração.
+
+Nenhuma destas seis é dispensada, agravada além do já registrado, ou
+resolvida por esta atualização.
+
+### Veredito desta atualização: **Aprovado com ressalvas**
+
+- [x] Hipótese A/B: confirmado que a nova declaração é Hipótese B (não A),
+      mas agora satisfaz integralmente a régua de "justificativa de negócio
+      direta, não relatada por terceiro" que eu mesmo havia fixado —
+      suficiente para autorizar a inversão de prioridade.
+- [x] Risco 1 (sequenciamento) rebaixado de Alto para **Médio** — terceira
+      reclassificação do dia, mas a primeira ancorada num ato de autoridade
+      do dono do produto (não numa tese de negócio revisável), portanto sem
+      expectativa de nova reversão pelo mesmo motivo das duas anteriores.
+- [x] Recomendação de sequenciamento revogada: o Tech Lead está liberado
+      para comprometer capacidade de Frontend/Backend no planejamento e
+      execução do redesenho **desde já**, sem esperar o evento-gatilho de
+      abertura ao grupo real.
+- [x] Pedido de pausar toda a v1: **aprovado** para todo o backlog restante
+      (Tier 2, Tier 3, e os itens do Tier 1 ainda não iniciados/sem código
+      pronto). **Não aprovado**, sem confirmação explícita adicional do
+      organizador, para deixar `DEBT-05`/`DEBT-06` (código já escrito, achado
+      de segurança Média já confirmado ativo em produção) pendurados por
+      tempo indefinido — exijo finalização de baixo custo (commit/push/
+      verificação) antes da migração integral de capacidade de Backend para
+      o redesenho.
+- [ ] DevOps deve reconciliar, com comando real (não memória de sessão), a
+      divergência entre `DEPLOY.md` Seção 7.6 (que narra commit `56d9047` já
+      publicado e verificado) e o `git status`/`git log` reais desta sessão
+      (HEAD em `4c57be7`, arquivos de correção ainda modificados/não
+      commitados) — dono: DevOps. Prazo: antes de qualquer nova decisão
+      sobre a Seção 3.2 acima, e antes de este item poder ser tratado como
+      encerrado.
+- [ ] PM deve registrar formalmente, com rastreabilidade (data, citação
+      literal), a decisão de inversão de prioridade do organizador
+      (confirmação de Hipótese B + instrução direta de "iniciar agora" +
+      pausa do restante da v1 conforme delimitado na Seção 3 acima) — mesma
+      régua de "nenhuma aprovação sem registro" já aplicada ao resto deste
+      pipeline. Dono: PM. Prazo: antes de qualquer estimativa de Tech Lead
+      sobre o `TASK.md` delta do redesenho.
+- [ ] UX/UI deve resolver a decisão de cobertura das 5 telas remanescentes
+      (Guardrail 31) **antes** de qualquer tarefa de Frontend ser
+      reestimada — deixou de ser um item hipotético, é bloqueio prático
+      imediato agora que a capacidade está liberada. Dono: UX/UI. Prazo:
+      antes do `TASK.md` delta.
+- As demais cinco ressalvas remanescentes do Gate 1 original desta
+  iniciativa (artefato de origem, ambiguidade de paleta, assets de marca,
+  fonte externa/CSP, rótulo "v2.0") seguem integralmente em aberto, sem
+  alteração de dono ou prazo.
+
+Com isto, o fluxo de planejamento desta iniciativa (PM → Business Analyst →
+Software Architect → UX/UI → Tech Lead, `PLANNING-FLOW.md`) está liberado
+para avançar, incluindo agora a fase de comprometimento de capacidade de
+Backend/Frontend — condicionado às pendências acima, em particular ao
+registro formal do PM (rastreabilidade da decisão) e à reconciliação do
+DevOps sobre o estado real de `DEBT-05`/`DEBT-06`/`DEBT-03` em produção.
+Nenhuma decisão de arquitetura, a capacidade estrutural da squad (1 Backend
++ 1 Frontend, Gate 3 original) ou `GUARDRAILS.md` é reaberta por esta
+atualização.
+
+---
+
+## Gate 2 — Pós-SDD — Iniciativa "Refactor Visual" (`SDD.md`, Anexo C) — 2026-09-04
+
+**Skills aplicadas**: `architecture-decision-review` (ADR-013, marcado
+explicitamente pelo Software Architect para este gate), `risk-and-compliance-check`
+(ADR-012, idem), leitura de contexto de ADR-014 (não marcado — revisado por
+completude, mesmo padrão aplicado no Gate 2 original a itens não marcados).
+`build-vs-buy-analysis` **não aplicável** — nenhum vendor/serviço de
+terceiro novo é introduzido por nenhum dos três ADRs.
+**Input avaliado**: `SDD.md` Anexo C (rascunho submetido ao Gate 2,
+2026-09-04, sem reabertura de mérito das Seções 1-7 originais) + ADR-012,
+ADR-013, ADR-014 (`adr/012` a `adr/014`) + `PRD-TECNICO.md` Parte II (RNF-D03,
+RNF-D05, RF-D01/RF-D04/RF-D05) como contexto de roteamento + `GUARDRAILS.md`
+(regras 28, 30, 31) + `SECURITY-REVIEW.md` (histórico de `DEBT-03`) +
+`vercel.json` (estado real do código, lido diretamente, não apenas por
+citação do ADR) + `src/design-system/tokens.css` (estado real, confirmando
+ausência de qualquer referência a fonte externa hoje) + este próprio
+`CTO-REVIEW.md`, Gate 1 desta iniciativa em todas as suas atualizações
+(ressalvas (a)/(b)/(c) apontadas na retomada desta tarefa).
+
+### Verificação direta contra o código real (não apenas contra o texto do ADR)
+
+Antes de aceitar as premissas técnicas de ADR-012, li `vercel.json`
+diretamente: a `Content-Security-Policy` publicada hoje é `default-src
+'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
+img-src 'self' data:; font-src 'self'; connect-src 'self'
+https://ipnbdrejlikrmqyxggsp.supabase.co; frame-ancestors 'none'; base-uri
+'self'; form-action 'self'; object-src 'none'` — **confirmo**: `font-src
+'self'`, sem `fonts.gstatic.com`; `style-src` sem `fonts.googleapis.com`. A
+premissa central do ADR-012 ("a CSP vigente já proíbe fonte externa e não
+precisa de nenhuma alteração") é factualmente correta, não apenas afirmada.
+Também li `src/design-system/tokens.css`: nenhuma declaração `@import`,
+`font-family` com nome de fonte do Google, nem qualquer referência a
+`googleapis`/`gstatic` hoje — confirma que a baseline atual (`system-ui`) não
+tem nenhuma dependência de fonte externa a desfazer, o ponto de partida que
+ADR-013 assume implicitamente ao falar em "substituição". Também confirmei em
+`SECURITY-REVIEW.md` (Seções 29-38, 69, linha "L2... `DEBT-03`/CSP confirmado
+resolvido") que `DEBT-03` não é apenas um item fechado pelo Software
+Architect por conta própria nesta sessão — foi auditado e confirmado
+resolvido pelo próprio DevSecOps antes desta iniciativa começar. Não aceito a
+alegação do ADR "por autoridade do ADR" — verifico contra o artefato e o
+histórico de auditoria correspondentes, e ambos batem.
+
+### (a) ADR-012 — Self-host de fonte via `next/font` — resolve de fato a tensão CSP × `DEBT-03`?
+
+**Sim, integralmente, no nível de código/arquitetura.** A escolha por
+`next/font/google` (opção 1) elimina o problema na raiz em vez de mitigá-lo:
+não há requisição de rede em runtime para nenhum domínio do Google, logo não
+há necessidade de tocar `font-src`/`style-src`/`connect-src` — a CSP validada
+por DevSecOps permanece bit-a-bit como está. As alternativas descartadas
+(CDN do Google Fonts, self-host manual) estão corretamente avaliadas: CDN
+exigiria reabrir uma política de segurança recém-fechada e auditada (regressão
+real, não hipotética); self-host manual chega ao mesmo resultado técnico da
+opção escolhida, mas reinventa subsetting/`font-display`/gestão de binário
+que o framework já em uso (ADR-003) resolve nativamente — não há vantagem
+real que justifique o esforço extra. Nenhum vendor novo, nenhum lock-in,
+nenhuma implicação de compliance negativa (o self-host, ao contrário do CDN,
+*reduz* superfície de exposição de IP a terceiro — ponto de LGPD
+corretamente identificado no próprio ADR, e que eu mesmo já havia sinalizado
+como preocupação hipotética no Gate 1 desta iniciativa, item 7 da lista de
+riscos).
+
+Dois pontos não bloqueantes, registrados para Frontend/Tech Lead, não para
+reabertura do ADR:
+
+1. **Validação de catálogo, não de decisão**: o ADR não confirma
+   explicitamente que Bebas Neue, Public Sans e JetBrains Mono — e os pesos
+   específicos que o mockup usa — estão de fato disponíveis com os subsets
+   necessários no catálogo que `next/font/google` espelha. É improvável que
+   não estejam (são fontes populares e estáveis), mas é uma checagem de
+   implementação de minutos, não uma decisão de arquitetura a reabrir. Dono:
+   Frontend, no início da implementação, não antes.
+2. **Estado real de produção é matéria separada, já rastreada.** O código
+   (`vercel.json`) já tem `font-src 'self'` correto — isso é o que este ADR
+   precisa para ser tecnicamente válido, e é o que confirmei acima. Se essa
+   CSP está de fato servida pela URL de produção real neste exato momento é
+   uma pergunta diferente, já em aberto na atualização mais recente do Gate 1
+   desta iniciativa (reconciliação pendente do DevOps, `git status` desta
+   sessão mostrando `vercel.json` modificado/não commitado). Não reabro essa
+   pendência aqui — ela já tem dono (DevOps) e prazo (antes de qualquer nova
+   decisão sobre a Seção 3.2 daquela atualização) — apenas registro que ela
+   não invalida a solidez arquitetural de ADR-012 em si, que é o que este
+   Gate 2 avalia.
+
+**Fecho formalmente, neste Gate 2, a ressalva que eu mesmo havia aberto no
+Gate 1 desta iniciativa** ("fonte externa vs. CSP a decidir junto com
+`DEBT-03`", item 7 da lista de riscos, e a entrada correspondente no Tier 4
+da Consolidação de Pendências) — está resolvida, sem debito remanescente de
+arquitetura.
+
+### (b) ADR-013 — Substituição atômica de `tokens.css`/`tokens.ts` — a implicação de reabrir FE-00 a FE-11 muda a viabilidade?
+
+**A decisão técnica em si está correta e bem justificada** — reviso pelo
+framework completo de `architecture-decision-review`:
+
+- **Trade-off e alternativas**: as três opções (substituição direta,
+  versionamento paralelo, reescrita completa) estão genuinamente comparadas,
+  não é uma lista de palha para justificar a escolha já feita. A rejeição da
+  opção 2 (coexistência de temas) é o ponto mais importante e está bem
+  fundamentada: com componentes compartilhados (Guardrail 31) e squad de 1
+  Frontend, manter duas paletas ativas simultaneamente exigiria ou duplicar
+  componentes (proibido) ou um mecanismo de tema mantido por tempo
+  indefinido, com o dobro de esforço de `accessibility-review` — custo
+  estrutural desproporcional a um requisito que o próprio `PRD-TECNICO.md`
+  não pede. Concordo com a rejeição.
+- **Escalabilidade/custo**: substituição atômica é a opção de menor custo de
+  implementação e manutenção (RNF-04), sem mecanismo novo a operar depois. Sem
+  objeção.
+- **Dívida técnica**: nenhuma dívida nova introduzida pela escolha em si — a
+  única "dívida" real é a que já existia (ausência de mecanismo de
+  theming), e ADR-013 justifica corretamente por que não vale a pena criá-la
+  agora.
+- **Vendor lock-in**: nenhum.
+
+**A constatação central do ADR — blast radius simultâneo nas 11 telas, não
+só as 6 do mockup — está tecnicamente correta e eu a confirmo de forma
+independente**: os tokens são globais por design (Seção 5/UX-SPEC.md Seção
+3.1, decisão já fechada em L0, não reaberta aqui) e os componentes são
+compartilhados por regra vinculante (Guardrail 31). Não existe, dentro dessas
+duas restrições já aceitas pelo projeto, nenhuma forma de a troca de valores
+de token afetar só 6 telas — a alternativa que permitiria isso (opção 2) foi
+corretamente descartada por violar a própria Guardrail 31. Ou seja: **isto
+não é uma escolha de arquitetura que ampliou o escopo por conveniência do
+Software Architect — é uma consequência inevitável de duas decisões já
+aprovadas anteriormente** (tokens globais, componentes únicos). Reconheço
+isso explicitamente porque muda a natureza da minha revisão: não estou
+validando se o Software Architect *escolheu* ampliar o escopo — estou
+validando se ele identificou corretamente uma implicação técnica que já
+estava latente nas Seções 1-7 originais e a comunicou com transparência ao
+Tech Lead. Fez isso corretamente, inclusive com o cuidado de distinguir o que
+*pode* variar por tela (profundidade de redesenho de layout, RF-D04) do que
+*não pode* variar por tela (valores de cor/fonte) — distinção que o próprio
+`PRD-TECNICO.md`/`UX-SPEC.md` (ainda sem o delta desta decisão) precisarão
+herdar sem ambiguidade quando o UX/UI registrar a decisão de cobertura das 5
+telas remanescentes.
+
+**Isto muda minha avaliação de viabilidade? Não — pelo motivo correto, não
+por acaso.** No Gate 1 desta iniciativa eu havia registrado este retrabalho
+como risco de severidade Média, condicionado a sequenciamento (a iniciativa
+não deveria consumir capacidade dedicada antes de determinado marco). Essa
+condição de sequenciamento **já foi decidida e substituída** pela instrução
+direta do organizador, registrada na atualização mais recente do Gate 1
+desta iniciativa ("Atualização por Instrução Direta de Inversão Total de
+Prioridade"): a v1 está pausada, toda a capacidade de Frontend (e, se
+necessário, Backend) está dedicada a este redesenho, sem nenhum prazo de
+negócio externo confirmado competindo por ela (Premissa 6 do `PRD.md`
+original nunca foi respondida pelo stakeholder em três gates consecutivos, e
+o próprio organizador é hoje o único usuário real de ambas as versões). Nessas
+condições — squad de 1 Frontend, sem competição de prioridade, sem prazo
+externo confirmado — reabrir a estimativa de `FE-00` a `FE-11` inteiras (em
+vez de só as 6 telas do mockup) é um **aumento real de esforço, não um
+problema de viabilidade**: não há outro projeto disputando essa mesma
+capacidade agora, e o próprio dono do produto já decidiu explicitamente que
+esse é o único trabalho a fazer no momento. **Aceito a implicação de escopo**
+como consequência técnica correta e inevitável, não como motivo de reprovar
+ADR-013 nem de reabrir a recomendação de sequenciamento (já resolvida em
+outra instância do Gate 1).
+
+Três pontos não bloqueantes, registrados como ressalvas de coordenação para o
+Tech Lead, não como reprovação de ADR-013:
+
+1. **A reabertura de `FE-00` a `FE-11` deve ser tratada como reestimativa
+   formal completa, não como ajuste cosmético de escopo.** O próprio ADR já
+   avisa isso explicitamente ("Consequência direta para a reestimativa do
+   Tech Lead"); reforço aqui, como CTO, que isso significa: o `TASK.md`
+   delta desta iniciativa precisa listar cada uma das 12 tarefas de Frontend
+   já fechadas (`FE-00` a `FE-11`) com uma linha própria de reestimativa
+   (mesmo que a conclusão para várias delas seja "esforço adicional
+   pequeno/zero, só a troca de token é suficiente") — não pode ficar como
+   uma frase genérica de "revisar Frontend". Dono: Tech Lead. Prazo: antes
+   de qualquer estimativa ser considerada final para o Gate 3 desta
+   iniciativa.
+2. **`accessibility-review` pré-merge sobre os componentes compartilhados das
+   11 telas (não das 6) é um gate duro, não uma recomendação.** O próprio
+   Anexo C (Seção C.5) já registra isso como mitigação obrigatória. Explicito
+   aqui, como condição de aprovação deste Gate 2, que nenhum PR de troca de
+   `tokens.css`/`tokens.ts` deve ser mesclado sem essa checagem completa —
+   equivalente, na prática, a tratar o dia da troca de tokens como um
+   sign-off de acessibilidade de produto inteiro, não de tela isolada. Dono:
+   UX/UI (execução), Tech Lead (sequenciamento do PR).
+3. **A alegação de "rollback trivial via `git revert`" (Consequências
+   Negativas do ADR) só se sustenta se o commit/PR de troca de tokens for
+   isolado** — sem misturar, no mesmo commit, mudança de layout/composição de
+   tela (ex.: o novo simulador tático de T09, ADR-014). Se Tech Lead/Frontend
+   combinarem a troca de token com mudanças de layout no mesmo PR por
+   conveniência de sequenciamento, um `git revert` deixa de ser trivial (pode
+   reverter também layout que não se queria desfazer, ou conflitar com
+   commits subsequentes que já assumem os novos tokens). Não é uma objeção a
+   ADR-013 — é uma condição de execução que precisa ser respeitada para que a
+   consequência positiva declarada no próprio ADR continue válida na prática.
+   Dono: Tech Lead, ao sequenciar os PRs em `TASK.md`.
+
+Nenhum destes três pontos exige novo ADR nem reabre a decisão de ADR-013 —
+são condições de execução que tornam a decisão já aceita sólida na prática,
+não objeções à decisão em si.
+
+### (c) Cobertura de 11 telas vs. 6 do mockup — reforça ou contradiz a decisão do PM?
+
+**Reforça, não contradiz — confirmo a leitura já apresentada nesta tarefa.**
+A decisão de cobertura (RF-D04, já responsabilidade de UX/UI/PM, não do
+Software Architect) sempre foi sobre *o quê* fazer com as 5 telas fora do
+mockup original (extensão integral de linguagem visual vs. plano de migração
+faseado com prazo) — nunca sobre *se* o valor bruto de cor/tipografia
+chegaria a elas. ADR-013 apenas torna explícito, no nível técnico, que a
+segunda leitura nunca foi uma opção real dentro da arquitetura já aceita
+(tokens globais + componentes únicos, Guardrail 31) — não é uma mudança de
+arquitetura que "força a mão" do PM, é a mesma decisão de produto de sempre,
+agora com a implicação técnica correta anexada a ela. Não há conflito a
+arbitrar aqui.
+
+### ADR-014 (não marcado) — revisão por completude
+
+Não marcado pelo Software Architect para este gate, e concordo com essa
+classificação: nenhum vendor novo, nenhuma dependência de pacote a auditar,
+decisão de composição de DOM/CSS sobre um modelo de dados já existente
+(`TIME_ATLETA`), sem mudança de contrato de API. A justificativa de rejeitar
+`<canvas>`/SVG por motivo de acessibilidade (RNF-D02, Guardrail 30) é
+tecnicamente correta e vai no mesmo sentido que já validei no Gate 2 original
+para decisões de acessibilidade estrutural (ex.: ADR-005). **Aprovado**, sem
+ressalva, revisão de completude apenas.
+
+### Risco e Compliance (consolidado)
+
+| Item do checklist | Evidência | Severidade | Observação |
+|---|---|---|---|
+| Fonte externa / CSP (`DEBT-03`) | ADR-012, confirmado contra `vercel.json` real e `SECURITY-REVIEW.md` (auditado por DevSecOps) | Nenhuma (resolvido) | Ressalva do Gate 1 desta iniciativa fechada formalmente aqui |
+| LGPD / minimização de dado | ADR-012 (self-host elimina exposição de IP a terceiro); nenhum dado pessoal de atleta envolvido em nenhum dos três ADRs | Nenhuma | Sem novo achado |
+| Retrabalho sobre baseline aprovada (Guardrail 31/FE-00) | ADR-013, confirmado como consequência técnica inevitável, não escolha de conveniência | Baixa (era Média no Gate 1; rebaixada porque a condição de sequenciamento que a tornava arriscada já foi resolvida por decisão direta do organizador) | Ver ressalvas 1-3 da análise de ADR-013 acima |
+| Vendor lock-in | N/A — nenhum vendor novo em nenhum dos três ADRs | N/A | — |
+| Acessibilidade (Guardrail 28/RNF-D01) | ADR-013 (gate pré-merge de 11 telas), ADR-014 (DOM nativo preserva foco/leitura de tela) | Nenhuma, condicionada à execução do gate pré-merge (ressalva 2 acima) | — |
+
+Nenhum item de severidade Alta. Nenhum vendor lock-in crítico sem plano de
+saída (não aplicável — nenhum vendor novo).
+
+### Veredito por ADR marcado (e revisado) para este Gate 2
+
+| ADR | Skill aplicada | Veredito |
+|---|---|---|
+| ADR-012 (self-host de fonte via `next/font`) | `risk-and-compliance-check` | **Aprovado**, sem ressalva bloqueante — resolve integralmente a tensão CSP×fonte externa sinalizada por mim no Gate 1 desta iniciativa; verificado contra código real, não apenas contra o texto do ADR |
+| ADR-013 (substituição atômica de tokens) | `architecture-decision-review` | **Aprovado com ressalvas** — decisão tecnicamente correta e consequência de blast radius corretamente identificada e comunicada; três condições de execução (reestimativa formal linha a linha de FE-00 a FE-11, gate duro de `accessibility-review` pré-merge nas 11 telas, isolamento do commit de troca de tokens para preservar rollback trivial) |
+| ADR-014 (simulador tático sem biblioteca gráfica nova) | Revisão de completude (não marcado) | **Aprovado**, sem ressalva |
+
+### Veredito do `SDD.md` Anexo C: **Aprovado com ressalvas**
+
+Nenhuma decisão estrutural é reprovada — o Tech Lead está liberado para
+avançar a decomposição do `TASK.md` delta desta iniciativa sobre a
+arquitetura do Anexo C como está, sem necessidade de o Software Architect
+reabrir nenhum dos três ADRs. As ressalvas ficam registradas como
+pendências rastreáveis, todas de responsabilidade de execução (Tech
+Lead/UX-UI/Frontend), nenhuma de reabertura de arquitetura:
+
+- [x] Ressalva do Gate 1 desta iniciativa ("fonte externa vs. CSP a decidir
+      junto com `DEBT-03`") — **fechada formalmente neste Gate 2**, resolvida
+      por ADR-012, verificada contra `vercel.json` real.
+- [ ] `TASK.md` delta deve listar reestimativa formal linha a linha para
+      `FE-00` a `FE-11` (12 tarefas), não uma frase genérica de revisão —
+      dono: Tech Lead, antes do Gate 3 desta iniciativa.
+- [ ] Nenhum PR de troca de `tokens.css`/`tokens.ts` é mesclado sem
+      `accessibility-review` completo sobre os componentes compartilhados
+      usados pelas 11 telas — dono: UX/UI (execução) + Tech Lead
+      (sequenciamento), antes do merge do commit de troca.
+- [ ] Commit/PR de troca de tokens deve ser isolado de qualquer mudança de
+      layout/composição de tela (ex.: simulador tático de T09) para que a
+      alegação de "rollback trivial via `git revert`" do ADR-013 permaneça
+      válida na prática — dono: Tech Lead, no sequenciamento de PRs.
+- [ ] Validação de catálogo de fonte (`next/font/google` oferece os pesos
+      exatos de Bebas Neue/Public Sans/JetBrains Mono usados no mockup) —
+      dono: Frontend, checagem de minutos no início da implementação, não
+      bloqueia este Gate 2.
+
+Confirmo, adicionalmente, os três pontos que motivaram esta revisão
+específica: **(a)** ADR-012 resolve de fato a tensão CSP×fonte externa
+sinalizada por mim no Gate 1 desta iniciativa — ressalva fechada. **(b)** a
+implicação de reabrir estimativa de `FE-00` a `FE-11` inteiras (não só as 6
+telas do mockup) é aceita como consequência técnica inevitável e correta, e
+não muda minha avaliação de viabilidade desta iniciativa — a condição que
+tornaria isso um problema de capacidade (competição com outra prioridade ou
+prazo externo confirmado) não existe hoje, por decisão já registrada do
+próprio organizador. **(c)** a cobertura de 11 telas reforça, não contradiz,
+a decisão de cobertura já atribuída ao PM/UX-UI (RF-D04) — não há conflito a
+arbitrar.
+
+Nenhuma mudança em `GUARDRAILS.md` é necessária ou proposta neste Gate —
+nenhum dos três ADRs cria exceção às 36 regras vigentes, nenhuma regra nova é
+exigida por eles. As demais ressalvas remanescentes do Gate 1 desta
+iniciativa (artefato de origem não versionado, cobertura de layout das 5
+telas restantes, ambiguidade de paleta dupla, assets de marca fora de
+processo, rótulo "v2.0"/nomenclatura) **não são matéria deste Gate 2** — já
+corretamente roteadas a PM/UX-UI/Tech Lead pelo próprio BA
+(`PRD-TECNICO.md` Parte II) e pelo próprio Software Architect (`SDD.md`
+Anexo C, Seção C.8) — seguem em aberto, sem alteração de dono ou prazo, e
+serão revisadas por mim quando os artefatos correspondentes (`UX-SPEC.md`
+delta, `TASK.md` delta) chegarem aos próximos gates desta iniciativa.
+
+---
+
+## Gate 3 — Pré-TASK.md — Iniciativa "Redesenho Visual" — 2026-09-04
+
+**Skills aplicadas**: `capacity-and-timeline-validation` (`TASK.md` Parte II),
+`risk-and-compliance-check` (pontos residuais de LGPD/acessibilidade/governança
+já abertos, para confirmar que nenhum foi silenciosamente fechado), `guardrails-governance`
+(`GUARDRAILS.md` Seção 10, regras 37-40 propostas).
+**Input avaliado**: `TASK.md` Parte II completa (Tech Lead, rascunho para este
+Gate 3) + `GUARDRAILS.md` Seção 10 (proposta) + `SDD.md` Anexo C/ADR-012/013/014
+(Aprovado com ressalvas no Gate 2 desta iniciativa) + `UX-SPEC.md` Parte II
+completa, revisão 2 + este próprio `CTO-REVIEW.md` (Gate 1 em todas as
+atualizações, Gate 2 e "Consolidação de Pendências Reais da v1" desta
+iniciativa) + `GUARDRAILS.md` regras 1-36 vigentes, como referência de não
+regressão.
+
+### Verificação direta de fidelidade `TASK.md` → `SDD.md` Anexo C (não aceito por alegação)
+
+Comparei item a item as três condições de execução que impus no Gate 2
+(ressalva de `ADR-013`) contra o que a Parte II do `TASK.md` realmente
+entrega, não contra o que ela *diz* entregar:
+
+1. **Reestimativa formal linha a linha de `FE-00` a `FE-11`** — cobrada por
+   mim como condição textual ("não pode ficar como uma frase genérica").
+   Confirmado: Seção 3.2 tem 12 linhas (`FE-R00` a `FE-R11`) mais `FE-R12` por
+   transparência (justificada corretamente como consumidora de tokens via
+   `SessionExpiryBanner`/`Toast`, Guardrail 31) — nenhuma linha vazia, cada uma
+   com justificativa específica do que muda. **Satisfeita**.
+2. **`accessibility-review` completo pré-merge sobre as 11 telas, gate duro,
+   não incremental** — Seção 1.2-R e Seção 4.1 (item 2) do `TASK.md`
+   confirmam isso explicitamente como pré-condição do próprio `FE-R00`, não
+   tarefa separada, e a Seção 4.3 reforça que nenhum sign-off de tela é válido
+   antes desse fechamento. **Satisfeita**.
+3. **Isolamento do commit de troca de tokens (sem layout no mesmo commit)** —
+   Seção 1.2-R e a nota de estrutura de commits (Seção 3.0, após a tabela de
+   lotes: commit 1 = tokens; commit 2 = `Icon`/`BrandCrest`; commits de
+   composição por lote depois) implementam exatamente a condição. **Satisfeita**.
+
+Nenhuma das três condições foi enfraquecida, reinterpretada ou parcialmente
+satisfeita — o Tech Lead não tratou minhas ressalvas do Gate 2 como
+formalidade a marcar "concluído" sem entregar, diferente do que aconteceu duas
+vezes com o plano de saída do ADR-002 no Gate 3 original (registrado acima).
+Registro isso porque é o oposto do padrão de risco que motivou a regra 35 —
+aqui a condição foi de fato executada, não apenas prometida.
+
+### Capacidade e prazo (`capacity-and-timeline-validation`) — ponto 1: o volume não é o que o Tech Lead alega
+
+**Refiz a soma da própria tabela do Tech Lead (Seção 3.2) em vez de aceitar o
+número enunciado, exatamente como fiz no Gate 3 original com a divisão
+Backend/Frontend de 76.5 PD.** O resultado não bate:
+
+| Tarefa | Esforço declarado |
+|---|---|
+| FE-R00 | 6 |
+| FE-R01 | 1 |
+| FE-R02 | 4 |
+| FE-R03 | 1 |
+| FE-R04 | 1 |
+| FE-R05 | 6 |
+| FE-R06 | 3 |
+| FE-R07 | 1 |
+| FE-R08 | 0.5 |
+| FE-R09 | 7 |
+| FE-R10 | 1 |
+| FE-R11 | 1 |
+| FE-R12 | 0.5 |
+| **Soma real das 13 linhas** | **33** |
+
+O `TASK.md` (Seção 3.2, linha final, e Seção 5, Risco 1) declara **27 PD** de
+Frontend e **~33.5 PD** de volume total (27 + 6 Backend + 0.5 spike). A soma
+real das 13 linhas que o próprio Tech Lead lista é **33 PD**, não 27 — uma
+diferença de **6 PD (≈22% de subestimação do total de Frontend)**. O volume
+total real desta Parte II é, portanto, **≈39.5 PD** (33 Frontend + 6 Backend +
+0.5 spike), não 33.5 PD como declarado duas vezes no documento (uma vez na
+Seção 3.2, outra na Seção 5). Não é um erro de transcrição isolado — o número
+errado (33.5) é reutilizado no Risco 1 da Seção 5, que é exatamente o item que
+pede a mim, CTO, para "calibrar a expectativa deste Gate 3" contra ele. Eu não
+calibro a expectativa contra um número que não confere com os dados que o
+sustentam.
+
+**Isto muda a conclusão de viabilidade? Não — mas muda a magnitude que registro
+formalmente.** Refazendo a conta de capacidade com o número correto (39.5 PD,
+não 33.5 PD), ao mesmo padrão do Gate 3 original (PD ≈ 6h efetivas, ~5 PD/semana
+por pessoa):
+
+- Trilha Frontend (a mais longa, dominante do calendário desta iniciativa): 33
+  PD ≈ **6.6 semanas** (não "5-6 semanas" como o Tech Lead estimou a partir do
+  número errado) — uma diferença de ~1.5 semana, não trivial para calibração de
+  expectativa, mas não muda a ordem de grandeza.
+- Trilha Backend: 6 PD + 0.5 PD de `SPK-02` ≈ 1.3 semanas — folga real
+  confirmada (Risco 5 do `TASK.md` permanece válido mesmo com o número
+  corrigido: 6.5 PD de Backend contra 33 PD de Frontend é folga de sobra para
+  `DEBT-05`/`DEBT-06` no mesmo período, como o próprio Tech Lead já apontou).
+- **A conclusão de fundo do Tech Lead está correta apesar do erro de soma**: o
+  volume, mesmo corrigido para ≈39.5 PD, continua plausível frente à condição
+  já registrada por mim no Gate 2 desta iniciativa (squad de 1 Frontend + 1
+  Backend, dedicação integral, sem prioridade concorrente, sem prazo externo
+  confirmado — "Atualização por Instrução Direta de Inversão Total de
+  Prioridade", acima). Não há restrição de prazo/orçamento declarada para este
+  volume contradizer, pela mesma razão já registrada no Gate 3 original: o
+  stakeholder nunca respondeu à Premissa 6 do `PRD.md`, e eu já adotei a
+  postura de orçamento mínimo como decisão final desde aquele gate — isso não
+  muda com mais 6 PD de Frontend.
+
+**Decisão**: não reprovo o `TASK.md` por este erro — nenhuma tarefa individual
+está com estimativa errada (cada linha, isoladamente, está correta e
+justificada; o erro está apenas na soma/no número repetido na Seção 5) e a
+conclusão de viabilidade não muda de sinal. Mas **não aceito o número 27/33.5
+como válido para registro** — exijo, como condição não bloqueante de execução
+(mesmo padrão usado para o plano de saída do ADR-002 no Gate 3 original: dono e
+prazo nomeados, sem travar o início do trabalho), que o Tech Lead corrija a
+soma na Seção 3.2 (27→33 PD) e o número consolidado na Seção 5, Risco 1
+(33.5→39.5 PD) antes de qualquer relatório de acompanhamento de execução citar
+esses números — o erro não bloqueia Backend/Frontend de começar (a ordem de
+lotes/dependências da Seção 4 não depende do total agregado), mas não pode
+circular como métrica oficial deste projeto sem correção.
+
+### Capacidade e prazo — pontos 2-5 do checklist
+
+- **Dependências e paralelismo (Seção 4)**: mapeamento consistente — toda
+  tarefa referenciada nas Seções 4.1-4.3 existe na Seção 3, e vice-versa;
+  `BE-R01`/`BE-R02`/`SPK-02` corretamente identificados como não bloqueantes do
+  início de `FE-R00` (não tocam `tokens.css`); a distinção entre "bloqueia
+  merge" e "bloqueia desenvolvimento" (Seção 4.1, itens 1 e 5) é o mesmo
+  cuidado metodológico que já elogiei no Gate 3 original para `SPK-01`/`BE-15`.
+  Nenhuma tarefa crítica sem dono.
+- **Prazo vs. restrição de negócio conhecida**: nenhuma contradição — pela
+  mesma ausência de restrição declarada já registrada acima.
+- **Plausibilidade qualitativa**: 39.5 PD (corrigido) para reestimar uma
+  baseline de design system inteira (12-13 telas) mais dois endpoints novos de
+  agregação é proporcional ao que já era esperado desde a "Nota de Governança
+  Ad Hoc" e o Gate 2 desta iniciativa — nenhuma surpresa de porte.
+
+### Ponto 2 do meu roteiro: as duas lacunas escaladas pelo Tech Lead (Seção 6.1-R)
+
+**Ambas estão corretamente tratadas como escalação, não como decisão
+silenciosa — confirmo item a item, não aceito a alegação de "está escalado"
+sem verificar o conteúdo real da escalação:**
+
+1. **"Próxima rodada" no painel "Resumo da temporada" de T02.** Verifiquei
+   contra `UX-SPEC.md` Parte II, Seção 2.2: o mockup real de fato mostra
+   "Próxima rodada: Sáb, 05/09" como uma das 3 estatísticas do painel desktop.
+   O Tech Lead tem razão ao apontar que isso pressupõe uma entidade "rodada
+   agendada" inexistente em RF-01 a RF-08 — não é lacuna de apresentação, é
+   ausência de funcionalidade/modelo de dados. A decisão de excluir esse dado
+   específico de `BE-R01`/`FE-R02` (painel mostra só 2 das 3 métricas) e
+   escalar como candidato a nova funcionalidade futura, sem implementar nem
+   decidir, é exatamente o comportamento exigido pela Guardrail 32. **Não
+   preciso decidir agora** se "agendar próxima rodada" vira backlog — isso é
+   trabalho de Software Architect/BA/PM quando (e se) o organizador cobrar a
+   ausência, como o próprio Risco 4 da Seção 5 já prevê corretamente. Nenhuma
+   ação minha necessária neste gate além de confirmar que o tratamento foi
+   correto.
+2. **Disponibilidade de dado time/gol em rodadas legado (`SPK-02`).** Timebox
+   de 0.5 PD, critério de saída binário (sim/parcialmente/não por amostragem
+   direta), fallback técnico definido (`null`/"—", sem erro) independente do
+   resultado do spike, e a pergunta de "o fallback é aceitável como
+   comportamento permanente" corretamente roteada de volta ao Software
+   Architect **depois** do spike rodar, não decidida agora no vácuo. Isto é
+   tratamento de incerteza técnica genuína, do mesmo tipo que já aprovei para
+   `SPK-01` no Gate 3 original — não é uma lacuna estrutural sendo empurrada
+   para depois por conveniência, é a ordem correta (medir antes de decidir
+   política de produto sobre o resultado). Nenhuma ação minha necessária agora.
+
+### Ponto 3 do meu roteiro: pendência do Artifact do `claude.ai` (Tier 4, item 21)
+
+Verifiquei o Risco 6 da Seção 5 do `TASK.md` linha a linha contra a alegação do
+Tech Lead de tê-la tratado como "dependência pontual de tarefas específicas":
+**confirmado, não é uma alegação vazia.** O texto nomeia exatamente 5 tarefas
+afetadas (`FE-R01`, `FE-R02`, `FE-R05`, `FE-R06`, `FE-R09` — as 5 telas do
+mockup fora de `FE-R00`) e exclui explicitamente `FE-R04`/`FE-R07`/`FE-R08`/
+`FE-R10` (aplicação leve, suficientemente descrita em texto) e `FE-R00`
+(tokens já têm hex exatos, não dependem de captura visual). O prazo de
+resolução também é pontual e correto ("antes do início da implementação fina
+de cada uma dessas 5 tarefas especificamente, se e quando o Frontend
+identificar necessidade real"), não um bloqueio geral da iniciativa. Isto é
+tratamento fiel do item 21 da minha "Consolidação de Pendências Reais da v1" —
+nem ignorado, nem inflado para bloquear tarefas que não precisam dele. O dono
+da resolução (PM/UX-UI, persistir o artefato) segue o mesmo desde aquela
+consolidação; não requer nova ação minha aqui além de confirmar a
+rastreabilidade.
+
+### Ponto 4 do meu roteiro: `GUARDRAILS.md` Seção 10 (regras 37-40, `guardrails-governance`)
+
+Revisei cada regra proposta contra as 36 regras vigentes (nenhuma
+contradição a resolver, apenas checar coerência de generalização) e contra a
+origem declarada (as três condições de execução do meu próprio Gate 2 desta
+iniciativa + a obrigação de reestimativa já exercida):
+
+- **Regra 37** (substituição atômica de tokens como evento único; proíbe
+  coexistência de tema/paleta em runtime; exige novo ADR para qualquer
+  mecanismo de theming). Generaliza corretamente `ADR-013` e não conflita com
+  a Guardrail 1 (mudança de arquitetura exige novo ADR) nem com a Guardrail 31
+  (componente único) — na verdade, é a Guardrail 31 aplicada
+  prospectivamente ao caso específico de token global. **Aprovada, sem
+  ajuste.**
+- **Regra 38** (commit de fundação isolado de mudança de layout/composição).
+  Generaliza a condição de execução 3 do meu Gate 2. Não conflita com nenhuma
+  regra de commit/processo existente (não havia nenhuma até agora). É uma
+  regra de disciplina de entrega, proporcional ao risco que ela mitiga
+  (perda de `git revert` trivial). **Aprovada, sem ajuste.**
+- **Regra 39** (`accessibility-review` completo, gate duro, sobre todos os
+  componentes compartilhados de todas as telas afetadas, antes do merge de
+  qualquer troca de fundação). Generaliza a condição de execução 2 do meu
+  Gate 2, e a própria regra já se declara corretamente como extensão da
+  Guardrail 28 para o caso específico de mudança de fundação global. Verifiquei
+  que isso não é uma exigência desproporcional para o futuro: enquanto a
+  Guardrail 31 (componente único reutilizado) permanecer em vigor, **qualquer**
+  troca de valor global de design system atinge, por construção arquitetural,
+  todas as telas que usam aquele componente — não é uma exigência nova
+  desconectada da arquitetura, é a mesma invariante estrutural que já motivou
+  a regra 37. **Aprovada, sem ajuste.**
+- **Regra 40** (reestimativa formal linha a linha de toda tarefa fechada
+  afetada por mudança de fundação compartilhada — design system, componente
+  reutilizável de base, ou contrato de API central). Generaliza o mecanismo
+  que o próprio Tech Lead acabou de exercer nesta Parte II (Seção 3.2). Não
+  conflita com a Guardrail 32 (lacuna estrutural sempre escala) — é
+  complementar: a regra 40 trata de tarefa **já fechada** sendo reaberta por
+  mudança de fundação, não de lacuna nova. **Aprovada, sem ajuste.**
+
+Nenhuma das quatro regras decide alocação nominal de pessoas, substitui a
+análise tática de segurança do DevSecOps, ou usa linguagem vaga sujeita a
+interpretação divergente — todas têm gatilho objetivo (evento de mudança de
+fundação compartilhada) e ação concreta associada. **Promovo as quatro regras
+de `[PROPOSTA]` para vigentes**, com efeito a partir desta data
+(2026-09-04) — ver atualização de `GUARDRAILS.md` (cabeçalho, Seção 10 e Log de
+Alterações) publicada junto com este registro.
+
+### Riscos de Prazo (Seção 5) — demais itens
+
+Itens 2 (gate de acessibilidade específico de `FE-R09` antes do sign-off), 3
+(governança de `BrandCrest` não bloqueia o resto de `FE-R00`) e 5 (folga de
+Backend, já discutida acima) estão corretamente sinalizados, com dono e ação
+claros, sem necessidade de decisão adicional minha. Item 4 (escalada da
+"próxima rodada") já tratado no ponto 2 do meu roteiro acima. Item 1 (volume
+total) tratado com a correção de número acima — mantenho a leitura de que o
+volume é plausível, corrigido o dado que o sustenta.
+
+### Veredito do `TASK.md` Parte II: **Aprovado com ressalvas**
+
+Nenhuma tarefa individual, dependência ou lacuna é reprovada — Backend e
+Frontend estão liberados para iniciar a implementação de produção desta
+Parte II, incluindo a ordem de lotes (RD0 precede RD1-RD4) e o paralelismo já
+mapeado na Seção 4. As três condições de execução do meu Gate 2 foram de fato
+cumpridas (verificado, não alegado), e as duas lacunas estruturais escaladas
+foram tratadas corretamente (escalação real, não decisão silenciosa).
+
+Ressalva não bloqueante, com dono e prazo:
+
+- [ ] **Correção do total de esforço declarado** — Seção 3.2 (27→33 PD de
+      Frontend) e Seção 5, Risco 1 (33.5→39.5 PD de volume total). Dono: Tech
+      Lead. Prazo: antes do primeiro relatório de acompanhamento de execução
+      (`EXECUTION-LOG.md`) desta iniciativa citar volume agregado. Não bloqueia
+      o início de nenhum lote — nenhuma dependência ou sequenciamento da Seção
+      4 depende do número agregado, e a conclusão de viabilidade de capacidade
+      não muda com a correção.
+
+Ressalvas já herdadas do Gate 2 desta iniciativa, que seguem em aberto sem
+mudança de dono/prazo (não é matéria deste Gate 3 fechá-las, só confirmar que
+não regrediram): confirmação de direito de uso do brasão real (`BrandCrest`,
+bloqueia só o merge do componente, não o resto de `FE-R00`), validação de
+catálogo de fonte do `next/font/google` (checagem de minutos, Frontend), e a
+redação diferenciada de base legal LGPD adulto/menor em `FE-04` (herdada da
+Parte I, prazo já fixado por mim no Gate 3 original: antes do freeze do texto
+de privacidade).
+
+### `GUARDRAILS.md` (`guardrails-governance`): regras 37-40 — **Aprovadas**
+
+Ver análise regra a regra acima. As quatro regras propostas pelo Tech Lead na
+Seção 10 passam de `[PROPOSTA]` para vigentes, sem nenhum ajuste de texto —
+aprovadas exatamente como submetidas. Atualizo `GUARDRAILS.md` (cabeçalho,
+remoção do bloco `[PROPOSTA]`/renumeração de seção, e nova linha no Log de
+Alterações) na mesma data deste registro.
+
+### Encerramento do fluxo de planejamento desta iniciativa
+
+Com este Gate 3, **o fluxo de planejamento (Gates 1-3) da Iniciativa
+"Redesenho Visual" está formalmente encerrado**:
+
+- `SDD.md` Anexo C: Aprovado com ressalvas (Gate 2), permanece nesse status —
+  as três condições de execução foram cumpridas e verificadas neste Gate 3;
+  as ressalvas remanescentes (catálogo de fonte, direito de uso de
+  `BrandCrest`) seguem rastreadas com dono e prazo, sem mudança.
+- `UX-SPEC.md` Parte II: contexto confirmado nesta revisão como fielmente
+  refletido em `TASK.md`; nenhuma divergência de mérito encontrada entre os
+  dois documentos.
+- `TASK.md` Parte II: **Aprovado com ressalvas** — Backend e Frontend
+  liberados para iniciar a implementação de produção sobre esta Parte II,
+  incluindo lotes RD0-RD4 e a ordem de execução da Seção 4.
+- `GUARDRAILS.md`: **Aprovado** — regras 37-40 em vigor a partir de
+  2026-09-04, vinculantes para todo agente downstream (não apenas para esta
+  iniciativa — generalizam para qualquer mudança futura de fundação
+  compartilhada, conforme a própria proposta do Tech Lead e minha análise
+  acima).
+
+O próximo ponto de atuação formal do CTO nesta iniciativa é ad hoc (arbitragem
+de conflito escalado — ex.: se o organizador cobrar a "próxima rodada" fora de
+escopo, ou se o direito de uso do brasão não for confirmado a tempo) ou o
+Gate 4 (fechamento, registro após o deploy do DevOps desta iniciativa — sem
+poder de veto).
+
+---

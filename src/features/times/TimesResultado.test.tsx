@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { ToastProvider } from "@/components/ui";
 import { TimesResultado } from "./TimesResultado";
+import type { RestricaoAtivaConsulta } from "./times";
 import type { TimeMontado, TimesConfirmados } from "./types";
 import { listarSubstituicoes } from "./substituicoesApi";
 import { fetchAtletas } from "@/features/atletas/atletasApi";
@@ -44,7 +45,7 @@ const CONFIRMADOS: TimesConfirmados = {
   times: [
     {
       time_id: "t1",
-      label: "Time A",
+      label: "Colete",
       atletas: [
         { atleta_id: "1", apelido_exibicao: "João" },
         { atleta_id: "2", apelido_exibicao: "Carlinhos" },
@@ -52,7 +53,7 @@ const CONFIRMADOS: TimesConfirmados = {
     },
     {
       time_id: "t2",
-      label: "Time B",
+      label: "Sem Colete",
       atletas: [{ atleta_id: "3", apelido_exibicao: "Rafa" }],
     },
   ],
@@ -61,6 +62,7 @@ const CONFIRMADOS: TimesConfirmados = {
 function renderComponent(overrides: Partial<Parameters<typeof TimesResultado>[0]> = {}) {
   const onSwap = vi.fn();
   const onConfirmar = vi.fn();
+  const onNovoSorteio = vi.fn();
   const utils = render(
     <ToastProvider>
       <TimesResultado
@@ -71,26 +73,44 @@ function renderComponent(overrides: Partial<Parameters<typeof TimesResultado>[0]
         origemFallback={false}
         rodadaId="rodada-1"
         confirmados={null}
+        restricoes={[]}
+        onNovoSorteio={onNovoSorteio}
+        novoSorteioCarregando={false}
         {...overrides}
       />
     </ToastProvider>,
   );
-  return { ...utils, onSwap, onConfirmar };
+  return { ...utils, onSwap, onConfirmar, onNovoSorteio };
 }
 
 describe("TimesResultado", () => {
-  it("exibe os dois times lado a lado com indicadores de equilíbrio (nível técnico/idade médios)", () => {
+  it("exibe os dois times ('Colete'/'Sem Colete', UX-SPEC.md Parte II Seção 2.6) com os jogadores como PlayerChip", () => {
     renderComponent();
-    expect(screen.getByRole("heading", { name: "Time A" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Time B" })).toBeInTheDocument();
-    const cardTimeA = screen.getByRole("heading", { name: "Time A" }).closest("div")!;
+    expect(screen.getByRole("heading", { name: "Colete" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sem Colete" })).toBeInTheDocument();
     expect(
-      within(cardTimeA).getByText(/Nível técnico médio: 5.00 · Idade média: 26.0/),
+      screen.getByRole("button", { name: "Trocar João, nível técnico 6" }),
     ).toBeInTheDocument();
-    const cardTimeB = screen.getByRole("heading", { name: "Time B" }).closest("div")!;
     expect(
-      within(cardTimeB).getByText(/Nível técnico médio: 5.00 · Idade média: 25.0/),
+      screen.getByRole("button", { name: "Trocar Rafa, nível técnico 5" }),
     ).toBeInTheDocument();
+  });
+
+  it("cabeçalho de cada time mostra a soma (não a média) do nível técnico, em pts", () => {
+    renderComponent();
+    // Colete: 6 + 4 = 10 pts; Sem Colete: 5 pts.
+    expect(screen.getByText("10 pts")).toBeInTheDocument();
+    expect(screen.getByText("5 pts")).toBeInTheDocument();
+  });
+
+  it("painel de equilíbrio mostra 'diferença' (não duas médias) de pontos/idade + titulares", () => {
+    renderComponent();
+    expect(screen.getByText("Dif. pontos")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument(); // |10 - 5|
+    expect(screen.getByText("Dif. idade")).toBeInTheDocument();
+    expect(screen.getByText("1,0a")).toBeInTheDocument(); // |26 - 25|
+    expect(screen.getByText("Titulares")).toBeInTheDocument();
+    expect(screen.getByText("2×1")).toBeInTheDocument();
   });
 
   it("indicadores `null` (fallback) são exibidos como '—', nunca um número inventado", () => {
@@ -100,34 +120,50 @@ describe("TimesResultado", () => {
         { indice: 1, atletas: [], nivel_tecnico_medio: null, idade_media: null },
       ],
     });
-    expect(screen.getAllByText(/Nível técnico médio: —/)).toHaveLength(2);
+    expect(screen.getAllByText("— pts")).toHaveLength(2);
+    expect(screen.getByText("Dif. idade").nextSibling).toHaveTextContent("—");
   });
 
-  it("clicar em 'Trocar' abre o modal de seleção com candidatos do outro time", async () => {
+  it("clicar em um PlayerChip abre o modal de seleção com candidatos do outro time", async () => {
     const user = userEvent.setup();
     renderComponent();
 
-    const linhaJoao = screen.getByText("João").closest("li")!;
-    await user.click(within(linhaJoao).getByRole("button", { name: "Trocar" }));
+    await user.click(screen.getByRole("button", { name: "Trocar João, nível técnico 6" }));
 
+    const dialog = screen.getByRole("dialog", { name: "Trocar João com quem?" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Rafa/ })).toBeInTheDocument();
+    // Não lista atletas do mesmo time como candidato (Carlinhos está no Colete, junto com João).
     expect(
-      screen.getByRole("heading", { name: "Trocar João com quem?" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Rafa/ })).toBeInTheDocument();
-    // Não lista atletas do mesmo time como candidato (Carlinhos está no Time A, junto com João).
-    expect(screen.queryByRole("button", { name: /Carlinhos/ })).not.toBeInTheDocument();
+      within(dialog).queryByRole("button", { name: /Carlinhos/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it("selecionar um candidato chama onSwap com os dois ids e fecha o modal", async () => {
+  it("selecionar um candidato no modal chama onSwap com os dois ids e fecha o modal", async () => {
     const user = userEvent.setup();
     const { onSwap } = renderComponent();
 
-    const linhaJoao = screen.getByText("João").closest("li")!;
-    await user.click(within(linhaJoao).getByRole("button", { name: "Trocar" }));
-    await user.click(screen.getByRole("button", { name: /Rafa/ }));
+    await user.click(screen.getByRole("button", { name: "Trocar João, nível técnico 6" }));
+    const dialog = screen.getByRole("dialog", { name: "Trocar João com quem?" });
+    await user.click(within(dialog).getByRole("button", { name: /Rafa/ }));
 
     expect(onSwap).toHaveBeenCalledWith("1", "3");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("soltar um PlayerChip arrastado sobre outro (DnD nativo, atalho opcional) chama onSwap", () => {
+    const { onSwap } = renderComponent();
+
+    const chipJoao = screen.getByRole("button", { name: "Trocar João, nível técnico 6" });
+    const dropTarget = chipJoao.closest("div")!;
+    const dataTransfer = { getData: () => "3", setData: vi.fn() };
+    dropTarget.dispatchEvent(
+      Object.assign(new Event("drop", { bubbles: true, cancelable: true }), {
+        dataTransfer,
+      }),
+    );
+
+    expect(onSwap).toHaveBeenCalledWith("3", "1");
   });
 
   it("'Confirmar Times' chama onConfirmar", async () => {
@@ -140,6 +176,21 @@ describe("TimesResultado", () => {
   it("confirmando=true mostra o botão em estado de carregamento (aria-busy)", () => {
     renderComponent({ confirmando: true });
     expect(screen.getByRole("button", { name: "Confirmar Times" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+
+  it("'🔄 Novo sorteio' chama onNovoSorteio (paridade mobile+desktop, sempre disponível)", async () => {
+    const user = userEvent.setup();
+    const { onNovoSorteio } = renderComponent();
+    await user.click(screen.getByRole("button", { name: "Novo sorteio" }));
+    expect(onNovoSorteio).toHaveBeenCalledTimes(1);
+  });
+
+  it("novoSorteioCarregando=true mostra 'Novo sorteio' em estado de carregamento", () => {
+    renderComponent({ novoSorteioCarregando: true });
+    expect(screen.getByRole("button", { name: "Novo sorteio" })).toHaveAttribute(
       "aria-busy",
       "true",
     );
@@ -159,6 +210,52 @@ describe("TimesResultado", () => {
     ).not.toBeInTheDocument();
   });
 
+  describe("banner '✓ Restrição respeitada' (UX-SPEC.md Parte II Seção 2.6, correção 4)", () => {
+    it("sem restrições ativas satisfeitas pela divisão atual, nenhum banner aparece", () => {
+      renderComponent({ restricoes: [] });
+      expect(screen.queryByText(/Restrição respeitada/)).not.toBeInTheDocument();
+    });
+
+    it("restrição ativa satisfeita (os dois atletas em times diferentes) mostra o banner com os nomes reais", () => {
+      const restricoes: RestricaoAtivaConsulta[] = [
+        {
+          ativo: true,
+          atleta_a_id: "1",
+          atleta_a_nome: "João",
+          atleta_b_id: "3",
+          atleta_b_nome: "Rafa",
+        },
+      ];
+      renderComponent({ restricoes });
+      // `textContent` de um `<li>` inclui o "✓ " do `<span aria-hidden>` vizinho
+      // (mesmo padrão já usado pelo teste de `ConflictList`/`MontagemTimesShell`
+      // para o "⚡" decorativo) — comparação exata restrita ao `<li>` evita
+      // múltiplos matches nos ancestrais (`ul`, `AlertBanner`).
+      expect(
+        screen.getByText(
+          (_, node) =>
+            node?.tagName === "LI" &&
+            node.textContent ===
+              "✓ Restrição respeitada: João e Rafa não jogam no mesmo time.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("restrição ativa violada (os dois atletas no MESMO time) não gera banner", () => {
+      const restricoes: RestricaoAtivaConsulta[] = [
+        {
+          ativo: true,
+          atleta_a_id: "1",
+          atleta_a_nome: "João",
+          atleta_b_id: "2",
+          atleta_b_nome: "Carlinhos",
+        },
+      ];
+      renderComponent({ restricoes });
+      expect(screen.queryByText(/Restrição respeitada/)).not.toBeInTheDocument();
+    });
+  });
+
   it("sem violação de acessibilidade (axe)", async () => {
     const { container } = renderComponent();
     expect(await axe(container)).toHaveNoViolations();
@@ -168,23 +265,27 @@ describe("TimesResultado", () => {
     it("sem `confirmados` (times ainda não persistidos), nenhum botão 'Substituições' aparece", () => {
       renderComponent();
       expect(
-        screen.queryByRole("button", { name: "Substituições" }),
+        screen.queryByRole("button", { name: /Substituições/ }),
       ).not.toBeInTheDocument();
     });
 
-    it("com `confirmados` casando por rótulo, mostra 'Substituições' por time e abre T11 ao clicar", async () => {
+    it("com `confirmados`, mostra 'Substituições — {label real}' por time e abre T11 ao clicar", async () => {
       vi.mocked(listarSubstituicoes).mockResolvedValue([]);
       vi.mocked(fetchAtletas).mockResolvedValue([]);
       const user = userEvent.setup();
       renderComponent({ confirmados: CONFIRMADOS });
 
-      const botoes = screen.getAllByRole("button", { name: "Substituições" });
-      expect(botoes).toHaveLength(2);
+      const botaoColete = screen.getByRole("button", { name: "Substituições — Colete" });
+      const botaoSemColete = screen.getByRole("button", {
+        name: "Substituições — Sem Colete",
+      });
+      expect(botaoColete).toBeInTheDocument();
+      expect(botaoSemColete).toBeInTheDocument();
 
-      await user.click(botoes[0]!);
+      await user.click(botaoColete);
 
       expect(
-        screen.getByRole("dialog", { name: "Substituições — Time A" }),
+        screen.getByRole("dialog", { name: "Substituições — Colete" }),
       ).toBeInTheDocument();
     });
   });

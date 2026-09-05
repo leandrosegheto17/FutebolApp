@@ -76,25 +76,31 @@ describe("PresencaMensal", () => {
     ).toBeInTheDocument();
   });
 
-  it("estado de sucesso: accordion com uma rodada por item, fechado por padrão, expondo presentes ao expandir", async () => {
+  it("estado de sucesso: mostra a lista de presentes de cada rodada diretamente, sem accordion (UX-SPEC.md Parte II Seção 2.3)", async () => {
     vi.mocked(fetchPresencaMensal).mockResolvedValue(ITEMS);
     render(<PresencaMensal />);
 
-    const trigger = await screen.findByRole("button", { name: /05\/.+· Presentes: 18/ });
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("João Pedro")).not.toBeInTheDocument();
-
-    await userEvent.click(trigger);
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    // As duas rodadas do mês aparecem de imediato, sem nenhum controle de
+    // expandir/recolher (nenhum `button`/`aria-expanded` por rodada).
+    expect(await screen.findByText("05/09")).toBeInTheDocument();
+    expect(screen.getByText("Presentes: 18")).toBeInTheDocument();
     expect(screen.getByText("João Pedro")).toBeInTheDocument();
     expect(screen.getByText("Carlinhos")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /05\/09/ }),
+    ).not.toBeInTheDocument();
 
-    // Rodada com zero presentes: painel trata explicitamente, não fica vazio.
-    const secondTrigger = screen.getByRole("button", { name: /12\/.+· Presentes: 0/ });
-    await userEvent.click(secondTrigger);
+    // Rodada com zero presentes: seção trata explicitamente, não fica vazia.
+    expect(screen.getByText("12/09")).toBeInTheDocument();
+    expect(screen.getByText("Presentes: 0")).toBeInTheDocument();
     expect(
       screen.getByText("Nenhum presente registrado nesta rodada."),
     ).toBeInTheDocument();
+
+    // Cada presente é anunciado como "Presente" via o mesmo `PresenceDot`
+    // reutilizado de T02 (FE-R02) — nome fica visível, o dot reforça
+    // visualmente sem duplicar o rótulo por leitor de tela (decorativo).
+    expect(screen.getAllByText("Presente").length).toBeGreaterThan(0);
 
     // Nunca solicita/renderiza contato ou data de nascimento (RN-01).
     expect(screen.queryByText(/contato/i)).not.toBeInTheDocument();
@@ -140,7 +146,7 @@ describe("PresencaMensal", () => {
   it("sem violação de acessibilidade (axe) no estado de sucesso", async () => {
     vi.mocked(fetchPresencaMensal).mockResolvedValue(ITEMS);
     const { container } = render(<PresencaMensal />);
-    await screen.findByRole("button", { name: /05\/.+· Presentes: 18/ });
+    await screen.findByText("Presentes: 18");
     expect(await axe(container)).toHaveNoViolations();
   });
 

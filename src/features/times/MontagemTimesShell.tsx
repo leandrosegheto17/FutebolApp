@@ -13,6 +13,8 @@ import {
 import { ROUTES } from "@/lib/routes";
 import { SessionExpiredError, useHandleSessionExpired } from "@/features/sessao";
 import { formatDataExibicao } from "@/features/rodadas/format";
+import { listarRestricoes } from "@/features/restricoes/restricoesApi";
+import type { Restricao } from "@/features/restricoes/types";
 import { PresencaSelecao } from "./PresencaSelecao";
 import { TimesResultado } from "./TimesResultado";
 import {
@@ -96,6 +98,17 @@ export function MontagemTimesShell() {
    * ainda não confirmada, que o servidor desconhece).
    */
   const [confirmados, setConfirmados] = useState<TimesConfirmados | null>(null);
+  /**
+   * Restrições ativas do grupo (`GET /api/restricoes`, BE-12) — só
+   * alimentam o banner "✓ Restrição respeitada" (`TimesResultado.tsx`,
+   * UX-SPEC.md Parte II Seção 2.6, correção 4), nunca a heurística de
+   * montagem em si (`ADR-007`/`ADR-010` inalterados). Decisão de detalhe
+   * (documentada, não escalada): carregada junto com a rodada/presentes,
+   * mas com tratamento de erro isolado — uma falha aqui não deve impedir o
+   * fluxo principal de T09 (gerar/confirmar times), só faz o banner nunca
+   * aparecer (`[]`), degradação aceitável para um dado auxiliar/explicativo.
+   */
+  const [restricoes, setRestricoes] = useState<Restricao[]>([]);
 
   const carregar = useCallback(() => {
     setCarregamento({ status: "carregando" });
@@ -121,6 +134,16 @@ export function MontagemTimesShell() {
           status: "erro",
           message: err instanceof Error ? err.message : RODADA_ATUAL_ERROR_MESSAGE,
         });
+      });
+    listarRestricoes()
+      .then(setRestricoes)
+      .catch((err) => {
+        if (err instanceof SessionExpiredError) {
+          handleSessionExpired();
+          return;
+        }
+        // Degradação silenciosa deliberada — ver comentário do estado `restricoes` acima.
+        setRestricoes([]);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleSessionExpired, router, showToast]);
@@ -284,15 +307,25 @@ export function MontagemTimesShell() {
       )}
 
       {fase === "resultado" && times && (
-        <TimesResultado
-          times={times}
-          onSwap={handleSwap}
-          onConfirmar={handleConfirmar}
-          confirmando={confirmando}
-          origemFallback={origemFallback}
-          rodadaId={rodada.id}
-          confirmados={confirmados}
-        />
+        <>
+          {/* "Novo sorteio" (correção 5, Seção 2.6) reusa `handleGerar` — uma
+              falha aqui (ex.: timeout do backtracking) precisa de feedback
+              visível também nesta fase, não só na fase "selecao" (onde
+              `PresencaSelecao` já mostra `erroGeracao` internamente). */}
+          {erroGeracao && <AlertBanner variant="danger">{erroGeracao}</AlertBanner>}
+          <TimesResultado
+            times={times}
+            onSwap={handleSwap}
+            onConfirmar={handleConfirmar}
+            confirmando={confirmando}
+            origemFallback={origemFallback}
+            rodadaId={rodada.id}
+            confirmados={confirmados}
+            restricoes={restricoes}
+            onNovoSorteio={handleGerar}
+            novoSorteioCarregando={gerando}
+          />
+        </>
       )}
     </div>
   );

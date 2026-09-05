@@ -26,3 +26,7 @@ export * from "./AppNav";
 export * from "./SessionExpiryBanner";
 export * from "./Icon";
 export * from "./BrandCrest";
+export * from "./MedalBadge";
+export * from "./PresenceDot";
+export * from "./PitchBackground";
+export * from "./PlayerChip";

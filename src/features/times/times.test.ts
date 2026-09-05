@@ -3,8 +3,13 @@ import {
   QUANTIDADE_TIMES,
   buildConfirmarTimesInput,
   buildRoundRobinTimes,
+  formatDiferenca,
+  formatTitulares,
   labelParaIndice,
+  posicaoDecorativa,
   recomputeTeamStats,
+  restricoesRespeitadas,
+  sumNivelTecnico,
   swapAtletas,
 } from "./times";
 import type { AtletaMontado, TimeMontado } from "./types";
@@ -26,9 +31,9 @@ describe("QUANTIDADE_TIMES", () => {
 });
 
 describe("labelParaIndice", () => {
-  it("índice 0 -> 'Time A', índice 1 -> 'Time B'", () => {
-    expect(labelParaIndice(0)).toBe("Time A");
-    expect(labelParaIndice(1)).toBe("Time B");
+  it("índice 0 -> 'Colete', índice 1 -> 'Sem Colete' (UX-SPEC.md Parte II Seção 2.6)", () => {
+    expect(labelParaIndice(0)).toBe("Colete");
+    expect(labelParaIndice(1)).toBe("Sem Colete");
   });
 
   it("continua a sequência de letras para índices maiores (Backend já paramétrico em N)", () => {
@@ -167,8 +172,137 @@ describe("buildConfirmarTimesInput", () => {
       },
     ]);
     expect(input).toEqual([
-      { label: "Time A", atletas_ids: ["1", "2"] },
-      { label: "Time B", atletas_ids: ["3"] },
+      { label: "Colete", atletas_ids: ["1", "2"] },
+      { label: "Sem Colete", atletas_ids: ["3"] },
     ]);
+  });
+});
+
+describe("sumNivelTecnico", () => {
+  it("soma (não a média) o nível técnico dos atletas do time", () => {
+    expect(sumNivelTecnico([atleta({ nivel_tecnico: 6 }), atleta({ nivel_tecnico: 4 })])).toBe(
+      10,
+    );
+  });
+
+  it("exclui nivel_tecnico `null` do cálculo, nunca trata como 0", () => {
+    expect(
+      sumNivelTecnico([
+        atleta({ nivel_tecnico: 6 }),
+        atleta({ nivel_tecnico: null }),
+        atleta({ nivel_tecnico: 4 }),
+      ]),
+    ).toBe(10);
+  });
+
+  it("devolve `null` quando nenhum atleta tem o dado (fallback de 'Gerar mesmo assim')", () => {
+    expect(
+      sumNivelTecnico([atleta({ nivel_tecnico: null }), atleta({ nivel_tecnico: null })]),
+    ).toBeNull();
+  });
+
+  it("time vazio devolve `null`", () => {
+    expect(sumNivelTecnico([])).toBeNull();
+  });
+});
+
+describe("formatDiferenca", () => {
+  it("formata a diferença absoluta em pt-BR (vírgula decimal) com sufixo opcional", () => {
+    expect(formatDiferenca(62, 59, 0)).toBe("3");
+    expect(formatDiferenca(27.9, 26.5, 1, "a")).toBe("1,4a");
+  });
+
+  it("ordem dos argumentos não importa (valor absoluto)", () => {
+    expect(formatDiferenca(59, 62, 0)).toBe("3");
+  });
+
+  it("'—' (nunca um número inventado) quando qualquer lado é `null`", () => {
+    expect(formatDiferenca(null, 59, 0)).toBe("—");
+    expect(formatDiferenca(62, null, 0)).toBe("—");
+  });
+});
+
+describe("formatTitulares", () => {
+  it("formata a contagem de atletas de cada time como 'N×N'", () => {
+    const times: TimeMontado[] = [
+      { indice: 0, atletas: [atleta(), atleta()], nivel_tecnico_medio: 5, idade_media: 20 },
+      { indice: 1, atletas: [atleta()], nivel_tecnico_medio: 5, idade_media: 20 },
+    ];
+    expect(formatTitulares(times)).toBe("2×1");
+  });
+});
+
+describe("posicaoDecorativa", () => {
+  it("é determinística e cíclica — sem lógica de posicionamento real (ADR-014/RF-D01.2)", () => {
+    expect(posicaoDecorativa(0)).toBe(posicaoDecorativa(0));
+    expect(typeof posicaoDecorativa(5)).toBe("string");
+  });
+});
+
+describe("restricoesRespeitadas", () => {
+  const times: TimeMontado[] = [
+    { indice: 0, atletas: [atleta({ atleta_id: "1" })], nivel_tecnico_medio: 5, idade_media: 20 },
+    { indice: 1, atletas: [atleta({ atleta_id: "2" })], nivel_tecnico_medio: 5, idade_media: 20 },
+  ];
+
+  it("restrição ativa com os dois atletas em times diferentes é 'respeitada'", () => {
+    const resultado = restricoesRespeitadas(times, [
+      {
+        ativo: true,
+        atleta_a_id: "1",
+        atleta_a_nome: "Wesley",
+        atleta_b_id: "2",
+        atleta_b_nome: "Anderson",
+      },
+    ]);
+    expect(resultado).toEqual([{ atletaANome: "Wesley", atletaBNome: "Anderson" }]);
+  });
+
+  it("restrição inativa nunca é reportada, mesmo satisfeita", () => {
+    const resultado = restricoesRespeitadas(times, [
+      {
+        ativo: false,
+        atleta_a_id: "1",
+        atleta_a_nome: "Wesley",
+        atleta_b_id: "2",
+        atleta_b_nome: "Anderson",
+      },
+    ]);
+    expect(resultado).toEqual([]);
+  });
+
+  it("restrição com os dois atletas no MESMO time não é reportada (violada, não respeitada)", () => {
+    const mesmoTime: TimeMontado[] = [
+      {
+        indice: 0,
+        atletas: [atleta({ atleta_id: "1" }), atleta({ atleta_id: "2" })],
+        nivel_tecnico_medio: 5,
+        idade_media: 20,
+      },
+      { indice: 1, atletas: [], nivel_tecnico_medio: null, idade_media: null },
+    ];
+    const resultado = restricoesRespeitadas(mesmoTime, [
+      {
+        ativo: true,
+        atleta_a_id: "1",
+        atleta_a_nome: "Wesley",
+        atleta_b_id: "2",
+        atleta_b_nome: "Anderson",
+      },
+    ]);
+    expect(resultado).toEqual([]);
+  });
+
+  it("restrição cujos atletas não estão na divisão atual (ausentes) é ignorada, nunca reportada", () => {
+    const resultado = restricoesRespeitadas(times, [
+      {
+        ativo: true,
+        atleta_a_id: "id-fora-da-rodada",
+        atleta_a_nome: "Fulano",
+        atleta_b_id: "2",
+        atleta_b_nome: "Anderson",
+      },
+    ]);
+    expect(resultado).toEqual([]);
   });
 });

@@ -61,6 +61,15 @@
   }
 }
 
+/* Nota para a futura repintura deste componente em `--color-brand-navy`
+   (UX-SPEC.md Parte II Seção 6.2-R, "Navegação interna... apenas repintada em
+   navy" — ainda não implementada por nenhuma tarefa FE-R0x até esta auditoria
+   FE-R12, 2026-09-04): o `:focus-visible` global (`app/globals.css`, verde,
+   `--color-focus-ring`) precisará de um override local aqui dentro para
+   `--color-focus-ring-on-dark` nesse momento — verde sobre navy reprova WCAG
+   1.4.11 (2,45:1, UX-SPEC.md Parte II Seção 5.3, regra 2). Não aplicado agora
+   porque o fundo deste componente ainda é `--color-bg` (claro), não navy. */
+
 .topNavLinks {
   display: flex;
   gap: var(--spacing-2);

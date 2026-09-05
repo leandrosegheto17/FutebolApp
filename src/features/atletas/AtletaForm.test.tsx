@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { ToastProvider } from "@/components/ui";
-import { SessionExpiredError } from "@/features/sessao";
+import { SessionExpiredError, takeUnsavedData } from "@/features/sessao";
 import { AtletaForm } from "./AtletaForm";
 import {
   AtletaDuplicidadeError,
@@ -234,12 +234,29 @@ describe("AtletaForm — criação (núcleo)", () => {
     const user = userEvent.setup();
     renderForm();
     await fillMinimalCreateForm(user);
+    await user.type(screen.getByLabelText("Contato"), "11988887777");
     await user.click(screen.getByRole("button", { name: "Salvar Atleta" }));
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalled());
     expect(
       screen.getByText("Sessão expirada, faça login novamente."),
     ).toBeInTheDocument();
+  });
+
+  it("401 ao salvar: rascunho preservado nunca inclui contato/data_nascimento (DEBT-10, SECURITY-REVIEW.md)", async () => {
+    vi.mocked(createAtleta).mockRejectedValue(new SessionExpiredError());
+    const user = userEvent.setup();
+    renderForm();
+    await fillMinimalCreateForm(user);
+    await user.type(screen.getByLabelText("Contato"), "11988887777");
+    await user.click(screen.getByRole("button", { name: "Salvar Atleta" }));
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalled());
+    const rascunho = takeUnsavedData<Record<string, unknown>>("/atletas/atleta-1");
+    expect(rascunho).not.toBeNull();
+    expect(rascunho).not.toHaveProperty("contato");
+    expect(rascunho).not.toHaveProperty("data_nascimento");
+    expect(rascunho).toMatchObject({ nome_completo: "João Pedro" });
   });
 
   it("sem violação de acessibilidade (axe)", async () => {

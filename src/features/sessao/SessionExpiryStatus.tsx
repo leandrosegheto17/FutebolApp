@@ -15,6 +15,21 @@ import { useSessionExpiryWarning } from "./useSessionExpiryWarning";
  * Nenhuma tela individual deve montar este componente por conta própria
  * (evita timers duplicados e reforça GUARDRAILS.md regra 31 — um único
  * componente reutilizado, nunca uma variação paralela por tela).
+ *
+ * **Auditoria FE-R12** (`TASK.md` Parte II, Seção 3.2 — reestimativa de
+ * `FE-12` pós-`FE-R00`): `InternalShell` monta este componente como irmão do
+ * `AppNav`, antes dele (`<SessionExpiryStatus /><AppNav .../>`), dentro do
+ * fundo claro (`--color-bg`) da própria casca — nunca dentro do `TopNav`/hero
+ * navy. Confirmado por varredura de código em 2026-09-04 (nenhum uso de
+ * `--color-brand-navy`/`--color-brand-navy-strong` fora de `tokens.css` e do
+ * preenchimento interno do SVG de `BrandCrest`): nenhuma tela real hoje expõe
+ * este banner sobre chrome navy, então nenhuma mudança de
+ * `--color-focus-ring` para `--color-focus-ring-on-dark` foi necessária aqui
+ * (ver detalhe em `AlertBanner.tsx`, componente usado por baixo deste). Se o
+ * futuro repintado de `AppNav`/`TopNav` para navy (UX-SPEC.md Parte II Seção
+ * 6.2-R) vier a mover este banner para dentro do chrome navy, esta nota deixa
+ * de valer e o par precisa ser recalculado (UX-SPEC.md Parte II Seção 5.3,
+ * regra 2).
  */
 export function SessionExpiryStatus() {
   const { warningVisible, dismissWarning } = useSessionExpiryWarning();

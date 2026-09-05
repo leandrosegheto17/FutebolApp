@@ -1,0 +1,32 @@
+.dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+/* Presente — fundo/texto verde (alias de success, UX-SPEC.md Parte II Seção
+   2.2/3.1: mesmo par usado pelo estado "ok" em outras telas). */
+.presente {
+  background: var(--color-pitch-bg);
+  color: var(--color-primary);
+}
+
+/* Ausente — "neutro-claro", nunca a mesma cor de presente/lesionado (1.4.1). */
+.ausente {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+}
+
+/* Lesionado — mesmo par de `--color-warning`/`-bg` já usado por Badge. */
+.lesionado {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}

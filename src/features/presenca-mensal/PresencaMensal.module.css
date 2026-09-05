@@ -1,18 +1,27 @@
 /*
- * T03 — Presença Mensal (UX-SPEC.md Seção 2/6.2).
+ * T03 — Presença Mensal, redesenho visual (UX-SPEC.md Parte II Seção 2.3/6;
+ * TASK.md Parte II Seção 3.2, FE-R03).
+ *
+ * Repintura de tokens (herda a nova paleta/tipografia de FE-R00
+ * automaticamente — nenhuma variável CSS mudou de nome, só de valor): os
+ * seletores/tokens usados aqui (`--spacing-*`, `--font-size-*`,
+ * `--color-text*`, `--color-border`, `--color-surface`, `--radius-lg`,
+ * `--font-family-mono`) são os mesmos já usados por `RankingList.module.css`
+ * (T02, FE-R02) para o mesmo tipo de elemento (cartão com borda/superfície,
+ * data em fonte mono, legenda com dot), garantindo paridade visual entre as
+ * duas telas do par T02/T03 sem duplicar decisão de estilo.
  *
  * Mobile-first (`base` < 640px, TASK.md Seção 1.6): navegador de mês em uma
- * linha + accordion vertical por rodada, exatamente o wireframe da Seção 2.
- * `lg` (Seção 6.2: "pode exibir em grade de mês... mesma informação, layout
- * mais denso") é tratado como melhoria OPCIONAL ("pode", não "deve") — nesta
- * implementação o accordion vertical é mantido em todos os breakpoints
- * (decisão de detalhe documentada em PresencaMensal.tsx/nota de status do
- * TASK.md): satisfaz o critério de aceite literal ("accordion de presentes
- * por rodada") em qualquer largura, sem inventar uma segunda representação
- * visual (grade de calendário) que a Seção 2/critério de aceite não exigem
- * como obrigatória — solução mais simples que já satisfaz o requisito
- * (TASK.md Seção 1.0), reforçando a densidade só via largura máxima de
- * conteúdo em `lg`, não via redesenho de layout.
+ * linha + lista vertical de cartões por rodada, cada um já mostrando a lista
+ * de presentes diretamente (sem accordion/expandir — UX-SPEC.md Parte II
+ * Seção 2.3, "Accordion deixa de ser necessário", ver PresencaMensal.tsx).
+ * `lg` (Seção 6.2 da Parte I: "pode exibir em grade de mês... mesma
+ * informação, layout mais denso") permanece tratado como melhoria OPCIONAL
+ * ("pode", não "deve") — mesma decisão de detalhe já documentada na versão
+ * anterior deste arquivo, agora reforçada pela própria composição do mockup
+ * real (Seção 2.3), que não desenha uma grade de calendário para T03: a
+ * densidade em `lg` vem só de largura máxima de conteúdo, não de um layout
+ * de calendário novo.
  */
 
 .navigator {
@@ -42,10 +51,45 @@
   align-items: flex-start;
 }
 
-.presentesList {
+.roundList {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: var(--spacing-3);
+  margin: 0 0 var(--spacing-4);
+  padding: 0;
+  list-style: none;
+}
+
+.roundCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--spacing-3) var(--spacing-4);
+}
+
+.roundHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-2);
+}
+
+.roundDate {
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.roundCount {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.presentesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -53,10 +97,47 @@
   color: var(--color-text);
 }
 
+.presenteItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.presenteDot {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  font-size: 0.7rem;
+}
+
 .emptyPresentes {
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.legendDot {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  font-size: 0.7rem;
 }
 
 /* ---- lg (>=1024px, UX-SPEC.md Seção 6.1): mesmo layout, mais denso ------ */
@@ -73,7 +154,6 @@
   }
 
   .presentesList {
-    columns: 2;
-    column-gap: var(--spacing-6);
+    gap: var(--spacing-2) var(--spacing-6);
   }
 }

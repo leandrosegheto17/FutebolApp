@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Turma do Rola - Comary — Contrato de API
-  version: 0.12.0
+  version: 0.14.0
   description: >-
     Contrato publicado incrementalmente, endpoint a endpoint, assim que cada
     contrato fica estável (TASK.md Seção 1.7 / GUARDRAILS.md regra implícita
@@ -15,13 +15,15 @@ info:
 
     Duas famílias de endpoint neste sistema:
       1. **PostgREST autogerado pelo Supabase** sobre as views públicas
-         curadas (`ranking_publico`, `presenca_mensal_publica`) — consumido
-         **diretamente** pelo Frontend com a chave `anon` do Supabase, sem
-         passar pela camada de API própria (SDD.md Seção 7.5, ADR-005). É o
-         único caso em que o Frontend fala com o Supabase sem intermediação
-         de um Route Handler — decisão já tomada no SDD.md, não uma exceção
-         nova. Documentado aqui (paths desta seção) porque também é
-         superfície pública real, exposta à internet.
+         curadas (`ranking_publico`, `presenca_mensal_publica` e, a partir
+         da versão 0.13.0, `ranking_publico_recentes` — BE-R01, Iniciativa
+         de Redesenho Visual, consumida por `FE-R02`/T02 redesenhado) —
+         consumido **diretamente** pelo Frontend com a chave `anon` do
+         Supabase, sem passar pela camada de API própria (SDD.md Seção 7.5,
+         ADR-005). É o único caso em que o Frontend fala com o Supabase sem
+         intermediação de um Route Handler — decisão já tomada no SDD.md,
+         não uma exceção nova. Documentado aqui (paths desta seção) porque
+         também é superfície pública real, exposta à internet.
       2. **Route Handlers do Next.js (App Router)**, publicados a partir de
          BE-04 em diante — toda escrita e toda leitura autenticada da área
          interna. `POST /api/auth/login`/`POST /api/auth/logout` (BE-04),
@@ -59,9 +61,12 @@ info:
          estrutural deixada por BE-08/BE-09/BE-10, nenhuma das três cobria
          LEITURA de listagem/detalhe de rodada; fechada por decisão
          explícita do usuário ao identificar o bloqueio de `FE-06`/`FE-07`,
-         leitura pura, sem função PL/pgSQL nova) — mudanças puramente
-         aditivas, nenhum contrato já publicado foi alterado de forma
-         incompatível, `api-contract-design`.
+         leitura pura, sem função PL/pgSQL nova) e, a partir desta versão
+         (0.14.0), `RodadaResumoItem` (`GET /api/rodadas`) ganhou os campos
+         `confronto`/`status_correcao` (BE-R02, TASK.md Parte II Seção 3.1 —
+         Iniciativa de Redesenho Visual, para consumo de `FE-R06`/T06
+         redesenhado) — mudanças puramente aditivas, nenhum contrato já
+         publicado foi alterado de forma incompatível, `api-contract-design`.
          Toda rota de escrita desta família reutiliza
          a resposta `401` reutilizável `#/components/responses/SessaoInvalida`
          definida aqui, emitida pelo middleware de sessão (`middleware.ts`)
@@ -201,6 +206,93 @@ components:
           presencas,
           cartoes,
           ausencias,
+        ]
+      additionalProperties: false
+    RodadaRecenteStatus:
+      type: object
+      description: >-
+        Um elemento do array `rodadas_recentes` de `RankingPublicoRecentesItem`
+        (BE-R01) — uma rodada lançada em que o atleta tem participação
+        registrada.
+      properties:
+        rodada_id:
+          type: string
+          format: uuid
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [presente, ausente, lesionado]
+          description: Valor literal de `participacao_rodada.status` (RF-02.3/RF-02.6).
+      required: [rodada_id, data, status]
+      additionalProperties: false
+    RankingPublicoRecentesItem:
+      type: object
+      description: >-
+        Uma linha da view `app.ranking_publico_recentes` (BE-R01, TASK.md
+        Parte II Seção 3.1, migration
+        `20260904090000_create_ranking_publico_recentes_view.sql`) —
+        consumida por `FE-R02` (T02 redesenhado) para a matriz atleta ×
+        últimas rodadas + painel "Resumo da temporada". View NOVA e
+        aditiva, não substitui nem altera `RankingPublicoItem`/
+        `ranking_publico` (BE-03), que continua publicada como está. Nunca
+        inclui `contato`/`data_nascimento` (RN-01/ADR-005) — garantido no
+        próprio banco. **Não inclui** nenhum campo de "próxima rodada"
+        (excluído do escopo desta tarefa, TASK.md Parte II Seção 6.1-R
+        item 1).
+      properties:
+        atleta_id:
+          type: string
+          format: uuid
+        nome_exibicao:
+          type: string
+          description: "`apelido_exibicao` do atleta (RN-06)."
+        rodadas_recentes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RodadaRecenteStatus"
+          description: >-
+            Últimas até `N = 7` rodadas lançadas em que o atleta tem
+            participação (janela própria por atleta via `ROW_NUMBER()
+            OVER (PARTITION BY atleta_id ORDER BY data_rodada DESC)`,
+            TASK.md Parte II Seção 6.2-R item 1/item 2 — N fixado pelo
+            Tech Lead) — ordenado da rodada mais recente para a mais
+            antiga. Pode ter menos de 7 elementos (atleta com poucas
+            rodadas registradas) ou array vazio (nenhuma rodada lançada
+            ainda para este atleta). Nunca inclui rodada com
+            `status = 'excluida'`.
+        rodadas_jogadas:
+          type: integer
+          description: >-
+            Estatística de **GRUPO**, não do atleta individual
+            (`UX-SPEC.md` Parte II Seção 2.2: "3 estatísticas agregadas do
+            grupo, não do atleta individual") — contagem total de rodadas
+            com `status = 'lancada'` no sistema inteiro. **Repete o mesmo
+            valor em toda linha da view**; alimenta diretamente o
+            indicador "Rodadas jogadas" do painel "Resumo da temporada".
+        media_presenca:
+          type: number
+          description: >-
+            Estatística de **GRUPO**, mesma justificativa de
+            `rodadas_jogadas` acima — soma de participações com
+            `status = 'presente'` de todos os atletas ativos em rodada
+            `lancada`, dividida por (número de atletas ativos ×
+            `rodadas_jogadas`), em percentual, arredondado a 1 casa
+            decimal (`0` quando `rodadas_jogadas = 0` ou não há atleta
+            ativo). `status = 'lesionado'` não conta (mesma decisão já
+            aprovada para `RankingPublicoItem.presencas`, SDD.md Seção
+            5.1 — lesão só é equiparada a presença para efeito de
+            PONTOS, não desta métrica de exibição). **Repete o mesmo
+            valor em toda linha da view**; alimenta o indicador "Média de
+            presença" do painel "Resumo da temporada".
+      required:
+        [
+          atleta_id,
+          nome_exibicao,
+          rodadas_recentes,
+          rodadas_jogadas,
+          media_presenca,
         ]
       additionalProperties: false
     PresencaMensalPublicaItem:
@@ -1524,7 +1616,10 @@ components:
         o bloqueio de `FE-06`. `presentes` é o único campo além dos já
         publicados por `RodadaResponse`/`RodadaExcluidaResponse`
         (`id`/`data`/`status`/`criado_em`), literal do wireframe T06
-        ("19/09/2026 · 18 presentes").
+        ("19/09/2026 · 18 presentes"). A partir da versão 0.14.0, `confronto`/
+        `status_correcao` (BE-R02, TASK.md Parte II Seção 3.1 — Iniciativa de
+        Redesenho Visual) acrescentam "Confronto"/"Status" de T06 redesenhado
+        (`UX-SPEC.md` Parte II Seção 2.5), consumidos por `FE-R06`.
       properties:
         id:
           type: string
@@ -1542,7 +1637,9 @@ components:
             desativada em `RestricaoObrigatoriaResponse`/T10, BE-12: o
             histórico permanece visível, quem decide o que fazer com uma
             rodada excluída na tela é o Frontend, não uma omissão do
-            Backend).
+            Backend). NÃO confundir com `status_correcao` (campo novo,
+            BE-R02, ver abaixo) — este `status` é o ciclo de vida de
+            `app.rodada` ("lancada"/"excluida"), eixo independente.
         criado_em:
           type: string
           format: date-time
@@ -1554,7 +1651,55 @@ components:
             usada por `RankingPublicoItem.presencas`, BE-03/BLOCKER-005,
             embora aqui sem o filtro de `status = "lancada"` da rodada, já
             que rodada `excluida` também aparece nesta listagem).
-      required: [id, data, status, criado_em, presentes]
+        confronto:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ConfrontoRodada"
+          description: >-
+            Placar agregado de pontos de gol por time daquela rodada
+            (BE-R02) — via `app.time_atleta` + `app.evento_jogo` (tipo
+            "gol") dos atletas de cada time, multiplicado pelo valor vigente
+            do evento "gol" em `app.configuracao_pontuacao` na data da
+            rodada. `null` quando a rodada não tem exatamente 2 `app.time`
+            persistidos — comportamento **padrão e esperado** para TODA
+            rodada de origem legado (`SPK-02`, TASK.md Parte II Seção 2:
+            `BE-15` decidiu não migrar `app.time`/`app.time_atleta` por
+            cobertura de dado insuficiente no legado real — `time` livre
+            preenchido em ~2,9% das linhas e `gols_marcados` zero em 100% da
+            amostra), nunca um erro. Times mapeados posicionalmente para
+            `colete`/`sem_colete` (não pelo texto de `app.time.label`, ainda
+            "Time A"/"Time B" nesta release — a renomeação real para
+            "Colete"/"Sem Colete" é escopo de `FE-R09`/T09).
+        status_correcao:
+          type: string
+          enum: [encerrada, corrigida]
+          description: >-
+            "corrigida" quando existe ao menos uma entrada em
+            `app.log_auditoria` para esta rodada (RF-04.4, sem distinguir
+            `tipo_evento` — tanto uma correção de participação quanto um
+            estorno/exclusão contam), "encerrada" caso contrário (TASK.md
+            Parte II Seção 6.2-R item 5). Campo NOVO, deliberadamente não
+            chamado `status` — esse nome já é usado neste mesmo schema com
+            um significado incompatível (ciclo de vida de `app.rodada`, ver
+            `status` acima); nenhum campo publicado anteriormente foi
+            renomeado/retipado.
+      required: [id, data, status, criado_em, presentes, confronto, status_correcao]
+      additionalProperties: false
+    ConfrontoRodada:
+      type: object
+      description: >-
+        Placar agregado de pontos de gol por time de uma rodada (BE-R02) —
+        ver `RodadaResumoItem.confronto`. Estrutura fixa de 2 times
+        (`ADR-007`/`ADR-010`: sempre exatamente 2 times por rodada quando
+        confirmados via `app.confirmar_times_rodada`, BE-13).
+      properties:
+        colete:
+          type: integer
+          description: Pontos de gol agregados do primeiro time (mapeamento posicional, ver `RodadaResumoItem.confronto`).
+        sem_colete:
+          type: integer
+          description: Pontos de gol agregados do segundo time (mapeamento posicional, ver `RodadaResumoItem.confronto`).
+      required: [colete, sem_colete]
       additionalProperties: false
     ErroConsultaRodadas:
       type: object
@@ -1675,6 +1820,44 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RankingPublicoItem"
+        "401":
+          description: >-
+            Chave `anon` ausente/inválida no header `apikey` (comportamento
+            padrão do PostgREST, não um caso de erro definido pela
+            aplicação).
+  /ranking_publico_recentes:
+    get:
+      tags: [publico]
+      summary: >-
+        Matriz de últimas N=7 rodadas por atleta + estatísticas de grupo
+        da temporada (T02 redesenhado, BE-R01/FE-R02)
+      description: >-
+        View nova e aditiva (não substitui `/ranking_publico`, BE-03, que
+        continua publicada como está — este endpoint existe especificamente
+        para o T02 redesenhado, `FE-R02`). `rodadas_recentes` varia por
+        atleta (última janela de até 7 rodadas lançadas em que ele tem
+        participação); `rodadas_jogadas`/`media_presenca` são estatísticas
+        de GRUPO e por isso vêm com o MESMO valor em toda linha retornada
+        — o Frontend pode ler qualquer uma delas (ex.: a primeira do array)
+        para preencher o painel "Resumo da temporada". Não inclui nenhum
+        campo de "próxima rodada" (fora de escopo, TASK.md Parte II Seção
+        6.1-R item 1).
+      operationId: getRankingPublicoRecentes
+      security:
+        - supabaseAnonKey: []
+      responses:
+        "200":
+          description: >-
+            Lista de atletas ativos (ordem alfabética por nome de exibição;
+            a ordenação de exibição do ranking em si continua vindo de
+            `/ranking_publico`, este endpoint é consumido apenas pela
+            matriz/painel de T02, não redefine a ordem de classificação).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingPublicoRecentesItem"
         "401":
           description: >-
             Chave `anon` ausente/inválida no header `apikey` (comportamento
@@ -3180,3 +3363,73 @@ x-changelog:
       racional já usado para `restricao_obrigatoria` desativada em T10/
       `BE-12`). Mudança puramente aditiva — nenhum contrato existente
       alterado de forma incompatível.
+  - version: 0.13.0
+    data: "2026-09-04"
+    tarefa: "BE-R01 (TASK.md Parte II Seção 3.1, Iniciativa de Redesenho Visual)"
+    mudanca: >-
+      Novo endpoint PostgREST `GET /ranking_publico_recentes`, view pública
+      curada nova `app.ranking_publico_recentes` (migration
+      `20260904090000_create_ranking_publico_recentes_view.sql`), para
+      consumo de `FE-R02` (T02 redesenhado — matriz atleta × últimas
+      rodadas + painel "Resumo da temporada"). Schemas novos
+      `RankingPublicoRecentesItem`/`RodadaRecenteStatus`. Não altera nem
+      substitui `/ranking_publico`/`RankingPublicoItem` (BE-03) — mudança
+      puramente aditiva, view nova ao lado da existente. Mecanismo:
+      `ROW_NUMBER() OVER (PARTITION BY atleta_id ORDER BY data_rodada
+      DESC)` limitado a N=7 (TASK.md Parte II Seção 6.2-R itens 1/2), uma
+      janela própria por atleta (não um conjunto fixo de datas
+      compartilhado). `rodadas_jogadas`/`media_presenca` são estatísticas
+      de GRUPO, não do atleta individual (`UX-SPEC.md` Parte II Seção
+      2.2) — mesmo valor repetido em toda linha. **Não inclui** nenhum
+      campo de "próxima rodada" — excluído do escopo explicitamente
+      (TASK.md Parte II Seção 6.1-R item 1, lacuna estrutural escalada ao
+      Software Architect/BA/PM, não decidida por Backend). Mesma garantia
+      de RLS/ADR-005 já aplicada às demais views públicas — nunca
+      seleciona `contato`/`data_nascimento`; exclui atleta
+      anonimizado/inativo (ADR-011) e rodada com `status = 'excluida'`.
+  - version: 0.14.0
+    data: "2026-09-04"
+    tarefa: "BE-R02 (TASK.md Parte II Seção 3.1, Iniciativa de Redesenho Visual)"
+    mudanca: >-
+      `RodadaResumoItem` (`GET /api/rodadas`, BE-16) ganha dois campos novos
+      — `confronto`/`status_correcao` — para consumo de `FE-R06` (T06
+      redesenhado, `UX-SPEC.md` Parte II Seção 2.5). Schema novo
+      `ConfrontoRodada` (`{ colete: integer, sem_colete: integer }`). Cálculo
+      inteiramente em memória dentro do próprio endpoint (consultas em lote
+      a `app.time`/`app.time_atleta`/`app.participacao_rodada`/
+      `app.evento_jogo`/`app.configuracao_pontuacao`/`app.log_auditoria`,
+      `src/modules/rodadas/confronto.ts` + `repository.ts` + `listar.ts`) —
+      nenhuma tabela/coluna/view/função PL/pgSQL nova, conforme critério de
+      aceite literal ("cálculo por JOIN/subquery no próprio endpoint").
+      `confronto`: soma, por time, de `quantidade de gols do atleta na
+      rodada × valor vigente do evento "gol" em app.configuracao_pontuacao
+      na data da rodada`; `null` quando a rodada não tem exatamente 2
+      `app.time` persistidos — comportamento **padrão e esperado** para toda
+      rodada de origem legado, confirmado por `SPK-02` (TASK.md Parte II
+      Seção 2, nota de conclusão do spike: `presencas_rodada.time`
+      preenchido em ~2,9% da amostra real e `gols_marcados` zero em 100%
+      dela — `BE-15` já havia decidido, de forma independente, não migrar
+      `app.time`/`app.time_atleta` por essa mesma cobertura insuficiente),
+      nunca um erro. Times mapeados posicionalmente para `colete`/
+      `sem_colete` por `label asc, id asc` (decisão de detalhe documentada
+      em `repository.ts`: `criado_em` não serve de critério de ordenação
+      porque `app.confirmar_times_rodada`, BE-13, insere todos os times de
+      uma rodada na MESMA transação PL/pgSQL, logo com `criado_em`
+      idêntico entre si) — não uma correspondência semântica real a
+      "Colete"/"Sem Colete" (essa renomeação de `app.time.label` é escopo de
+      `FE-R09`/T09, ainda não implementada). `status_correcao`: `"corrigida"`
+      quando existe ao menos uma entrada em `app.log_auditoria` para a
+      rodada (RF-04.4, sem distinguir `tipo_evento` — correção e
+      estorno/exclusão contam igualmente, leitura literal do critério de
+      aceite), `"encerrada"` caso contrário (TASK.md Parte II Seção 6.2-R
+      item 5). **Decisão de nomenclatura (pequeno desvio resolvido e
+      documentado, não escalado)**: o critério de aceite literal desta
+      tarefa nomeia esse campo `status`, mas `RodadaResumoItem.status` já é
+      publicado desde a versão 0.12.0 (BE-16) com um significado
+      INCOMPATÍVEL (`"lancada" | "excluida"`, ciclo de vida de `app.rodada`,
+      consumido por `FE-06`/Parte I — `src/features/historico/`
+      `RodadaListItem.tsx`); reaproveitar o nome trocando o tipo de valores
+      seria uma mudança de contrato incompatível disfarçada de aditiva —
+      por isso o campo novo chama-se `status_correcao`, e `status` permanece
+      inalterado. Mudança puramente aditiva sobre o restante do contrato —
+      nenhum campo publicado anteriormente foi removido/renomeado/retipado.

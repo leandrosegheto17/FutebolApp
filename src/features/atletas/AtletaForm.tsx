@@ -166,7 +166,18 @@ export function AtletaForm({ atletaId }: AtletaFormProps) {
       router.push(ROUTES.atletas);
     } catch (err) {
       if (err instanceof SessionExpiredError) {
-        handleSessionExpired({ unsavedData: body });
+        // DEBT-10 (SECURITY-REVIEW.md): nunca preservar contato/data_nascimento —
+        // whitelist explícita em vez de repassar `body` inteiro.
+        const { nome_completo, apelido_exibicao, pontuacao_inicial, consentimento_responsavel_obtido } =
+          body;
+        handleSessionExpired({
+          unsavedData: {
+            nome_completo,
+            apelido_exibicao,
+            pontuacao_inicial,
+            consentimento_responsavel_obtido,
+          },
+        });
         return;
       }
       if (err instanceof AtletaDuplicidadeError) {

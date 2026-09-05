@@ -36,6 +36,19 @@ gratuito do Supabase) foi confirmado **ativo por execução real**
 (`ACTIVE_HEALTHY`) — ver Seção 4/7.5/10 para o registro completo e as
 ressalvas do que ainda não foi testado (workflows de deploy/rollback
 governados, gate mecânico de dupla aprovação em execução real).
+**Atualização 2026-09-05 (Seção 7.7)**: primeira tentativa real (não simulada)
+de `deployment-execution` de staging para um lote da iniciativa "Redesenho
+Visual" (Lote RD0, `FE-R00`+`FE-R12`) — o commit já aprovado foi de fato
+enviado a `origin/main` (`git push`, antes travado nas tentativas de L0/L6
+por falta de commit) e disparou o `CI` real pela primeira vez desde a
+ativação dos secrets (Seção 7.5). Resultado: `CI` **falhou** (Format check +
+`npm audit --audit-level=high`), ambos **pré-existentes em `main` antes do
+Lote RD0** (confirmado por reprodução isolada), não uma regressão deste lote.
+`deploy-staging.yml` disparou e foi corretamente `skipped` pelo próprio
+design do pipeline. Mesmo se o `CI` passasse, staging seguiria bloqueado pela
+ausência já conhecida de projeto Supabase de staging dedicado (Seção 5.1).
+Três novos bloqueios registrados em `BLOCKERS.md` (`BLOCKER-007/008/009`).
+Nenhuma ação tocou produção. Ver Seção 7.7 para o registro completo.
 Este documento continuará a ser atualizado incrementalmente
 (`deployment-execution`, `observability-setup`,
 `non-functional-requirement-validation`, `deploy-report-drafting`).
@@ -275,6 +288,62 @@ criado com sucesso (ou recusado) pela plataforma.
   exige aprovação explícita do CTO (Guardrail 25/RNF-04). Se isso bloquear
   `QA-REPORT.md`, será registrado em `BLOCKERS.md` no momento em que a
   informação real estiver disponível.
+
+**Reconfirmado em 2026-09-05 (tentativa real de deploy do Lote RD0, Seção
+7.7)**: `npx supabase projects list` reexecutado — mesmo resultado de
+2026-09-03, apenas os 2 projetos já conhecidos (`futebol-ranking`, legado de
+produção; `mymoney`, não relacionado). A suposição desta seção segue **não
+confirmada nem negada**. Diferente das vezes anteriores, esta pendência agora
+bloqueou, de fato, uma tentativa real de deploy de staging (ainda que o
+bloqueio de `CI` — `BLOCKER-007`/`BLOCKER-008` — tenha ocorrido antes mesmo de
+chegar a este ponto do pipeline) — registrado formalmente como `BLOCKER-009`
+em `BLOCKERS.md`, escalado ao CTO/usuário-organizador para decisão.
+
+**Suposição resolvida — negativamente — em 2026-09-05 (autorização explícita
+recebida para criar o projeto de staging, verificação de custo executada
+antes de agir)**: o usuário/organizador autorizou explicitamente criar um
+segundo projeto Supabase gratuito dedicado a staging na mesma organização.
+Antes de criar, este agente verificou (não presumiu) se o tier gratuito
+comporta um 3º projeto:
+
+1. `npx supabase projects list` confirma que a organização
+   (`leandrosegheto17`, `lmjzszccfzkyacywphgc`) já tem **2 projetos ativos**:
+   `futebol-ranking` (produção, `ACTIVE_HEALTHY`) e `mymoney` (não
+   relacionado, `ACTIVE_HEALTHY`).
+2. Verificação externa (múltiplas fontes independentes, 2026) confirma que o
+   tier gratuito do Supabase permite **no máximo 2 projetos ativos por
+   organização** — o limite já está integralmente ocupado pelos dois
+   projetos existentes.
+3. Conclusão: **criar um 3º projeto agora exige custo real** (upgrade da
+   organização para o plano Pro, a partir de US$25/mês) **ou** pausar/excluir
+   `mymoney` (projeto de terceiro, não relacionado, fora da alçada deste
+   agente decidir sozinho). Nenhuma das duas ações está coberta pela
+   autorização recebida, que presumia criação gratuita.
+4. Conforme instrução explícita recebida junto da autorização, este agente
+   **parou e não criou o projeto** (nem tentou uma criação real — apenas uma
+   tentativa de checagem não-destrutiva via `supabase projects create`, sem
+   `--yes`, foi bloqueada preventivamente pelo classificador de segurança do
+   próprio ambiente de execução, por envolver efeito financeiro real).
+   **Nenhum recurso foi criado. `mymoney` não foi tocado.**
+5. Passos subsequentes (rodar migrations da schema `app` no projeto novo,
+   configurar `SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD`
+   via `gh secret set`, redisparar `deploy-staging.yml` para o Lote RD0)
+   **não foram executados** — dependem de um projeto existir. Nota adicional:
+   `gh` CLI não está disponível nesta sessão (`gh: command not found`); ainda
+   que o projeto existisse, os secrets precisariam ser configurados
+   manualmente pelo usuário via GitHub (Settings → Secrets and variables →
+   Actions) ou em uma sessão com `gh` instalado/autenticado.
+6. Também confirmado nesta sessão: `BLOCKER-007`/`BLOCKER-008` (gates de CI)
+   seguem `Aberto` — mesmo que a decisão de custo abaixo fosse resolvida
+   agora, `deploy-staging.yml` para o Lote RD0 (`efaf297`) continuaria
+   bloqueado no gate de CI antes de chegar ao gate de secrets de staging.
+7. Decisão devolvida ao usuário/organizador (registrado como atualização de
+   `BLOCKER-009`, mantido `Status: Aberto`): (a) autorizar explicitamente o
+   upgrade pago da organização (Pro) só para viabilizar staging; (b)
+   autorizar explicitamente pausar/excluir `mymoney` para liberar a vaga
+   gratuita, se esse projeto não estiver mais em uso; ou (c) aceitar
+   formalmente que staging fique restrito a "CI efêmero apenas" (sem
+   ambiente navegável), registrando essa aceitação em `CTO-REVIEW.md`.
 
 ## 6. Validação contra Requisitos Não Funcionais (preliminar)
 
@@ -788,6 +857,153 @@ fato, Seção 7.5). Isso não é uma mudança de decisão de arquitetura, é o
 registro honesto do que de fato aconteceu duas vezes agora (Seção 7.3 e
 aqui).
 
+### 7.7 Lote RD0 — Staging — 2026-09-05 — Deploy real tentado (não simulado); bloqueado no gate de CI, antes mesmo do gate de secrets de staging já conhecido (Seção 5.1)
+
+**Gatilho**: `.claude/EXECUTION-FLOW.md` Seção 6 — deploy em staging dispara
+automaticamente por lote fechado, sem pausa. Lote RD0 (Fundação do Redesenho,
+`FE-R00`+`FE-R12`, iniciativa "Redesenho Visual", `TASK.md` Parte II) fechado
+com dupla aprovação (`EXECUTION-LOG.md`, entrada "Lote RD0": QA aprovado com
+ressalvas, DevSecOps aprovado, Tech Lead fechou o lote). Produção fora de
+escopo desta execução.
+
+**1. Estado inicial verificado antes de agir**: `git status`/`git log`
+mostraram `main` local 2 commits à frente de `origin/main` (`5c7bad0`,
+`efaf297`) — exatamente os 2 commits isolados de `FE-R00` citados em
+`EXECUTION-LOG.md` como o código do lote (Guardrail 38, commit isolado em 2
+partes); `FE-R12` não exigiu mudança de código (auditoria de contraste sem
+achado). Confirmado por `git log 40a6400..efaf297 --stat` que o diff desses 2
+commits toca só os arquivos esperados de `FE-R00` (`tokens.css`, `layout.tsx`,
+componentes `Icon`/`BrandCrest`, integração em `AppNav`) — nada de outra
+frente de trabalho em andamento misturado. As demais alterações do working
+tree no momento (múltiplos `.md` e módulos de outra frente, ex.
+`rodadas`/`ranking-publico-recentes`) permaneceram não commitadas e **não**
+fizeram parte deste push — `git push` só move commits já feitos, nunca o
+working tree.
+
+**2. Ação executada**: `git push origin main` (`40a6400..efaf297`). Tratado
+como ato mecânico de sincronizar commits já revisados, isolados e aprovados
+(não uma decisão de autoria de código nova) — é exatamente o "próximo passo"
+que faltava desde as tentativas de L0/L6 (Seções 7.1/7.2) para o mecanismo
+automático (`workflow_run` de `CI`) ter algo real sobre o que disparar.
+
+**3. Resultado real, verificado via API pública do GitHub (repositório
+`leandrosegheto17/FutebolApp` é público — consulta possível sem `gh`
+CLI/token, mesma limitação de ambiente já registrada em sessões anteriores)**:
+
+| Verificação | Resultado |
+|---|---|
+| `CI` (run `https://github.com/leandrosegheto17/FutebolApp/actions/runs/33941625740`, commit `efaf297`) | **failure** |
+| Job `build-and-test` | failure — passo "Format check" (`npm run format:check`) |
+| Job `Scan de segurança (segredos + dependências)` | failure — passo "Auditoria de dependências" (`npm audit --audit-level=high`) |
+| Job `Convenção de rollback de migrations` | success |
+| `Deploy Staging` (`deploy-staging.yml`, `workflow_run`) | **disparou de fato** (reagiu ao `CI` concluído), job `deploy-staging` **skipped** — comportamento de design correto (`if: github.event.workflow_run.conclusion == 'success'`), não falha silenciosa |
+
+**4. Investigação de causa raiz (para não atribuir a culpa ao Lote RD0 sem
+verificar)**: reproduzido em `git worktree` isolado (nunca tocou a árvore de
+trabalho principal deste agente nem o `working tree` com mudanças não
+commitadas de outra frente). Primeira tentativa de reprodução, com
+`core.autocrlf=true` (config global deste ambiente Windows), gerou um falso
+positivo de 414 arquivos com "erro de formatação" — descartado ao se
+confirmar que era pura conversão de line-ending local (`git show
+efaf297:<arquivo>` prova que o blob armazenado no Git é LF puro; o runner
+Ubuntu do GitHub Actions faz checkout LF, sem essa conversão). Refeito
+corretamente com `git -c core.autocrlf=false worktree add`, replicando o
+checkout do runner:
+
+- `npm run format:check` no worktree de `efaf297` (RD0) → **1 arquivo**:
+  `app/api/auth/__tests__/login.timing.test.ts`.
+- Mesmo teste no worktree do commit imediatamente anterior (`40a6400`,
+  `origin/main` antes deste push) → **idêntico**, mesmo arquivo, mesma falha.
+  Confirma que esta falha **já existia em `main` antes do Lote RD0** — o
+  arquivo foi introduzido pelo commit `56d9047` ("Retomar governança v1...",
+  2026-09-04), fora do escopo de `5c7bad0`/`efaf297`. **Não é uma regressão
+  de RD0.**
+- `npm audit --audit-level=high` no worktree de `efaf297` → 14
+  vulnerabilidades (1 crítica, 9 altas, 4 moderadas) em `next@14.2.35` e
+  dependências transitivas (`postcss`, `minimatch` via
+  `@typescript-eslint`).
+- Mesmo teste no worktree de `40a6400` → **resultado idêntico**, mesma
+  contagem. Confirma que o gate `npm audit --audit-level=high` já reprovava
+  `main` antes do Lote RD0 — consistente com o que DevSecOps já havia
+  confirmado por leitura de `git diff -- package.json package-lock.json`
+  (vazio) na própria entrada "Lote RD0" de `EXECUTION-LOG.md`: nenhuma
+  dependência nova neste lote.
+- Esta classe de achado é a mesma já rastreada como `DEBT-04`
+  (`SECURITY-REVIEW.md`), aceito como débito de severidade Média com prazo —
+  mas o gate mecânico do CI (`--audit-level=high`) não tem forma de reconhecer
+  essa aceitação: trata qualquer achado alto/crítico como falha dura. Esse
+  descompasso entre "débito de segurança aceito pela governança" e "gate
+  automático que não conhece essa aceitação" é, em si, um achado de
+  configuração de CI/CD pré-existente, não deste lote específico (registrado
+  como `BLOCKER-008`).
+
+**5. Verificação independente e ainda válida do bloqueio já conhecido (Seção
+5.1), reconfirmada agora, 2026-09-05**: `npx supabase projects list` (sessão
+CLI local ainda autenticada) — a organização continua com apenas 2 projetos:
+`futebol-ranking` (`ipnbdrejlikrmqyxggsp`, legado de produção, `ADR-002`) e
+`mymoney` (não relacionado). **Nenhum projeto de staging dedicado existe.**
+Mesmo que o `CI` acima passasse, `deploy-staging.yml` falharia de qualquer
+forma no passo "Verifica secrets obrigatórios" por ausência de
+`SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD` — confirmado por
+leitura do workflow; esses secrets nunca foram configurados (Seção 7.5, sem
+mudança desde então).
+
+**Por que este resultado não é simulado**: é a primeira vez que o mecanismo
+real (`git push` → `CI` real no GitHub → `workflow_run` → `deploy-
+staging.yml`) foi de fato exercitado ponta a ponta contra o repositório real
+— as tentativas anteriores (Seções 7.1/7.2) nunca chegaram a rodar por falta
+de commit/push. Desta vez rodou de verdade, e falhou de verdade, num ponto
+**anterior** ao já conhecido bloqueio de secrets de staging (gate de `CI`, não
+só o gate de secrets). Nenhum ambiente de staging foi declarado "no ar" sem
+evidência — não há build do Lote RD0 publicado em lugar nenhum (nem staging,
+nem produção).
+
+**O que este agente não fez, deliberadamente**:
+- Não editou `app/api/auth/__tests__/login.timing.test.ts` para corrigir a
+  formatação, nem alterou `package.json`/lockfile para tentar silenciar o
+  `npm audit`, nem afrouxou o gate `--audit-level=high` de `ci.yml`
+  unilateralmente — todas são mudanças de código/configuração fora do escopo
+  de `deployment-execution`: a primeira é território de quem introduziu o
+  arquivo (commit `56d9047`, fora do Lote RD0 sob revisão agora) e precisaria
+  passar pela mesma esteira de QA/DevSecOps antes de contar como parte de um
+  lote fechado; a segunda é uma decisão de aceitação de risco de segurança,
+  território de DevSecOps/CTO.
+- Não criou o projeto Supabase de staging dedicado, pela mesma cautela já
+  registrada na Seção 5.1 (decisão de infraestrutura real fora da alçada
+  unilateral deste agente).
+- Nenhuma ação tocou produção: `deploy-production.yml` não foi disparado;
+  nenhum `vercel alias`/promoção manual foi executado nesta sessão.
+
+**Registro formal do bloqueio**: `BLOCKERS.md`, `BLOCKER-007` (devops →
+backend, falha pré-existente de `Format check`), `BLOCKER-008` (devops →
+devsecops, descompasso `npm audit --audit-level=high` vs. `DEBT-04`
+aceito), `BLOCKER-009` (devops → cto, reconfirmação da pendência de projeto
+Supabase de staging dedicado, agora bloqueando uma tentativa real, não mais
+teórica).
+
+| Versão/Commit | Ambiente | Horário | Resultado |
+|---|---|---|---|
+| RD0 — `FE-R00`/`FE-R12` (`efaf297`, push real para `origin/main`) | Staging | 2026-09-05 | **Bloqueado no gate de CI (real, não simulado)** — `git push` disparou `CI` de verdade (run #9), que falhou em `Format check` e `npm audit --audit-level=high` (ambos pré-existentes em `main`, não introduzidos por RD0, confirmado por reprodução em worktree isolado contra o commit anterior); `Deploy Staging` disparou e foi corretamente `skipped` pelo próprio design do pipeline. Mesmo se o CI passasse, staging seguiria bloqueado por ausência de projeto Supabase de staging dedicado e dos secrets correspondentes (Seção 5.1, reconfirmado 2026-09-05). Nenhum incidente — nenhuma publicação real ocorreu em nenhum ambiente. |
+
+**Próximos passos (nenhum decidido unilateralmente por este agente)**:
+1. Backend/Tech Lead: `prettier --write
+   app/api/auth/__tests__/login.timing.test.ts` (ou revisão de conteúdo, se a
+   formatação divergente esconder algo além de estilo) e novo commit,
+   revisado pela mesma esteira de QA/DevSecOps — sem isso, `CI` continua
+   falhando para **qualquer** push em `main`, bloqueando todo deploy de
+   staging futuro, não só o de RD0 (`BLOCKER-007`).
+2. DevSecOps/CTO: decidir como tratar o descompasso entre `DEBT-04` (aceito,
+   Média) e o gate `npm audit --audit-level=high` do CI (falha dura) —
+   atualizar dependências ou ajustar o gate para reconhecer débito aceito com
+   prazo (`BLOCKER-008`).
+3. Usuário/organizador: decisão pendente desde a Seção 5.1 (2026-09-03) sobre
+   criar, ou não, um projeto Supabase de staging dedicado — sem isso, mesmo
+   com `CI` verde, `deploy-staging.yml` falha no passo de secrets
+   (`BLOCKER-009`).
+4. Após 1-3 resolvidos: reexecutar `deployment-execution` — o mecanismo
+   automático (`workflow_run` de `CI` bem-sucedido em `main`) dispara sozinho
+   no próximo push, sem nova pausa (conforme `EXECUTION-FLOW.md` Seção 6).
+
 ## 8. Incidentes Pós-Deploy
 
 **Reavaliado em 2026-09-04.** Não há, até o momento, sinal de incidente
@@ -1027,6 +1243,21 @@ confirmada) e duas ainda pendentes.
    retenção/expurgo) também tinha o mesmo prazo — **workflow de expurgo
    implementado e validado localmente em 2026-09-04, ver Seção 10.2; nunca
    executado contra produção real ainda**.
+6. **[Novo, 2026-09-05, Seção 7.7]** Primeira tentativa real de deploy de
+   staging de um lote (RD0) revelou que o gate de `CI` (`ci.yml`) está
+   **quebrado para qualquer push em `main`**, por dois motivos pré-existentes
+   e não relacionados ao lote testado: (a) `app/api/auth/__tests__/
+   login.timing.test.ts` reprova `Format check`/Prettier (`BLOCKER-007`,
+   escalado a Backend); (b) `npm audit --audit-level=high` reprova por 14
+   vulnerabilidades acumuladas em `next@14.2.35`/transitivas, a mesma classe
+   já aceita como `DEBT-04` mas sem exceção reconhecida pelo gate mecânico
+   (`BLOCKER-008`, escalado a DevSecOps/CTO). Isso é **mais urgente que o
+   item 2/`DEBT-04` isolado**: enquanto não resolvido, **nenhum** lote —
+   passado ou futuro — consegue completar o pipeline automático de staging,
+   independente de dupla aprovação de QA/DevSecOps. Confirmado também, na
+   mesma tentativa, que o item 2 desta lista (projeto Supabase de staging
+   dedicado) segue sem solução (`BLOCKER-009`, reconfirmado 2026-09-05) —
+   bloquearia o deploy de qualquer forma, mesmo com `CI` verde.
 
 Nenhuma das pendências acima bloqueia o trabalho em paralelo de Backend/
 Frontend/QA/DevSecOps — todas são follow-up do próprio DevOps, registradas
@@ -1230,3 +1461,4 @@ nunca só "rodou". Falha do job abre/comenta Issue com label
 produção", referenciando este workflow e a validação empírica acima, sem
 inflar como debt totalmente fechado até a primeira execução real (manual
 ou pelo cron) ser confirmada.
+

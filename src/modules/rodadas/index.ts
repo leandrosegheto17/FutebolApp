@@ -11,7 +11,11 @@
  * `UX-SPEC.md`) implementada em BE-16 — lacuna deixada por BE-08/BE-09/
  * BE-10 (nenhuma delas cobria leitura, só escrita/log de auditoria),
  * fechada por decisão explícita do usuário ao identificar o bloqueio de
- * FE-06 (TASK.md, nota de status de BE-16).
+ * FE-06 (TASK.md, nota de status de BE-16). Campos `confronto`/
+ * `status_correcao` de `GET /api/rodadas` (TASK.md Parte II Seção 3.1 —
+ * Iniciativa de Redesenho Visual, `T06` redesenhado) acrescentados por
+ * BE-R02, consumidos por `FE-R06` — cálculo puro isolado em
+ * `confronto.ts`, sem função/view/coluna nova.
  */
 export * from "./constants";
 export * from "./validation";
@@ -20,6 +24,7 @@ export * from "./lancar";
 export * from "./excluir";
 export * from "./corrigir";
 export * from "./simular-correcao";
+export * from "./confronto";
 export * from "./listar";
 export * from "./detalhar";
 export * from "./presenter";

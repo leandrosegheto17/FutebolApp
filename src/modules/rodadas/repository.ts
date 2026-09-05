@@ -439,6 +439,222 @@ export async function buscarApelidosAtletas(
   );
 }
 
+/**
+ * `app.time` + `app.time_atleta` das rodadas informadas, agrupados por
+ * `rodada_id` (BE-R02, TASK.md Parte II Seção 3.1 — "Confronto" de `GET
+ * /api/rodadas`). Times ordenados por `label asc, id asc` dentro de cada
+ * rodada — base do mapeamento posicional `colete`/`sem_colete` de
+ * `confronto.ts`.
+ *
+ * **Decisão de detalhe (não escalada) — por que `label`, não `criado_em`**:
+ * `app.confirmar_times_rodada` (BE-13) insere todos os times de uma rodada
+ * dentro da MESMA transação PL/pgSQL — `now()`/`default now()` do Postgres
+ * é fixado no início da transação (não muda entre INSERTs sucessivos da
+ * mesma chamada), então os N times de uma mesma confirmação sempre têm
+ * `criado_em` IDÊNTICO entre si; ordenar por `criado_em` degeneraria, na
+ * prática, em ordenar por `id` (uuid aleatório), sem nenhuma relação com a
+ * ordem em que o organizador informou os times. `label` (default "Time
+ * A"/"Time B" por posição, `src/modules/times/confirmacao/mutate.ts`) é o
+ * único dado que preserva alguma ordem estável e determinística — usado
+ * aqui só para produzir um split determinístico e reproduzível em `colete`/
+ * `sem_colete`, não para inferir qual time é literalmente "o Colete" (essa
+ * semântica real depende da renomeação de `label` ainda não implementada,
+ * `UX-SPEC.md` Parte II Seção 2.6 item 1, escopo de `FE-R09`).
+ *
+ * Rodada sem NENHUM `app.time` persistido (todo o período legado,
+ * confirmado por `SPK-02` — `BE-15` decidiu não migrar estas tabelas; ou
+ * qualquer rodada do sistema novo cujos times ainda não foram confirmados
+ * via T09) simplesmente não aparece no `Map` de retorno.
+ */
+export type TimeComAtletasRow = {
+  id: string;
+  rodada_id: string;
+  atletaIds: string[];
+};
+
+export async function listarTimesComAtletasPorRodadas(
+  client: SupabaseClient<any, any, any>,
+  rodadaIds: readonly string[],
+): Promise<Map<string, TimeComAtletasRow[]>> {
+  if (rodadaIds.length === 0) {
+    return new Map();
+  }
+
+  const { data: times, error } = await client
+    .from("time")
+    .select("id, rodada_id, label")
+    .in("rodada_id", rodadaIds)
+    .order("label", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) {
+    throw new Error(`Falha ao listar app.time das rodadas informadas: ${error.message}`);
+  }
+  const timeRows = (times ?? []) as unknown as Array<{
+    id: string;
+    rodada_id: string;
+    label: string;
+  }>;
+  if (timeRows.length === 0) {
+    return new Map();
+  }
+
+  const timeIds = timeRows.map((linha) => linha.id);
+  const { data: timeAtletas, error: timeAtletaError } = await client
+    .from("time_atleta")
+    .select("time_id, atleta_id")
+    .in("time_id", timeIds);
+  if (timeAtletaError) {
+    throw new Error(
+      `Falha ao listar app.time_atleta dos times informados: ${timeAtletaError.message}`,
+    );
+  }
+  const atletaIdsPorTime = new Map<string, string[]>();
+  for (const linha of (timeAtletas ?? []) as unknown as Array<{
+    time_id: string;
+    atleta_id: string;
+  }>) {
+    const lista = atletaIdsPorTime.get(linha.time_id) ?? [];
+    lista.push(linha.atleta_id);
+    atletaIdsPorTime.set(linha.time_id, lista);
+  }
+
+  const timesPorRodada = new Map<string, TimeComAtletasRow[]>();
+  for (const linha of timeRows) {
+    const lista = timesPorRodada.get(linha.rodada_id) ?? [];
+    lista.push({
+      id: linha.id,
+      rodada_id: linha.rodada_id,
+      atletaIds: atletaIdsPorTime.get(linha.id) ?? [],
+    });
+    timesPorRodada.set(linha.rodada_id, lista);
+  }
+  return timesPorRodada;
+}
+
+/**
+ * Total de gols (`app.evento_jogo.tipo = 'gol'`, somando `quantidade`) por
+ * atleta, agrupado por rodada — usado por BE-R02 para "Confronto" (a soma
+ * de pontos de gol de cada time exige saber quantos gols cada atleta da
+ * rodada marcou, antes de multiplicar pelo valor vigente do evento "gol").
+ * Ausência de entrada para um `atleta_id` numa rodada = 0 gols (nunca uma
+ * linha explícita com `0`).
+ */
+export async function somarGolsPorAtletaERodada(
+  client: SupabaseClient<any, any, any>,
+  rodadaIds: readonly string[],
+): Promise<Map<string, Map<string, number>>> {
+  if (rodadaIds.length === 0) {
+    return new Map();
+  }
+
+  const { data: participacoes, error } = await client
+    .from("participacao_rodada")
+    .select("id, rodada_id, atleta_id")
+    .in("rodada_id", rodadaIds);
+  if (error) {
+    throw new Error(
+      `Falha ao listar app.participacao_rodada para cálculo de gols: ${error.message}`,
+    );
+  }
+  const participacaoRows = (participacoes ?? []) as unknown as Array<{
+    id: string;
+    rodada_id: string;
+    atleta_id: string;
+  }>;
+  if (participacaoRows.length === 0) {
+    return new Map();
+  }
+
+  const participacaoIds = participacaoRows.map((linha) => linha.id);
+  const { data: eventosGol, error: eventosError } = await client
+    .from("evento_jogo")
+    .select("participacao_id, quantidade")
+    .eq("tipo", "gol")
+    .in("participacao_id", participacaoIds);
+  if (eventosError) {
+    throw new Error(
+      `Falha ao listar app.evento_jogo (tipo=gol) para cálculo de confronto: ${eventosError.message}`,
+    );
+  }
+  const golsPorParticipacao = new Map<string, number>();
+  for (const linha of (eventosGol ?? []) as unknown as Array<{
+    participacao_id: string;
+    quantidade: number;
+  }>) {
+    golsPorParticipacao.set(
+      linha.participacao_id,
+      (golsPorParticipacao.get(linha.participacao_id) ?? 0) + Number(linha.quantidade),
+    );
+  }
+
+  const resultado = new Map<string, Map<string, number>>();
+  for (const linha of participacaoRows) {
+    const gols = golsPorParticipacao.get(linha.id) ?? 0;
+    if (gols === 0) {
+      continue;
+    }
+    const porAtleta = resultado.get(linha.rodada_id) ?? new Map<string, number>();
+    porAtleta.set(linha.atleta_id, (porAtleta.get(linha.atleta_id) ?? 0) + gols);
+    resultado.set(linha.rodada_id, porAtleta);
+  }
+  return resultado;
+}
+
+/**
+ * Valores vigentes de `app.configuracao_pontuacao` para um `evento`
+ * específico (ex.: `"gol"`) — usado por BE-R02/`confronto.ts` para
+ * resolver o valor de pontos por gol na data de cada rodada (mesma regra de
+ * vigência de `app.lancar_rodada`, BE-08: a linha com a maior
+ * `vigente_desde` que ainda seja `<=` a data do evento).
+ */
+export async function listarConfiguracaoPontosPorEvento(
+  client: SupabaseClient<any, any, any>,
+  evento: string,
+): Promise<Array<{ pontos: number; vigente_desde: string }>> {
+  const { data, error } = await client
+    .from("configuracao_pontuacao")
+    .select("pontos, vigente_desde")
+    .eq("evento", evento);
+  if (error) {
+    throw new Error(
+      `Falha ao listar app.configuracao_pontuacao do evento "${evento}": ${error.message}`,
+    );
+  }
+  return (data ?? []) as unknown as Array<{ pontos: number; vigente_desde: string }>;
+}
+
+/**
+ * `rodada_id`s (dentre os informados) que têm ao menos uma entrada em
+ * `app.log_auditoria` — usado por BE-R02 para o campo `status_correcao`
+ * ("corrigida" quando existe entrada, "encerrada" caso contrário, TASK.md
+ * Parte II Seção 6.2-R item 5, RF-04.4). Não filtra por `tipo_evento`:
+ * tanto `"correcao"` (RF-04.2, `app.corrigir_participacao_rodada`) quanto
+ * `"estorno"` (RF-04.1, `app.excluir_rodada`) contam como "esta rodada já
+ * teve uma entrada de auditoria registrada" — leitura literal do critério
+ * de aceite ("derivado da existência de entrada em log de auditoria RF-04.4
+ * para aquela rodada", sem exceção por tipo).
+ */
+export async function listarRodadaIdsComLogAuditoria(
+  client: SupabaseClient<any, any, any>,
+  rodadaIds: readonly string[],
+): Promise<Set<string>> {
+  if (rodadaIds.length === 0) {
+    return new Set();
+  }
+  const { data, error } = await client
+    .from("log_auditoria")
+    .select("rodada_id")
+    .in("rodada_id", rodadaIds);
+  if (error) {
+    throw new Error(`Falha ao listar app.log_auditoria das rodadas informadas: ${error.message}`);
+  }
+  return new Set(
+    ((data ?? []) as unknown as Array<{ rodada_id: string | null }>)
+      .map((linha) => linha.rodada_id)
+      .filter((rodadaId): rodadaId is string => rodadaId !== null),
+  );
+}
+
 /** Quantidade de atletas distintos com participação numa rodada — usado no resumo de exclusão (BE-09). */
 export async function contarParticipantesPorRodada(
   client: SupabaseClient<any, any, any>,

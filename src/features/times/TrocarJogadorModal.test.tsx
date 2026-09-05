@@ -71,7 +71,7 @@ describe("TrocarJogadorModal", () => {
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByText("Time B")).toBeInTheDocument();
+    expect(screen.getByText("Sem Colete")).toBeInTheDocument();
   });
 
   it("sem candidatos, mostra mensagem em vez de lista vazia sem explicação", () => {

@@ -5,6 +5,7 @@ import { axe } from "jest-axe";
 import { ToastProvider } from "@/components/ui";
 import { ROUTES } from "@/lib/routes";
 import { SessionExpiredError } from "@/features/sessao";
+import { listarRestricoes } from "@/features/restricoes/restricoesApi";
 import { MontagemTimesShell } from "./MontagemTimesShell";
 import {
   RodadaNaoEncontradaError,
@@ -27,6 +28,10 @@ vi.mock("./timesApi", async () => {
     confirmarTimes: vi.fn(),
   };
 });
+
+vi.mock("@/features/restricoes/restricoesApi", () => ({
+  listarRestricoes: vi.fn(),
+}));
 
 const pushMock = vi.fn();
 const replaceMock = vi.fn();
@@ -73,6 +78,7 @@ describe("MontagemTimesShell", () => {
     vi.mocked(buscarPresentesDaRodada).mockReset();
     vi.mocked(gerarSugestao).mockReset();
     vi.mocked(confirmarTimes).mockReset();
+    vi.mocked(listarRestricoes).mockReset().mockResolvedValue([]);
     pushMock.mockReset();
     replaceMock.mockReset();
   });
@@ -166,8 +172,8 @@ describe("MontagemTimesShell", () => {
     await user.click(screen.getByRole("button", { name: "Gerar sugestão de times" }));
 
     expect(gerarSugestao).toHaveBeenCalledWith(["1", "2", "3"], 2);
-    await screen.findByRole("heading", { name: "Time A" });
-    expect(screen.getByRole("heading", { name: "Time B" })).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Colete" });
+    expect(screen.getByRole("heading", { name: "Sem Colete" })).toBeInTheDocument();
   });
 
   it("respeita a desmarcação manual de um presente antes de gerar", async () => {
@@ -287,7 +293,7 @@ describe("MontagemTimesShell", () => {
       screen.getByRole("button", { name: "Gerar mesmo assim, ciente do conflito" }),
     );
 
-    await screen.findByRole("heading", { name: "Time A" });
+    await screen.findByRole("heading", { name: "Colete" });
     expect(
       screen.getByText(/ignorando as restrições obrigatórias em conflito/),
     ).toBeInTheDocument();
@@ -340,13 +346,13 @@ describe("MontagemTimesShell", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Gerar sugestão de times" }));
-    await screen.findByRole("heading", { name: "Time A" });
+    await screen.findByRole("heading", { name: "Colete" });
 
     await user.click(screen.getByRole("button", { name: "Confirmar Times" }));
 
     expect(confirmarTimes).toHaveBeenCalledWith("rodada-1", [
-      { label: "Time A", atletas_ids: ["1"] },
-      { label: "Time B", atletas_ids: ["2"] },
+      { label: "Colete", atletas_ids: ["1"] },
+      { label: "Sem Colete", atletas_ids: ["2"] },
     ]);
     await screen.findByText("Divisão de times confirmada.");
   });
@@ -385,7 +391,7 @@ describe("MontagemTimesShell", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Gerar sugestão de times" }));
-    await screen.findByRole("heading", { name: "Time A" });
+    await screen.findByRole("heading", { name: "Colete" });
     await user.click(screen.getByRole("button", { name: "Confirmar Times" }));
 
     await screen.findByText("Já existe substituição registrada.");
@@ -423,7 +429,7 @@ describe("MontagemTimesShell", () => {
     vi.mocked(confirmarTimes).mockRejectedValue(new SessionExpiredError());
 
     await user.click(screen.getByRole("button", { name: "Gerar sugestão de times" }));
-    await screen.findByRole("heading", { name: "Time A" });
+    await screen.findByRole("heading", { name: "Colete" });
     await user.click(screen.getByRole("button", { name: "Confirmar Times" }));
 
     await waitFor(() =>
@@ -463,7 +469,7 @@ describe("MontagemTimesShell", () => {
     vi.mocked(confirmarTimes).mockRejectedValue(new RodadaNaoEncontradaError());
 
     await user.click(screen.getByRole("button", { name: "Gerar sugestão de times" }));
-    await screen.findByRole("heading", { name: "Time A" });
+    await screen.findByRole("heading", { name: "Colete" });
     await user.click(screen.getByRole("button", { name: "Confirmar Times" }));
 
     await screen.findByText("Rodada não encontrada.");

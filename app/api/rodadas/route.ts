@@ -1,6 +1,8 @@
 /**
  * POST /api/rodadas (BE-08, RF-02) e GET /api/rodadas (BE-16, T06 do
- * `UX-SPEC.md` — lista cronológica decrescente).
+ * `UX-SPEC.md` — lista cronológica decrescente; `confronto`/
+ * `status_correcao` acrescentados por BE-R02, TASK.md Parte II Seção 3.1 —
+ * Iniciativa de Redesenho Visual, consumidos por `FE-R06`/T06 redesenhado).
  *
  * `POST` é escrita — já coberta pelo middleware de sessão padrão
  * (`WRITE_METHODS`/`middleware.ts`, BE-04): não precisava entrar em

@@ -4,60 +4,74 @@
   gap: var(--spacing-4);
 }
 
-/* T09 — Times empilhados verticalmente em `base` (Time A acima de Time B),
-   lado a lado (colunas) a partir de `lg` (UX-SPEC.md Seção 6.2). */
-.timesGrid {
+/* Painel de equilíbrio reformulado (UX-SPEC.md Parte II Seção 2.6, correção
+   2) — 3 tiles: "Dif. pontos", "Dif. idade", "Titulares". `--font-family-mono`
+   nos valores numéricos (Seção 2.6, correção 2, último parágrafo). */
+.balanceStrip {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-4);
-}
-
-@media (min-width: 1024px) {
-  .timesGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.timeCard {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-2);
 }
 
-.timeTitle {
-  margin: 0;
+.balanceTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.balanceLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.balanceValue {
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
 }
 
-.timeStats {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.atletaList {
+.respeitadaList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
-}
-
-.atletaRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-2);
-  padding: var(--spacing-2) 0;
-  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .acoes {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
+
+@media (min-width: 640px) {
+  .acoes {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.substituicoesAcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+@media (min-width: 640px) {
+  .substituicoesAcoes {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+/* Candidatos de "Trocar jogador" (`TrocarJogadorModal.tsx`) */
 
 .candidatoList {
   list-style: none;

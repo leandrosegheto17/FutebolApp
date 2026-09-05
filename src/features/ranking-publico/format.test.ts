@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAtualizadoResumo,
   formatCartoes,
+  formatColunaData,
+  formatMediaPresenca,
   formatOrdinal,
   formatPontos,
   formatPresencas,
@@ -47,5 +50,27 @@ describe("formatUpdatedAt", () => {
   it("formata data em dia/mês/ano (RNF-08 — formato regional pt-BR)", () => {
     const date = new Date(2026, 8, 2); // 2026-09-02 (mês 0-indexado)
     expect(formatUpdatedAt(date)).toBe("02/09/2026");
+  });
+});
+
+describe("formatColunaData", () => {
+  it("formata data ISO como DD/MM sem depender de fuso horário", () => {
+    expect(formatColunaData("2026-09-05")).toBe("05/09");
+    expect(formatColunaData("2026-01-01")).toBe("01/01");
+  });
+});
+
+describe("formatAtualizadoResumo", () => {
+  it("formata hora + contagem de atletas com concordância singular/plural (UX-SPEC.md Seção 2.2)", () => {
+    const date = new Date(2026, 8, 5, 21, 40);
+    expect(formatAtualizadoResumo(date, 24)).toBe("Atualizado hoje às 21:40 · 24 atletas");
+    expect(formatAtualizadoResumo(date, 1)).toBe("Atualizado hoje às 21:40 · 1 atleta");
+  });
+});
+
+describe("formatMediaPresenca", () => {
+  it("formata percentual com 1 casa decimal e vírgula (pt-BR)", () => {
+    expect(formatMediaPresenca(78)).toBe("78,0%");
+    expect(formatMediaPresenca(78.34)).toBe("78,3%");
   });
 });

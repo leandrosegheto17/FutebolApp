@@ -31,6 +31,22 @@ adotar o próprio Supabase como plataforma do novo sistema (em vez de migrar
 para outra tecnologia) está registrada com racional explícito em ADR-002,
 marcado para `build-vs-buy-analysis` no Gate 2.
 
+**Atualização (2026-09-04) — Iniciativa de Redesenho Visual, `PRD-TECNICO.md`
+Parte II**: este SDD.md recebeu um **delta de arquitetura**, registrado
+integralmente no **Anexo C**, ao final deste documento, seguindo o mesmo
+guardrail de não reescrita já aplicado nos Anexos A/B — nenhuma seção 1-7
+original foi reaberta em mérito; apenas o índice de ADRs (Seção 4) recebeu 3
+linhas novas (ADR-012 a ADR-014). O delta cobre as três decisões técnicas que
+o PRD-TECNICO Parte II roteou explicitamente ao Software Architect: (a)
+hospedagem das fontes externas do redesenho vs. CSP/`DEBT-03` (ADR-012); (b)
+mecanismo técnico de migração da baseline `tokens.css`/`FE-00` (ADR-013); (c)
+requisito técnico da revivência do simulador tático de campo em T09 (ADR-014).
+**Este delta ainda não passou pelo Gate 2 do CTO** — ADR-012 e ADR-013 estão
+marcados para reavaliação (`risk-and-compliance-check` e
+`architecture-decision-review`, respectivamente); até essa aprovação, o delta
+é rascunho, não parte final do SDD.md, conforme o mesmo critério já aplicado
+ao corpo original deste documento.
+
 ---
 
 ## 1. Visão Geral da Arquitetura
@@ -237,6 +253,11 @@ após aceito — mudança de decisão sempre gera novo ADR com `Superseded by`.
 | [009](adr/009-estrategia-de-backup-e-recuperacao.md) | Combinar PITR Nativo do Supabase com Exportação Lógica Agendada | Accepted | Não |
 | [010](adr/010-mecanismo-de-explicacao-de-conflito-rf-05-2.md) | Mecanismo de Extração e Contrato de Dado para Explicação de Conflito (RF-05.2) | Accepted | Não (adendo pós-Gate 2 — resolve BLOCKER-001/ressalva item 6, registrado em `BLOCKERS.md`) |
 | [011](adr/011-anonimizacao-de-dado-pessoal-do-atleta-lgpd-art-18.md) | Anonimização In-Place do Dado Pessoal do Atleta a Pedido do Titular (LGPD Art. 18) | Accepted | Não (adendo pós-Gate 2 — resolve BLOCKER-002/ressalva item 3, registrado em `BLOCKERS.md`) |
+| [012](adr/012-self-host-de-fontes-do-redesenho-visual-via-next-font.md) | Self-Host das Fontes Externas do Redesenho Visual via `next/font`, em vez de CDN do Google Fonts | Accepted | **Sim — `risk-and-compliance-check`** (implicação direta em CSP/`DEBT-03`) |
+| [013](adr/013-substituicao-atomica-de-paleta-e-tipografia-em-tokens.md) | Substituição Atômica Direta dos Valores de Paleta/Tipografia em `tokens.css`/`tokens.ts`, sem Versionamento Paralelo de Design System | Accepted | **Sim — `architecture-decision-review`** (revisão de baseline já fechada em L0, blast radius nas 11 telas) |
+| [014](adr/014-renderizacao-do-simulador-tatico-t09-sem-biblioteca-grafica-nova.md) | Renderização do Simulador Tático de Campo (T09) por Composição de Componentes CSS Existentes, sem Biblioteca de Renderização Gráfica Nova | Accepted | Não (decisão de baixo risco/custo, sem trade-off de vendor lock-in ou compliance) |
+
+*(ADRs 012-014 são delta desta revisão — Iniciativa de Redesenho Visual, `PRD-TECNICO.md` Parte II. Ver Anexo C para o restante da arquitetura delta: componentes/fluxo afetados, riscos e requisitos de segurança.)*
 
 ---
 
@@ -824,3 +845,182 @@ registrada aqui, sem necessidade de reabrir o desenho de T04.
 
 `TASK.md` (Seção 6.1, item 2) e `CTO-REVIEW.md` (ressalva reiterada no Gate 3)
 podem marcar este ponto como resolvido, apontando para este Anexo B.
+
+---
+
+## Anexo C — Delta de Arquitetura: Iniciativa de Redesenho Visual (`PRD-TECNICO.md` Parte II)
+
+**Data**: 2026-09-04
+**Status**: Rascunho — **não aprovado no Gate 2** ainda. Segue o mesmo
+guardrail de não reescrita dos Anexos A/B: nenhuma decisão das Seções 1-7
+originais é reaberta em mérito. Este anexo cobre exclusivamente as três
+decisões técnicas que o `PRD-TECNICO.md` Parte II roteou explicitamente ao
+Software Architect (RNF-D03, RNF-D05, e a avaliação técnica pedida sobre T09),
+mais os riscos e requisitos de segurança que essas decisões introduzem.
+**Escopo confirmado como não tocado por esta iniciativa** (herdado
+integralmente do `PRD-TECNICO.md` Parte II, Seção 1): nenhuma regra de
+negócio (RN-01 a RN-13), nenhum requisito funcional de domínio (RF-01 a
+RF-08) e nenhum modelo de dados (Seção 5) mudam — este delta é estritamente
+de apresentação/design system.
+
+### C.1 — Componentes e camadas afetados (delta da Seção 1-2)
+
+Nenhum componente novo de domínio é introduzido. Os componentes já descritos
+na Seção 2.1 permanecem os mesmos; o que muda é **exclusivamente a Camada de
+Apresentação** (Seção 1.2, item 1):
+
+| Componente afetado | Natureza da mudança | Requisito que motiva |
+|---|---|---|
+| `src/design-system/tokens.css`/`tokens.ts` | Revisão de valores (paleta navy/dourado + verde de campo como acento; tipografia Bebas Neue/Public Sans/JetBrains Mono) — mecanismo técnico definido em [ADR-013](adr/013-substituicao-atomica-de-paleta-e-tipografia-em-tokens.md) | RNF-D05 |
+| Carregamento de fonte (novo, camada de apresentação) | `next/font/google`, self-host automático em build — [ADR-012](adr/012-self-host-de-fontes-do-redesenho-visual-via-next-font.md) | RNF-D03 |
+| T09 — Montagem de Times (`Web Interno`) | Nova composição visual (simulador tático de campo) sobre o mesmo `Serviço de Times`/modelo `TIME_ATLETA` já existente (Seção 2.1/5) — sem mudança de contrato de API, sem novo campo de dado — [ADR-014](adr/014-renderizacao-do-simulador-tatico-t09-sem-biblioteca-grafica-nova.md) | RF-D01.2 |
+| Demais 10 telas (T01-T08, T10, T11) | Consomem os mesmos tokens globais — afetadas simultaneamente pela troca de paleta/tipografia no momento do merge de ADR-013, independentemente da profundidade de redesenho de layout que cada uma receba | RNF-D05, Guardrail 31 |
+
+**Nenhuma mudança de fluxo de dados** (Seção 2.2-2.4) é introduzida — os três
+fluxos Mermaid já publicados continuam válidos sem alteração; o redesenho
+visual não toca a camada de Aplicação/API nem a camada de Dados.
+
+**Nenhuma integração externa nova em tempo de execução** é introduzida
+(confirmado por `PRD-TECNICO.md` Parte II, Seção 5.2) — a única dependência
+técnica nova é de **build-time** (download de fonte pelo `next/font/google`,
+ver ADR-012), não uma integração de runtime.
+
+### C.2 — Decisão 1: Hospedagem de fonte externa vs. CSP (RNF-D03)
+
+Ver [ADR-012](adr/012-self-host-de-fontes-do-redesenho-visual-via-next-font.md)
+para o racional completo. Resumo executivo: **self-host via `next/font/google`**
+— o Next.js (já adotado, ADR-003) baixa os arquivos de fonte em tempo de
+build e os serve pela própria origem da aplicação; **zero requisição de rede
+externa em produção**. A CSP vigente (`vercel.json`, `font-src 'self'`, já
+corrigida em `DEBT-03` nesta mesma sessão) **não precisa de nenhuma
+alteração** — a alternativa de CDN do Google Fonts foi rejeitada
+explicitamente por exigir reabrir uma política de segurança recém-fechada.
+
+### C.3 — Decisão 2: Mecanismo técnico de migração da baseline `tokens.css`/`FE-00` (RNF-D05)
+
+Ver [ADR-013](adr/013-substituicao-atomica-de-paleta-e-tipografia-em-tokens.md)
+para o racional completo. Resumo executivo: **substituição atômica direta**
+dos valores em `tokens.css`/`tokens.ts` (mesmos nomes de variável sempre que a
+semântica de papel permanecer válida — mapeamento exato de cor/fonte é
+decisão de UX/UI em `UX-SPEC.md`, fora da autoridade deste ADR), num único
+commit/PR — **sem versionamento paralelo de tokens, sem mecanismo de
+tema/coexistência em runtime**, por violar diretamente a Guardrail 31
+("nenhuma tela cria uma variação paralela" de design system).
+
+**Sinalização vinculante ao Tech Lead** (conforme roteamento explícito do
+`PRD-TECNICO.md` Parte II, RNF-D05/Premissa 7): a troca de tokens tem
+**blast radius simultâneo nas 11 telas**, não apenas nas 6 do mockup original
+— porque os componentes compartilhados (Guardrail 31) leem os mesmos tokens
+globais. Isso significa duas coisas concretas para `TASK.md`:
+
+1. **Toda tarefa de Frontend já fechada que consome `tokens.css` precisa ser
+   reaberta para reestimativa** (`FE-00` a `FE-11`), não apenas as tarefas
+   das telas explicitamente redesenhadas — tratar como reabertura de
+   estimativa sobre trabalho já fechado, não como tarefas novas
+   independentes, conforme o próprio `PRD-TECNICO.md` já instrui.
+2. **A decisão de cobertura por tela de UX/UI (RF-D04 — "aplicação integral"
+   vs. "migração faseada com prazo")** só pode, tecnicamente, se referir à
+   **profundidade de redesenho de layout/composição** de cada tela (ex.:
+   T09 ganhar o simulador tático agora, outras telas manterem o arranjo
+   atual por mais tempo) — **nunca** a adiar a aplicação dos novos valores
+   de cor/tipografia para uma tela específica, o que exigiria a opção de
+   coexistência rejeitada em ADR-013. `accessibility-review` (RF-D05,
+   Guardrail 28) deve, por consequência, cobrir os componentes
+   compartilhados usados pelas 11 telas no dia do merge de tokens — não
+   apenas as 6 telas do mockup — mesmo que o redesenho de layout de algumas
+   telas ainda não tenha começado.
+
+### C.4 — Decisão 3: Requisito técnico do simulador tático de campo em T09
+
+Ver [ADR-014](adr/014-renderizacao-do-simulador-tatico-t09-sem-biblioteca-grafica-nova.md)
+para o racional completo. Resumo executivo: **nenhum requisito técnico novo**
+— a visualização de campo tático é composição de componentes CSS/DOM já
+existentes (Grid/Flexbox sobre a mesma atribuição `TIME_ATLETA`, Seção 5),
+**não** uma nova biblioteca de renderização gráfica (canvas/SVG/motor de
+campo). Isso preserva acessibilidade nativa (foco de teclado, leitura de
+tela) sem trabalho de reimplementação, e não introduz dependência nova a
+auditar por DevSecOps. O mecanismo de **interação** de T09 (seletor modal
+sempre disponível; drag-and-drop como atalho opcional em desktop, RF-D01/
+RN-D03) é regra de negócio/UX já decidida pelo Business Analyst — não tocada
+por este ADR, que trata exclusivamente da camada de renderização visual.
+
+### C.5 — Riscos técnicos e dívida técnica aceita (delta da Seção 6)
+
+| Risco/Gargalo | Componente | Severidade | Mitigação ou plano |
+|---|---|---|---|
+| Troca de tokens tem blast radius simultâneo nas 11 telas (não só as 6 do mockup) — qualquer regressão de contraste/legibilidade não identificada antes do merge afeta produção inteira de uma vez | `tokens.css`/`tokens.ts`, todas as telas | **Média** | `accessibility-review` (RF-D05) deve cobrir os componentes compartilhados usados pelas 11 telas **antes** do merge do commit de troca de tokens — não incrementalmente pós-merge (ver [ADR-013](adr/013-substituicao-atomica-de-paleta-e-tipografia-em-tokens.md)) |
+| Reestimativa de Tech Lead sobre tarefas já fechadas (`FE-00` a `FE-11`) pode ser subestimada se tratada como "ajuste cosmético pequeno" em vez de revisão de baseline | `TASK.md`, capacidade de Frontend | **Média** | Sinalização explícita registrada em C.3 — Tech Lead deve tratar como reabertura formal, não tarefa nova independente, conforme mecanismo de "alteração visível" já previsto em `UX-SPEC.md` Seção 3.3 |
+| Dependência de rede em tempo de build para `next/font/google` (não runtime) | Pipeline de build (Vercel) | **Baixa** | Infraestrutura de build já confiável (mesma que hospeda o app); cache de build da Vercel reduz frequência real da dependência a builds que alterem a declaração de fonte |
+| Fidelidade visual do simulador tático (CSS/DOM) é menor que uma renderização gráfica dedicada | T09 | **Baixa** | Aceitável dado o escopo de RF-D01.2 (camada decorativa sobre atribuição de time já existente, não simulação de precisão tática); revisitar apenas se o escopo de produto mudar para reposicionamento livre (RF-D01.3, condicional, não confirmado) |
+| Artefato de origem do mockup (Artifact do `claude.ai`) não é durável/versionado — já sinalizado pelo BA (RF-D03/RN-D05), mas relevante à arquitetura porque nenhuma decisão de token/fonte deste anexo deve ser conferida contra o link, e sim contra a captura versionada em `UX-SPEC.md` | Processo/governança, não um componente de sistema | **Baixa** | Já é requisito de processo (RF-D03) fora da autoridade de execução do Software Architect — este anexo não usa o link como fonte, apenas a descrição em prosa do `PRD-TECNICO.md` Parte II |
+
+### C.6 — Dívida técnica aceita conscientemente (delta da Seção 6.3)
+
+| Dívida Técnica Aceita | Motivo | Condição de revisão |
+|---|---|---|
+| Nenhum mecanismo de tema/feature-flag para coexistência de paleta antiga/nova | RNF-04 (custo mínimo) e Guardrail 31 (proíbe variação paralela) tornam esse mecanismo desproporcional e, na prática, não-conforme | Revisitar apenas se um requisito de produto futuro exigir explicitamente rollout gradual controlado por flag (não é o caso hoje) |
+| Simulador tático de T09 não suporta reposicionamento livre de jogador em coordenadas específicas do campo | RF-D01.2 delimita o escopo desta iniciativa a camada visual sobre atribuição de time; reposicionamento livre é candidato a nova funcionalidade, não redesenho visual (RF-D01.3) | Revisitar se o organizador confirmar essa expectativa — nesse caso, escalar como novo requisito ao BA/PM, não implementar como extensão silenciosa deste ADR |
+
+### C.7 — Requisitos de segurança e compliance (delta da Seção 7)
+
+- **Nenhuma mudança de superfície de exposição, autenticação ou autorização**
+  (Seções 7.1-7.4, 7.7 permanecem integralmente válidas) — este delta é
+  puramente de apresentação.
+- **Criptografia/rede (Seção 7.3/7.5)**: a única adição é a confirmação de
+  que a CSP vigente (`font-src 'self'`) permanece **sem alteração** — nenhuma
+  nova origem externa é adicionada a `connect-src`, `style-src` ou
+  `font-src` em decorrência desta iniciativa (ver ADR-012). Qualquer PR que
+  introduza `fonts.googleapis.com`/`fonts.gstatic.com` na CSP deve ser
+  tratado como desvio deste ADR, não como implementação dele.
+- **Minimização de dados (LGPD, insumo ao DevSecOps)**: self-host de fonte
+  elimina a única superfície nova de exposição de IP a terceiro que a adoção
+  de Google Fonts via CDN teria introduzido — não há dado pessoal de atleta
+  envolvido nesta decisão (é puramente de infraestrutura de apresentação).
+- **Nova dependência a auditar por DevSecOps**: nenhuma biblioteca de
+  renderização gráfica nova (ADR-014); `next/font` já é parte do framework
+  já auditado (Next.js, ADR-003) — não é uma dependência de pacote nova a
+  registrar em `npm audit`/`SECURITY-REVIEW.md`.
+
+### C.8 — Checklist de prontidão deste delta
+
+- [x] Toda decisão arquitetural relevante tem ADR correspondente — ADR-012,
+      ADR-013, ADR-014, todos em `adr/`.
+- [x] Toda escolha tem justificativa e trade-off/alternativa considerada
+      registrados — ver seção "Considered Options"/"Pros and Cons" de cada
+      ADR.
+- [x] Todo risco técnico tem severidade; toda dívida técnica aceita tem
+      motivo registrado — Seções C.5/C.6.
+- [x] Requisitos de segurança revisados quanto a impacto (nenhuma mudança de
+      autenticação/autorização/criptografia/isolamento; confirmação explícita
+      de que a CSP não muda) — Seção C.7.
+- [x] Nenhuma seção deste anexo está vazia ou com placeholder.
+
+**Pontos marcados para o Gate 2 do CTO**:
+
+1. **ADR-012** (self-host de fonte via `next/font`) — `risk-and-compliance-check`,
+   por sua implicação direta em CSP/`DEBT-03`, item já sob acompanhamento
+   ativo do CTO nesta iniciativa.
+2. **ADR-013** (substituição atômica de tokens) — `architecture-decision-review`,
+   por ser revisão de uma baseline já aprovada em L0 com blast radius nas 11
+   telas — o próprio `PRD-TECNICO.md` Parte II já antecipa que este é um
+   ponto de retrabalho relevante (Premissa 7/Risco 3 do Gate 1 desta
+   iniciativa).
+3. **ADR-014** não é marcado para Gate 2 — decisão de baixo risco/custo, sem
+   vendor lock-in, sem implicação de compliance; registrado por
+   completude e para servir de restrição de escopo explícita ao Frontend.
+
+Nenhum requisito do `PRD-TECNICO.md` Parte II foi identificado como
+tecnicamente inviável ou desproporcional em custo/prazo — não há sinalização
+pendente para o Business Analyst neste delta. As demais ressalvas do Gate 1
+desta iniciativa não atribuídas ao Software Architect (ambiguidade de paleta
+dupla, profundidade de cobertura das 5 telas, direito de uso de assets,
+rótulo "v2.0") permanecem, como já confirmado pelo próprio BA
+(`PRD-TECNICO.md` Parte II, Seção 6/7), fora da autoridade deste agente.
+
+**Veredito deste anexo**: rascunho do delta de arquitetura pronto para
+submissão ao Gate 2 do CTO, junto com o restante do roteamento desta
+iniciativa (UX/UI, Tech Lead). Não é considerado final até aprovação
+(Aprovado ou Aprovado com ressalvas) — se o CTO reprovar pontualmente ADR-012
+ou ADR-013, apenas o ADR correspondente será revisado (novo ADR com
+`Superseded by`), sem reabrir o restante deste Anexo C nem das Seções 1-7
+originais.

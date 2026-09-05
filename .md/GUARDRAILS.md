@@ -6,7 +6,14 @@ foram propostas e aprovadas pelo próprio CTO neste mesmo gate, para dar força 
 guardrail vinculante a duas pendências de governança que já haviam atravessado
 mais de um gate sem resolução (plano de saída do ADR-002 e orçamento/monitoramento
 do tier gratuito do Supabase) — ver `CTO-REVIEW.md`, Gate 3, e `BLOCKERS.md`
-(`BLOCKER-003`). Todas as 36 regras estão em vigor a partir desta data.
+(`BLOCKER-003`). Regras 37-40 (Seção 10) foram propostas pelo Tech Lead no Gate 3
+da Iniciativa "Redesenho Visual" e **aprovadas pelo CTO sem ajuste** nesse mesmo
+gate (`CTO-REVIEW.md`, 2026-09-04) — generalizam, como guardrail vinculante
+permanente para qualquer mudança futura de fundação compartilhada (não só desta
+iniciativa), as três condições de execução impostas no Gate 2 da mesma iniciativa
+(aprovação com ressalvas de `ADR-013`) mais a obrigação de reestimativa formal já
+exercida em `TASK.md` Parte II. Todas as 40 regras estão em vigor a partir de
+2026-09-04.
 **Quem propõe**: Tech Lead (`guardrails-drafting`), a partir de `CTO-REVIEW.md`
 (Gate 1 e Gate 2), `SDD.md` e ADRs 001-011.
 **Quem aprova**: só o CTO/Head de Tecnologia — qualquer mudança estrutural
@@ -192,12 +199,59 @@ autoridade de aprovação de exceção/mudança estrutural (`PIPELINE-CONVENTION
 
 ---
 
+## 10. Design System e Redesenho Visual — **Aprovado pelo CTO no Gate 3 da Iniciativa "Redesenho Visual" (2026-09-04)**
+
+Extraídas de `CTO-REVIEW.md` (Gate 2 da Iniciativa "Redesenho Visual",
+2026-09-04 — as três condições de execução impostas à aprovação com ressalvas
+de `ADR-013`) e de `SDD.md` Anexo C/`ADR-013`, conforme `guardrails-drafting`.
+Diferente das regras 1-36 (específicas de decisões já tomadas), estas
+generalizam o aprendizado desta iniciativa para **qualquer** mudança futura de
+fundação compartilhada do projeto — não apenas para a troca de
+paleta/tipografia atual. Submetidas ao CTO junto com `TASK.md` Parte II (delta
+desta iniciativa) e **aprovadas sem ajuste no Gate 3 desta iniciativa**
+(`CTO-REVIEW.md`, 2026-09-04) — em vigor a partir desta data,
+vinculantes para todo agente downstream.
+
+37. Toda substituição de valores globais de design system
+    (`tokens.css`/`tokens.ts` ou equivalente) que atinja componentes
+    compartilhados é tratada como evento atômico único — nunca coexistência de
+    duas paletas/temas em runtime (`data-theme`, feature flag de tema, arquivo
+    de token paralelo). Qualquer proposta de mecanismo de theming exige novo
+    ADR do Software Architect antes de implementação (deriva de `ADR-013`).
+38. Nenhum commit/PR que altere valores globais de design system
+    pode incluir, no mesmo commit, mudança de layout/composição de tela —
+    sempre commits separados, para preservar rollback trivial via `git revert`
+    (deriva de `ADR-013`, condição de execução do Gate 2 do CTO da Iniciativa
+    "Redesenho Visual").
+39. Toda substituição de valores globais de design system exige
+    `accessibility-review` completo (WCAG 2.1 AA) sobre **todos** os
+    componentes compartilhados usados por **todas** as telas afetadas,
+    executado e sem violação bloqueante **antes** do merge — nunca checagem
+    incremental pós-merge tela a tela, mesmo quando só um subconjunto de telas
+    recebe redesenho de composição dedicado no mesmo ciclo (deriva de
+    RF-D05/Guardrail 28; generaliza a Guardrail 28 para o caso específico de
+    mudança de fundação global, cujo raio de alcance é sempre maior que o
+    conjunto de telas com composição nova).
+40. Toda mudança de fundação compartilhada (design system,
+    componente reutilizável de base, contrato de API central) que já tenha
+    tarefas fechadas consumindo-a exige do Tech Lead reestimativa formal linha
+    a linha de cada tarefa afetada em `TASK.md` — nunca tratada como "ajuste
+    cosmético" genérico nem como tarefa nova isolada sem referência às tarefas
+    fechadas que ela reabre (deriva de RNF-D05/`ADR-013`; generaliza o
+    mecanismo de "histórico de mudança de componente" já usado em
+    `UX-SPEC.md` Seção 3.3/3.5 para o próprio `TASK.md`).
+
+---
+
 ## Log de Alterações
 
 | Data | Proposto por | Aprovado por | Mudança | Motivo | Validade |
 |---|---|---|---|---|---|
 | 2026-09-02 | tech-lead | cto | Versão inicial (regras 1-34) | Primeira proposta de `GUARDRAILS.md` do projeto, extraída de `CTO-REVIEW.md` (Gate 1/Gate 2), `SDD.md` e ADRs 001-011, conforme `guardrails-drafting` | — |
 | 2026-09-02 | cto | cto | Adição das regras 35-36 (Seção 9) | Formalizar como guardrail vinculante duas pendências de governança (plano de saída ADR-002, monitoramento do tier gratuito do Supabase) que atravessaram gates sem resolução — decisão registrada em `CTO-REVIEW.md`, Gate 3 | Permanente (regra 35 se extingue automaticamente quando o adendo do ADR-002 for aceito; regra 36 é permanente enquanto o projeto usar Supabase, ADR-002) |
+| 2026-09-04 | tech-lead | cto | Proposta das regras 37-40 (Seção 10) | Generalizar, como guardrail vinculante permanente, as três condições de execução impostas pelo CTO no Gate 2 da Iniciativa "Redesenho Visual" (`CTO-REVIEW.md`, aprovação com ressalvas de `ADR-013`) — substituição atômica sem coexistência de temas, isolamento de commit de fundação, gate de acessibilidade pré-merge cobrindo o blast radius real — mais uma quarta regra que formaliza a obrigação de reestimativa linha a linha já exercida em `TASK.md` Parte II. Submetida junto com `TASK.md` Parte II ao Gate 3 desta iniciativa | Permanente — aplica-se a qualquer mudança futura de fundação compartilhada do projeto, não só a esta iniciativa |
+| 2026-09-04 | cto | cto | Aprovação das regras 37-40 (Seção 10), sem ajuste de texto, no Gate 3 da Iniciativa "Redesenho Visual" | As três condições de execução do Gate 2 desta iniciativa foram verificadas como efetivamente cumpridas em `TASK.md` Parte II (não apenas alegadas); as quatro regras têm gatilho objetivo, não conflitam com as regras 1-36 vigentes, e generalizam corretamente invariantes arquiteturais já aceitas (Guardrail 1, 28, 31, 32) para o caso de mudança de fundação compartilhada — decisão registrada em `CTO-REVIEW.md`, Gate 3 desta iniciativa, 2026-09-04 | Permanente |
 
-Todas as 36 regras acima estão em vigor a partir de 2026-09-02 (Gate 3, aprovação
-do CTO).
+Todas as 40 regras das Seções 1-10 estão em vigor a partir de 2026-09-04 (Gate 3
+da Iniciativa "Redesenho Visual", aprovação do CTO). Regras 1-36 seguem em vigor
+desde 2026-09-02 (Gate 3 original), sem alteração de mérito.

@@ -277,7 +277,7 @@ agrupamento arbitrário.
 | **L2** | Ranking e Presença Pública | BE-03, FE-02, FE-03 | Depende só de L0 (BE-03 depende de BE-02, 4.1). Independente de L1 — roda em paralelo com toda a área interna, conforme 4.2: "FE-02/FE-03 (público) podem rodar em paralelo com todo o desenvolvimento da área interna — não têm nenhuma dependência de autenticação". |
 | **L3** | Cadastro de Atletas | BE-06, BE-07, FE-04 | Depende de L0 e do backend de L1 (BE-06 depende de BE-02 **e** BE-04, 4.1). Bloqueia L4 e L6 (ambos dependem de BE-06, 4.1/4.3). |
 | **L4** | Lançamento de Rodada | BE-08, FE-05 | Depende de L3 (BE-08 depende de BE-06, 4.1). Bloqueia L5. |
-| **L5** | Correção, Histórico e Auditoria de Rodadas | BE-09, BE-10, FE-06, FE-07, FE-08 | Depende de L4 (BE-09 depende de BE-08, 4.1). |
+| **L5** | Correção, Histórico e Auditoria de Rodadas | BE-09, BE-10, BE-16, FE-06, FE-07, FE-08 | Depende de L4 (BE-09 depende de BE-08, 4.1). **Correção retroativa (2026-09-04, Tech Lead, fechamento do lote)**: `BE-16` (Leitura de rodadas, `GET /api/rodadas`/`GET /api/rodadas/{id}`) foi criada durante a execução, fora da decomposição original desta tabela, para fechar um GAP real que bloqueava `FE-06`/`FE-07` contra API real — sua própria linha na Seção 3.1 sempre marcou `Lote: L5`, e QA (`QA-REPORT.md` Seção 12)/DevSecOps (`SECURITY-REVIEW.md` Seção 59) já a trataram como parte de L5 antes desta correção; esta linha só nunca havia sido atualizada para listá-la explicitamente, achado sinalizado por ambos e corrigido agora, sem reabrir nenhuma tarefa. |
 | **L6** | Montagem de Times, Restrições e Substituições | BE-11, BE-12, BE-13, FE-09, FE-10, FE-11 | Depende de L3 (BE-11/BE-12 dependem de BE-06, 4.1; BE-11 também depende de BE-12, 4.3). Independente de L4/L5 — ambos originados do mesmo ponto (L3), podem rodar em paralelo entre si. |
 | **L7** | Migração do Legado | SPK-01, BE-14, BE-15 | Depende só de L0 (BE-14 depende de BE-02; BE-15 depende também de SPK-01 e BE-14, 4.1/4.3). Independente de todos os demais lotes, conforme 4.2: "SPK-01 roda de forma independente de todo o resto do backlog — não é bloqueante de nenhuma tarefa além de BE-15". |
 
@@ -300,23 +300,52 @@ agrupamento arbitrário.
   (`QA-REPORT.md` Seção 8) — nenhuma ação de retomada de implementação
   necessária. Falta apenas confirmar o fechamento formal do lote
   (`EXECUTION-FLOW.md` §5), que também depende de aprovação do DevSecOps.
-- **L2 — Ranking e Presença Pública**: parcialmente concluído. BE-03 e FE-02
-  `Concluída` e aprovadas pelo QA (BE-03 já inclui o incremento do campo
-  `ausencias`, resolução de `BLOCKER-005`). FE-03 segue `Não iniciada` — é a
-  única pendência deste lote, sem bloqueio técnico registrado; retomada é
-  simplesmente iniciar FE-03.
+- **L2 — Ranking e Presença Pública**: 100% concluído — `BE-03`, `FE-02`, `FE-03`
+  todas `Concluída` (a nota anterior desta seção, que descrevia `FE-03` como
+  `Não iniciada`, estava desatualizada; corrigida em 2026-09-04 durante o
+  fechamento retroativo do lote). Lote fechado (`EXECUTION-LOG.md`) —
+  **Aprovado com ressalvas** pelo QA (`QA-REPORT.md` Seção 13, achado de
+  processo não bloqueante: `PRD-TECNICO.md` RF-03.1/`UX-SPEC.md` Seção 2/6.2/
+  `BLOCKERS.md` `BLOCKER-004`/`BLOCKER-005` seguem descrevendo um estado que a
+  produção real não tem mais desde que o commit `d9b77e5` — decisão direta do
+  organizador, fora da cadeia de agentes — removeu as colunas de
+  presenças/cartões da tabela pública; não é um defeito de `FE-02`, é
+  reconciliação de documentação de produto pendente, fora da autoridade do
+  Tech Lead resolver sozinho — ver recomendação em `EXECUTION-LOG.md`) e
+  **Aprovado** pelo DevSecOps (`SECURITY-REVIEW.md` Seção 37, `DEBT-03`
+  confirmado resolvido). Nenhuma ação de retomada de implementação necessária.
 - **L6 — Montagem de Times, Restrições e Substituições**: 100% concluído —
   `BE-11`, `BE-12`, `BE-13`, `FE-09`, `FE-10`, `FE-11` todas `Concluída`
   (integração de Frontend contra API real em todos os casos, nenhuma
   pendência de mock). Falta apenas confirmar o fechamento formal do lote
   (`EXECUTION-FLOW.md` §5, aprovação do QA/DevSecOps), mesma pendência
   administrativa já registrada para L0/L1.
-- **L3, L4, L5, L7**: nenhuma tarefa iniciada em nenhum destes quatro lotes.
-  Retomada segue a ordem relativa da tabela acima — L3 já está desbloqueada
-  (BE-04, do qual depende, já foi concluído), L4 aguarda a conclusão de BE-06
-  (L3), L5 aguarda a conclusão de BE-08 (L4), e L7 é independente do
-  restante, aguardando apenas a liberação das credenciais do legado para
-  SPK-01 rodar.
+- **L3 — Cadastro de Atletas**: 100% concluído — `BE-06`, `BE-07`, `FE-04`
+  todas `Concluída`. Lote fechado (`EXECUTION-LOG.md`) — **Aprovado**, sem
+  ressalva, pelo QA (`QA-REPORT.md` Seção 14) e **Aprovado com débito
+  registrado** pelo DevSecOps (`SECURITY-REVIEW.md` Seção 47 — `DEBT-10`,
+  Média, `AtletaForm.tsx`/`FE-04` preservava `contato`/`data_nascimento` sem
+  redação em `sessionStorage` ao expirar a sessão durante o envio; corrigido
+  no código nesta mesma janela via whitelist explícita, com teste dedicado —
+  reconfirmação formal do fechamento do débito fica para a próxima auditoria
+  do DevSecOps). Nenhuma ação de retomada de implementação necessária.
+- **L4 — Lançamento de Rodada**: 100% concluído — `BE-08`, `FE-05` ambas
+  `Concluída`. Lote fechado (`EXECUTION-LOG.md`) — **Aprovado**, sem
+  ressalva, pelo QA (`QA-REPORT.md` Seção 15) e pelo DevSecOps
+  (`SECURITY-REVIEW.md` Seção 57). Nenhuma ação de retomada de implementação
+  necessária.
+- **L5 — Correção, Histórico e Auditoria de Rodadas**: 100% concluído —
+  `BE-09`, `BE-10`, `BE-16` (criada durante a execução para fechar um GAP que
+  bloqueava `FE-06`/`FE-07`, ver Seção 3.0 acima), `FE-06`, `FE-07`, `FE-08`
+  todas `Concluída`. Lote fechado (`EXECUTION-LOG.md`) — **Aprovado com
+  ressalvas** pelo QA (`QA-REPORT.md` Seção 16 — `BUG-QA-BE09-01`, baixa
+  severidade, lacuna de cobertura de teste automatizado de middleware para
+  `/api/log-auditoria`, comportamento real já confirmado correto
+  empiricamente; sem prazo formal) e **Aprovado** pelo DevSecOps
+  (`SECURITY-REVIEW.md` Seção 67). Nenhuma ação de retomada de implementação
+  necessária.
+- **L7**: nenhuma tarefa iniciada. É independente do restante, aguardando
+  apenas a liberação das credenciais do legado para `SPK-01` rodar.
 
 ### 3.1 Backend
 
@@ -491,13 +520,20 @@ implícitas:
 1. **Plano de saída do ADR-002** (Opção B como rota de baixo custo) — adendo formal
    ainda não redigido pelo Software Architect. Ver Risco 3 (Seção 5).
 2. **Redação da base legal LGPD diferenciada adulto/menor** (Seção 7.6 do
-   `SDD.md`) — o aviso de privacidade de `FE-04` já antecipa a diferenciação em
-   linguagem simples (herdado do `UX-SPEC.md`), mas o texto final de produção
-   depende da correção desta seção pelo Software Architect. Ver Risco 4 (Seção 5).
+   `SDD.md`) — **Resolvido em 2026-09-04** pelo Software Architect (`BLOCKERS.md`
+   Notas): Seção 7.6 do `SDD.md` reescrita distinguindo explicitamente as duas
+   bases legais (Art. 7º IX para adulto, Art. 14 §1º para menor); veredito
+   registrado de que o texto de produção de `FE-04` (`AtletaForm.tsx`, já
+   `Concluída`/aprovada pelo QA na Seção 14.3 do `QA-REPORT.md` sem nenhum
+   achado) já é consistente com a redação corrigida e não precisou de ajuste de
+   copy. Atualização feita pelo Tech Lead nesta entrada conforme pedido
+   explícito de `BLOCKERS.md`. Risco 4 (Seção 5) permanece só como registro
+   histórico, sem pendência ativa.
 
-Nenhuma das duas bloqueia o início de nenhuma tarefa de Backend/Frontend deste
-`TASK.md` — ambas são pendências de documentação/governança com prazo "antes do
-Gate 3" ou "antes do freeze final de copy", não bloqueios de implementação.
+A pendência 1 (item de `L7`, fora do escopo do fechamento retroativo de
+`L2`-`L5` desta sessão) não bloqueia o início de nenhuma tarefa de
+Backend/Frontend deste `TASK.md` — não revalidada nesta sessão, mantida como
+estava.
 
 ### 6.2 Decisões de detalhe tomadas pelo Tech Lead (documentadas, não escaladas)
 
@@ -597,3 +633,509 @@ tarefa(s)/risco(s) apontado(s) pelo CTO, não o documento inteiro. Backend e
 Frontend permanecem bloqueados para iniciar implementação de produção até o
 veredito do Gate 3 (podem preparar ambiente/scaffolding, mas não devem considerar
 estimativas/ordem de execução acima como definitivas antes da aprovação).
+
+---
+---
+
+# PARTE II — TASK.md Delta: Iniciativa de Redesenho Visual
+
+**Dono**: Tech Lead
+**Status**: **Aprovado com ressalvas** no Gate 3 desta iniciativa do CTO
+(`CTO-REVIEW.md`, 2026-09-04) — planejamento fechado, execução liberada.
+Ressalva não bloqueante do CTO: correção do total agregado (Frontend real =
+33 PD, total desta Parte II = ≈39.5 PD, não os 27/33.5 PD originalmente
+declarados na Seção 3.2/5 abaixo) — a corrigir no primeiro `EXECUTION-LOG.md`
+desta iniciativa, não nesta tabela retroativamente.
+**Coluna `Status` adicionada nesta revisão (início da execução, 2026-09-04)**:
+as tabelas 3.1/3.2 abaixo não tinham coluna de status de execução (só de
+esforço) — adicionada agora, mesma convenção da Parte I, todas as linhas
+`Não iniciada` até que a execução real avance.
+**Relação com a Parte I**: delta sobre o mesmo `TASK.md` — nenhuma tarefa, lote,
+diretriz, dependência ou risco da Parte I é reaberto em mérito funcional. Esta
+Parte II (a) reestima formalmente, linha a linha, `FE-00` a `FE-11` (mais `FE-12`,
+por completude — ver nota na Seção 3.2), conforme exigido pelo Gate 2 do CTO desta
+iniciativa (`CTO-REVIEW.md`, 2026-09-04) e por `SDD.md` Anexo C/`ADR-013`; e (b)
+decompõe o esforço novo necessário para implementar o redesenho (design system
+atômico, composição de tela, dois pontos de exposição de dado novos identificados
+durante esta decomposição — Seção 6.1). **Escopo**: Backend e Frontend. Mobile seg
+ue fora de escopo (inalterado da Parte I).
+**Input de origem**: `SDD.md` Anexo C (Aprovado com ressalvas no Gate 2 desta
+iniciativa, 2026-09-04, ADR-012/013/014) + `UX-SPEC.md` Parte II (completo,
+revisão 2, 2026-09-04) + `PRD-TECNICO.md` Parte II (RF-D01 a RF-D05, RN-D01 a
+RN-D07) + `PRD.md` Parte II (escopo, premissas, decisão de inversão de
+prioridade) + `CTO-REVIEW.md` (Gate 1 e Gate 2 desta iniciativa) + `GUARDRAILS.md`
+(regras 28, 30, 31) + `BLOCKERS.md` (`BLOCKER-004`/`BLOCKER-005`, ambos
+`Resolvido`, contexto de por que RF-03.1/T02 mudaram) + `SECURITY-REVIEW.md`
+(status de `DEBT-03`/`DEBT-05`/`DEBT-06`, Seção 5 abaixo) + `TASK.md` Parte I
+(estimativas/status originais de `FE-00` a `FE-12`).
+**Skills aplicadas**: `task-decomposition` (Seção 3), `technical-spike-identification`
+(Seção 2), `effort-estimation` (Seção 3), `dependency-sequencing` (Seção 4),
+`implementation-guideline-drafting` (Seção 1), `task-md-drafting` (montagem desta
+Parte II, incluindo Seção 6). `guardrails-drafting` aplicada separadamente para
+propor ajuste a `GUARDRAILS.md` (ver `.md/GUARDRAILS.md`, Seção 10).
+
+---
+
+## 1. Diretrizes de Implementação (delta)
+
+Traduz `ADR-012`/`ADR-013`/`ADR-014` e o `UX-SPEC.md` Parte II em regra prática de
+código. Onde este delta é silenciso, a Seção 1 da Parte I permanece em vigor sem
+alteração.
+
+### 1.1-R Fontes e CSP (ADR-012)
+
+- **Obrigatório**: `next/font/google` para Bebas Neue, Public Sans e JetBrains
+  Mono — download em tempo de build, servido pela própria origem.
+- **Proibido**: qualquer `<link>`/`@import` para `fonts.googleapis.com`/
+  `fonts.gstatic.com`, ou qualquer alteração de `vercel.json` (`font-src`,
+  `style-src`, `connect-src`) em decorrência desta iniciativa — a CSP vigente
+  (`font-src 'self'`, confirmada resolvida em `DEBT-03`) não deve ser tocada.
+- **Obrigatório** (checagem de minutos, não bloqueante do Gate 3, ressalva não
+  bloqueante do CTO no Gate 2 desta iniciativa): confirmar, no início da
+  implementação, que `next/font/google` oferece os pesos exatos de Bebas Neue/
+  Public Sans/JetBrains Mono usados no mockup antes de declarar a tarefa `FE-R00`
+  concluída.
+
+### 1.2-R Substituição atômica de tokens (ADR-013)
+
+- **Obrigatório**: um único commit/PR contendo **exclusivamente** os novos
+  valores de `tokens.css`/`tokens.ts` (8 tokens novos + 3 valores alterados,
+  `UX-SPEC.md` Parte II Seção 3.1) — nenhuma mudança de layout/composição de
+  tela no mesmo commit (condição de execução do Gate 2 do CTO, para preservar
+  `git revert` trivial). Ver estrutura de commits exata na Seção 6.2-R, item 4.
+- **Proibido**: qualquer mecanismo de tema/feature-flag de paleta (`data-theme`,
+  `prefers-color-scheme` aplicado à paleta de marca, dois arquivos de token
+  coexistindo) — `ADR-013` rejeitou essa opção explicitamente por violar a
+  Guardrail 31. Isso inclui o tema escuro completo presente no CSS do mockup
+  real (`UX-SPEC.md` Seção 2.0, achado informativo item 9): **não portar** as
+  declarações `[data-theme="dark"]`/`prefers-color-scheme: dark` para
+  `tokens.css` nesta release — fora de escopo, nenhum requisito pede isso.
+- **Obrigatório**: `accessibility-review` completo (17 componentes
+  compartilhados existentes × seus estados + os 14 pares cor-de-fundo×texto da
+  `UX-SPEC.md` Seção 5.3) executado e sem violação bloqueante **antes** do merge
+  do commit de tokens — gate duro (RF-D05.2/Guardrail 28), não checagem
+  incremental pós-merge tela a tela.
+- **Obrigatório**: `--color-success` deixa de existir como token de matiz
+  distinta — é alias de `--color-primary` a partir deste commit (`UX-SPEC.md`
+  Seção 3.1); qualquer diferenciação "ação disponível" vs. "confirmação"
+  depende exclusivamente de texto/ícone daqui em diante.
+
+### 1.3-R Simulador tático de T09 (ADR-014)
+
+- **Obrigatório**: `PitchBackground`/`PlayerChip` compostos exclusivamente por
+  CSS Grid/Flexbox sobre elementos DOM reais e focáveis.
+- **Proibido**: `<canvas>`, SVG com `foreignObject`, ou qualquer biblioteca de
+  renderização gráfica/motor de campo.
+- **Obrigatório**: o seletor modal "Trocar jogador" permanece o mecanismo
+  **primário e sempre disponível**, em qualquer viewport (RF-D01.1/RN-D03/
+  Guardrail 30) — nunca removido nem escondido atrás do drag-and-drop.
+- **Permitido, nunca obrigatório**: HTML5 Drag and Drop nativo como atalho
+  adicional em `lg`, sem biblioteca de terceiro.
+- **Proibido**: qualquer capacidade de reposicionamento livre de jogador a
+  coordenada arbitrária do campo — rótulos de posição tática/formação são texto
+  estático, decorativo, sem novo campo de dado nem controle de edição
+  (RF-D01.2/RF-D01.3, confirmado final pelo organizador).
+
+### 1.4-R Emoji e ícones (`UX-SPEC.md` Seção 3.4)
+
+- **Obrigatório**: manter como emoji real (não substituir por `Icon`) os
+  glifos confirmados no mockup: 🥇🥈🥉 (T02), ⚽🟨 (T05, mais 🟥 por
+  consistência com o mesmo padrão), 🔄✓ (T09) — sempre com `aria-hidden="true"`
+  quando o texto adjacente já descreve o significado, e `aria-label` explícito
+  quando não (obrigatório na medalha de T02, ver 1.5-R).
+- **Obrigatório**: usar o componente `Icon` (novo, Seção 3.2-R) para os
+  demais glifos da Parte I sem evidência no mockup real: 🔒 (T04), ⚠ (T04/T09-
+  conflito), ⚡ (T10), 👁 (T01, toggle de senha), ⋮ (T07, se mantido), ☰
+  (`BottomTabBar`, só se a implementação real precisar dele em viewport mais
+  estreito que o mockup).
+- **Proibido**: introduzir qualquer emoji novo fora da lista confirmada acima
+  sem nova decisão registrada do organizador.
+
+### 1.5-R Regras de contraste obrigatórias (`UX-SPEC.md` Seção 5.3)
+
+- **Proibido**: `--color-brand-gold` (`#d9b64a`) como texto/ícone informativo
+  sobre fundo claro (1,96:1, reprova) — usar `--color-brand-gold-text-safe`
+  (`#8a6d1b`) para texto/ícone informativo sobre claro.
+- **Proibido**: `--color-focus-ring` padrão (verde) sobre qualquer superfície
+  navy (2,45:1, reprova 1.4.11) — usar `--color-focus-ring-on-dark` (dourado)
+  em qualquer elemento focável sobre `TopNav`/hero de T01/moldura de T09.
+- **Obrigatório**: texto/número sobre fundo `--color-brand-gold` usa
+  `--color-brand-gold-contrast` (`#4a3a0d`), nunca branco nem
+  `--color-brand-navy`.
+- **Obrigatório**: `MedalBadge` de T02 sempre acompanhado de rótulo textual
+  equivalente para os 3 primeiros colocados (`sr-only` ou visível) — correção
+  de acessibilidade obrigatória sobre o próprio mockup aprovado (RF-D05.2);
+  nenhum sign-off "atende" pode ser concedido para T02 sem essa correção.
+- **Obrigatório**: contraste do nome de jogador sobre o gradiente listrado do
+  campo (`PitchBackground`) verificado empiricamente contra o valor final de
+  implementação do gradiente (não calculável genericamente antes da
+  implementação) — ≥4,5:1, parte do critério de aceite de `FE-R09`.
+
+### 1.6-R Assets de marca (`BrandCrest`, RNF-D04)
+
+- **Obrigatório**: gerar uma versão com fundo transparente (PNG/SVG) de
+  `logo.jpg` antes do primeiro uso em produção — o arquivo atual tem fundo
+  navy sólido embutido e produz borda retangular perceptível sobre qualquer
+  outro tom.
+- **Decisão de detalhe do Tech Lead (convenção de path, RNF-D04)**: os assets
+  de marca migram para `public/brand/` — `public/brand/grupo-rola-crest.jpg`
+  (original) + `public/brand/grupo-rola-crest.png` (versão transparente,
+  gerada pelo Frontend) + `public/brand/clube-comary.jpg` (mantido presente,
+  **sem nenhum import/uso de código** — decisão do UX/UI de não referenciá-lo
+  nesta release, `UX-SPEC.md` Seção 2.0).
+- **Bloqueio de merge, não de desenvolvimento**: o PR que introduz `BrandCrest`
+  pode ser desenvolvido e revisado tecnicamente, mas **não deve ser mesclado em
+  `main`** antes de PM+stakeholder confirmarem o direito de uso do brasão real
+  do "Grupo Rola Futebol" (RNF-D04, pendência herdada do `PRD.md` Parte II,
+  Seção 6, item 4) — ver Seção 4/5 abaixo.
+
+---
+
+## 2. Spikes Técnicos Identificados (delta)
+
+### SPK-02 — Disponibilidade de dado de time/gol por atleta em rodadas migradas do legado, para a coluna "Confronto" de T06
+
+- **Contexto**: `UX-SPEC.md` Parte II (Seção 2.5/3.5) acrescenta a T06 uma
+  coluna "Confronto" (placar agregado de pontos entre os dois times daquela
+  rodada) e uma coluna "Status" (`Encerrada`/`Corrigida`). "Confronto" exige
+  agregar, por rodada, os pontos de gol dos atletas atribuídos a cada time
+  (`TIME_ATLETA` × eventos de gol da rodada) — dado que existe com certeza
+  para rodadas lançadas pelo sistema novo, mas **não está confirmado** para
+  rodadas migradas do legado (RF-08), onde a atribuição de time pode nunca ter
+  sido registrada de forma equivalente.
+- **Pergunta a responder**: para rodadas com `origem = legado` (ou equivalente
+  já definido por `BE-15`/`SPK-01`), existe dado suficiente (atleta→time da
+  rodada + gol do atleta na rodada) para calcular "Confronto"? Se não, `BE-R02`
+  deve retornar `null`/"—" para essas linhas, sem erro.
+- **Timebox**: 0.5 PD. **Quem**: Backend. **Critério de saída**: resposta
+  binária documentada (sim/parcialmente/não) por amostragem direta do dado já
+  migrado por `BE-15` (se `BE-15` já tiver rodado) ou do schema legado (se
+  `SPK-01` já tiver descoberto o schema) — não bloqueia o início de `BE-R02`
+  para rodadas do sistema novo, só define o comportamento de fallback para as
+  antigas.
+- **Impacto se não resolvido a tempo**: `BE-R02` implementa o fallback "—" por
+  padrão para qualquer rodada sem os dois dados completos, sem esperar o
+  spike — o spike só evita que isso seja tratado como "bug" depois, quando na
+  verdade é ausência de dado histórico legítima.
+
+**Nota de conclusão (2026-09-04, execução do spike)**: **Executado.** Timebox
+gasto: dentro do previsto (0.5 PD). Método efetivamente usado: amostragem
+direta do **schema legado já descoberto por `SPK-01`** (`.md/LEGADO-SCHEMA.md`)
+— `BE-15` ainda não rodou contra o legado real (execução real permanece
+bloqueada por governança, `GUARDRAILS.md` regra 35/`BLOCKERS.md`
+`BLOCKER-003`, conforme a própria nota de conclusão de `BE-15`), logo não
+existe dado "já migrado" para amostrar; a amostragem foi feita sobre os 770
+registros reais de `presencas_rodada` já introspectados por `SPK-01`, mesmo
+método read-only, nenhuma escrita/conexão nova contra o legado.
+
+**Resposta: Não** — dado insuficiente para calcular "Confronto" em qualquer
+rodada de origem legado, nas duas dimensões exigidas pela pergunta do spike:
+1. **Atleta→time da rodada**: `presencas_rodada.time` é texto livre (não
+   referência normalizada a `rodadas.nome_time_a`/`nome_time_b`) e está
+   preenchido em apenas 22/770 linhas (~2,9%) — cobertura já registrada como
+   Divergência D7 em `LEGADO-SCHEMA.md` (Seção 6), com pergunta ainda pendente
+   de resposta do organizador (RF-08.3) sobre migrar ou não essas 22 linhas.
+   Independentemente deste spike, `BE-15` (nota de conclusão) já decidiu **não
+   migrar** `app.time`/`app.time_atleta`/`app.substituicao` nesta versão,
+   exatamente por essa cobertura ser baixa demais para reconstituir composição
+   de time sem inventar dado — achado de `BE-15` que este spike confirma, não
+   contradiz.
+2. **Gol do atleta na rodada**: `presencas_rodada.gols_marcados` é **0 em
+   100% das 770 linhas** amostradas — nenhum evento de gol foi registrado no
+   legado real em nenhuma rodada da amostra (ausência total de dado
+   histórico, não limitação de schema). Mesmo nas 22 linhas onde `time` está
+   preenchido (item 1), não há nenhum gol associado a elas — um "confronto"
+   sempre 0-0 não é dado significativo calculável, é ausência de dado
+   travestida de zero.
+
+Conclusão combinada: mesmo que o organizador decida migrar as 22 linhas do
+item 1 (D7), o item 2 por si só inviabiliza o cálculo de "Confronto" para
+**todo** o período legado amostrado — não existe um único gol registrado nos
+770 registros reais de `presencas_rodada`.
+
+**Impacto em `BE-R02`**: confirma, antes do início da implementação, que o
+fallback `confronto: null` deve ser tratado como comportamento **padrão e
+esperado para toda rodada de origem legado** — não um caso raro/erro, e sim a
+única saída correta dado o estado real dos dados amostrados; nenhuma rodada
+legada na amostra disponível tem os dois dados completos exigidos. O campo
+`status` (`"encerrada"`/`"corrigida"`) de `BE-R02` não é afetado por este
+achado (fonte de dado independente — log de auditoria RF-04.4).
+
+Nenhum outro spike novo identificado nesta decomposição — `SPK-01` (Parte I,
+descoberta do schema legado) permanece válido e inalterado, sem relação direta
+com este redesenho visual além do ponto acima.
+
+---
+
+## 3. Lista de Tarefas (delta)
+
+### 3.0 Lotes (delta)
+
+Cada lote agrupa as tarefas desta iniciativa que formam uma unidade coerente de
+fechamento para QA/DevSecOps (`EXECUTION-FLOW.md` §1). Diferente dos lotes da
+Parte I (agrupados por domínio funcional), estes são agrupados por
+**dependência técnica do design system** (RD0 gate tudo) e, dentro disso, por
+afinidade funcional já usada na Parte I (para reaproveitar os casos de teste
+funcionais existentes, já que RN-D06 garante zero mudança de comportamento).
+
+| Lote | Nome | Tarefas | Ordem relativa entre lotes |
+|---|---|---|---|
+| **RD0** | Fundação do Redesenho (Design System Atômico) | `FE-R00`, `FE-R12` | Precede **todos** os demais lotes desta Parte II — nenhum lote RD1-RD4 pode ter seu PR de composição mesclado em `main` antes do commit de tokens (`FE-R00`) estar mesclado **e** o `accessibility-review` completo (Seção 1.2-R) estar fechado sem violação bloqueante. `BE-R01`/`BE-R02`/`SPK-02` **não** dependem deste lote e podem rodar em paralelo com ele desde o dia 1 (não tocam `tokens.css`). |
+| **RD1** | Telas Públicas Redesenhadas (Ranking e Presença) | `FE-R02`, `FE-R03`, `BE-R01` | Depende de RD0 só para o merge final de `FE-R02`/`FE-R03` (podem ser desenvolvidas em branch de feature em paralelo a RD0). `BE-R01` roda em paralelo com RD0 desde o dia 1. Independente de RD2/RD3/RD4. |
+| **RD2** | Login e Lançamento de Rodada Redesenhados | `FE-R01`, `FE-R05` | Depende de RD0 (mesmo padrão de RD1). Independente de RD1/RD3/RD4. |
+| **RD3** | Histórico e Times Redesenhados | `FE-R06`, `FE-R09`, `FE-R11`, `BE-R02`, `SPK-02` | Depende de RD0 (frontend). `SPK-02`/`BE-R02` rodam em paralelo com RD0 desde o dia 1. `FE-R11` sequenciado junto de `FE-R09` por serem a mesma área de contexto (T11 é sub-tela de T09), embora `FE-R11` seja aplicação "leve". Independente de RD1/RD2/RD4. |
+| **RD4** | Aplicação Leve (Telas Internas Restantes) | `FE-R04`, `FE-R07`, `FE-R08`, `FE-R10` | Depende de RD0. Independente de RD1/RD2/RD3 — menor prioridade de sequenciamento (todas Should have, `PRD.md` Parte II Seção 5); pode ser o último lote fechado sem atrasar a métrica primária de sucesso (sign-off das 6 telas do mockup, `PRD.md` Parte II Seção 3). |
+
+**Nota sobre a estrutura de commits dentro de RD0** (implementação da condição
+de "isolamento" do Gate 2 do CTO, decisão de detalhe do Tech Lead — Seção
+6.2-R, item 4): commit 1 = só `tokens.css`/`tokens.ts` (revert trivial);
+commit 2 = componentes novos de fundação (`Icon`, `BrandCrest`), sem nenhuma
+tela ainda consumindo-os; commits de RD1-RD4 = composição por tela, cada um já
+consumindo os dois commits anteriores.
+
+### 3.1 Backend (tarefas novas desta iniciativa)
+
+| ID | Tarefa | Depende de | Critério de Aceite | Estimativa | Status | Lote |
+|---|---|---|---|---|---|---|
+| **BE-R01** | Exposição pública da matriz de "últimas N rodadas" por atleta + estatísticas agregadas de temporada, para consumo de `FE-R02` (T02). Extensão de view pública já existente ou nova view curada (`app.ranking_publico_recentes` ou equivalente), via `ROW_NUMBER() OVER (PARTITION BY atleta ORDER BY data_rodada DESC)` limitado a N — sem nova tabela, sem novo campo de PII, mecanismo já coberto por `ADR-005` (decisão de detalhe, Seção 6.2-R, item 1) | — | View retorna, por atleta, os status (`presente`/`ausente`/`lesionado`) das últimas `N=7` rodadas lançadas (N fixado pelo Tech Lead, Seção 6.2-R item 2) + `rodadas_jogadas` (contagem total do grupo) + `media_presenca` (%); nunca expõe `contato`/`data_nascimento`; RLS herdada da política já aprovada da schema `app`; `API-CONTRACT.yaml` incrementado (novo endpoint ou campos), changelog registrado; **não inclui** "próxima rodada" (escalado, Seção 6.1-R item 1) | **M** (3 PD) | **Concluída** — nova view curada `app.ranking_publico_recentes` (não extensão de `ranking_publico`/BE-03: formato de dado incompatível — matriz exige coluna array/JSON por atleta, embuti-la na view existente quebraria o contrato já publicado consumido por `FE-02`/T02 original), migration aditiva `supabase/migrations/20260904090000_create_ranking_publico_recentes_view.sql`, mecanismo exatamente como especificado (`ROW_NUMBER() OVER (PARTITION BY atleta_id ORDER BY data_rodada DESC)`, N=7, `jsonb_agg`), `GRANT SELECT` só para `anon`/`service_role`, nenhuma tabela base alterada. Desvio pequeno documentado (resolvido, não escalado): `rodadas_jogadas` e `media_presenca` são estatísticas de **GRUPO** (mesmo valor repetido em toda linha), não uma razão por atleta — leitura literal de "rodadas_jogadas (contagem total do **grupo**)" desta própria célula, confirmada por `UX-SPEC.md` Parte II Seção 2.2 ("3 estatísticas agregadas do grupo, **não do atleta individual**" no painel "Resumo da temporada"); `media_presenca` = soma de presenças de todos os atletas ativos ÷ (nº de atletas ativos × `rodadas_jogadas`), % com 1 casa decimal, `lesionado` não conta (mesma decisão já aprovada em `presencas` de `ranking_publico`/BLOCKER-005, reaproveitada por analogia). "Próxima rodada" não implementada, conforme excluído em 6.1-R item 1. `API-CONTRACT.yaml` incrementado para `0.13.0` (novo endpoint `GET /ranking_publico_recentes`, schemas `RankingPublicoRecentesItem`/`RodadaRecenteStatus`, changelog registrado) — `/ranking_publico`/`RankingPublicoItem` (BE-03) permanecem inalterados. Teste de integração novo `src/lib/supabase/__tests__/ranking-publico-recentes.integration.test.ts` (mesmo harness Supabase local de BE-03): cobre ausência de `contato`/`data_nascimento`, exclusão de atleta anonimizado/inativo e de rodada `excluida`, corte em N=7 com ordem mais-recente-primeiro, preservação do status literal `lesionado`, e o cálculo de grupo via asserção por delta (snapshot "antes" das tabelas base via `service` role, comparado à view "depois" do fixture do próprio teste) — necessário porque o Supabase local deste harness é compartilhado entre todos os arquivos de teste de integração (nunca resetado entre arquivos) e `app.atleta` nunca é excluído fisicamente (`GUARDRAILS.md` regra 9), então um valor absoluto fixo esperado seria não-determinístico; 5/5 testes novos passando, suíte de integração completa (188 testes) e suíte unitária completa (812 testes) sem regressão. | RD1 |
+| **BE-R02** | Exposição de "Confronto" (placar agregado de pontos por time naquela rodada, via `TIME_ATLETA` + eventos de gol do atleta na rodada) e "Status" (`Encerrada`/`Corrigida`, derivado da existência de entrada em log de auditoria RF-04.4 para aquela rodada) no endpoint de listagem de rodadas (`GET /api/rodadas`, `BE-16`), para consumo de `FE-R06` (T06) | `SPK-02` (para o comportamento de fallback, não bloqueia início do desenvolvimento contra rodadas do sistema novo) | Endpoint retorna `confronto: {colete: number, sem_colete: number} \| null` e `status: "encerrada" \| "corrigida"` para toda rodada; rodadas sem dado suficiente (legado, se `SPK-02` confirmar ausência) retornam `null` no campo `confronto`, nunca erro; nenhum novo campo de tabela — cálculo por `JOIN`/subquery no próprio endpoint; `API-CONTRACT.yaml` atualizado | **M** (3 PD) | **Concluída** — `GET /api/rodadas` (`BE-16`) estendido em memória, sem função/view/coluna nova: `src/modules/rodadas/confronto.ts` (cálculo puro) + `repository.ts` (consultas em lote a `app.time`/`app.time_atleta`/`app.participacao_rodada`/`app.evento_jogo`/`app.configuracao_pontuacao`/`app.log_auditoria`) + `listar.ts` (orquestração), consumidos por `presenter.ts`. `confronto`: soma por time de `gols do atleta na rodada × valor vigente do evento "gol"`; `null` quando a rodada não tem exatamente 2 `app.time` persistidos — confirmado por `SPK-02` como o caso de **toda** rodada de origem legado (nunca erro). Desvio pequeno documentado (resolvido, não escalado, mesmo padrão já usado por `BE-R01`): (1) mapeamento `colete`/`sem_colete` é **posicional** (`times[0]`/`times[1]`, ordenados por `label asc, id asc`), não uma correspondência semântica real a "Colete"/"Sem Colete" — `app.time.label` ainda é "Time A"/"Time B" nesta release (renomeação real é escopo de `FE-R09`/T09, não implementada aqui); `criado_em` foi descartado como critério de ordenação porque `app.confirmar_times_rodada` (BE-13) grava todos os times de uma rodada na mesma transação, logo com `criado_em` idêntico entre si — achado só descoberto ao rodar o teste de integração (primeira tentativa falhou), documentado em `repository.ts`. (2) O critério de aceite literal nomeia o segundo campo `status`, mas esse nome já é usado por `RodadaResumoItem.status` desde a versão 0.12.0 (BE-16) com um significado INCOMPATÍVEL (`"lancada" \| "excluida"`, ciclo de vida de `app.rodada`, consumido por `FE-06`/Parte I) — reaproveitar o nome trocando o tipo de valores seria uma mudança de contrato incompatível disfarçada de aditiva; o campo novo chama-se `status_correcao`, `status` permanece inalterado (documentado em `presenter.ts` e no changelog do `API-CONTRACT.yaml`). `status_correcao = "corrigida"` quando existe qualquer entrada em `app.log_auditoria` para a rodada (RF-04.4, sem distinguir `tipo_evento` — correção e estorno/exclusão contam igualmente, leitura literal do critério de aceite), `"encerrada"` caso contrário. `API-CONTRACT.yaml` incrementado para `0.14.0` (`RodadaResumoItem.confronto`/`.status_correcao`, schema novo `ConfrontoRodada`, changelog registrado) — `RodadaResponse`/`RodadaExcluidaResponse`/`RodadaDetalheResponse`/demais rotas de `/api/rodadas/*` permanecem inalteradas. Testes novos: unitário `src/modules/rodadas/__tests__/confronto.test.ts` (9 casos — vigência de pontos por data, contagem de times ≠ 2, soma por time, ausência de gol conta 0, placar 0×0 é confronto legítimo, nunca `null` por engano) e integração `app/api/rodadas/__tests__/listar.integration.test.ts` (4 casos novos no describe `BE-R02`, reaproveitando o mesmo harness Supabase local de `BE-16`: confronto correto com 2 times confirmados, `null` sem times persistidos, placar 0×0, `status_correcao` antes/depois de uma correção real via `PATCH .../participacoes/:atletaId`). Achado incidental (corrigido, fora do escopo desta tarefa mas necessário para suíte verde): o primeiro teste já existente de `listar.integration.test.ts` usava `GET /api/rodadas` sem `?limit=` — o acúmulo de rodadas de execuções repetidas desta suíte ao longo do tempo (harness nunca resetado, mesma nota já registrada no arquivo) já ultrapassava o `limit` padrão (50, teto 200), tornando o teste intermitente; ajustado para `limit=200` explícito. Suíte de integração completa (190 testes, 20 arquivos) e suíte unitária completa (827 testes, 105 arquivos) sem regressão; `tsc --noEmit`/`eslint` limpos. | RD3 |
+
+**Nota de fechamento parcial do lote RD3 (2026-09-05, ao concluir `BE-R02`)**:
+com `SPK-02` e `BE-R02` concluídos, as 2 tarefas de Backend + o spike deste
+lote estão fechados; `FE-R06`/`FE-R09`/`FE-R11` (Frontend, ainda "Não
+iniciada") permanecem como única pendência para fechar RD3 por completo —
+nenhuma delas foi tocada por este agente (fora de escopo). Duas observações
+para quem pegar `FE-R06` a seguir, sem decidir nada por ela aqui: (1) o
+contrato real publicado usa `status_correcao` para a pill "Encerrada"/
+"Corrigida" (não `status`, já ocupado por `"lancada"/"excluida"` desde
+BE-16) — ver changelog `0.14.0` do `API-CONTRACT.yaml` antes de montar a
+tela, para não procurar um campo `status` com os dois valores errados; (2)
+`confronto` será `null` para 100% das rodadas de origem legado (confirmado
+por `SPK-02`) e também para qualquer rodada do sistema novo cujos times
+ainda não tenham sido confirmados via T09 — o mockup (`UX-SPEC.md` Parte II
+Seção 2.5) só mostra o caso "com confronto"; o estado visual de `null`
+("—"/traço, um placeholder textual, nunca célula vazia sem explicação, WCAG
+1.4.1) não está desenhado no comp e pode ser uma lacuna a sinalizar ao
+UX/UI se `FE-R06` não encontrar orientação suficiente ao chegar lá.
+
+**Nota de fechamento parcial do lote RD3 (2026-09-05, ao concluir `FE-R09`)**:
+com `FE-R09` concluída (ver linha própria na Seção 3.2 acima), `FE-R06`/
+`FE-R11` (Frontend) permanecem como única pendência para fechar RD3 por
+completo — nenhuma delas foi tocada por este agente (fora de escopo desta
+tarefa). O lote **não fecha** ainda; QA não é acionado neste momento. Duas
+observações para quem pegar `FE-R11` a seguir (mesma área de contexto de
+`FE-R09`, T11 é sub-tela de T09): (1) `app.time.label` agora é persistido
+como "Colete"/"Sem Colete" (não mais "Time A"/"Time B") para toda nova
+divisão confirmada a partir desta tarefa — `SubstituicoesModal.tsx`/T11 já
+consome o campo `label` de forma genérica (nenhuma mudança de código
+necessária), mas qualquer novo texto que `FE-R11` vier a adicionar citando o
+time pelo nome deve usar os rótulos reais devolvidos pela API, nunca
+hardcodar "Time A"/"Time B"; (2) `PitchBackground`/`PlayerChip` (novos,
+`src/components/ui/`) já estão disponíveis no barrel do design system e
+vitrinados em `app/dev/design-system/page.tsx` — `FE-R11`, sendo aplicação
+"leve" (herda tokens/`TopNav`/`BottomTabBar`, sem composição própria
+adicional conforme a própria linha 3.2), não deveria precisar deles, mas fica
+registrado caso o Frontend decida reaproveitar `PlayerChip` para exibir o
+roster atual de "Sai"/"Entra" no lugar dos `Select` já existentes — decisão
+de composição em aberto, não decidida aqui.
+
+### 3.2 Frontend — Reestimativa formal linha a linha de `FE-00` a `FE-12`
+
+Conforme exigido pelo Gate 2 do CTO desta iniciativa (`SDD.md` Anexo C, C.3;
+`CTO-REVIEW.md`, ressalva (b) de `ADR-013`): toda tarefa de Frontend já
+`Concluída` que consome `tokens.css` recebe uma linha própria abaixo, com o
+**esforço adicional** necessário (não o esforço total original) para
+implementar a mudança descrita em `UX-SPEC.md` Parte II, Seção 3.5 (mecanismo
+de histórico de alteração de componente). `FE-12` **não** foi citado
+explicitamente na lista de "12 tarefas" do Gate 2 do CTO (que enumerou `FE-00`
+a `FE-11`), mas o Tech Lead a inclui aqui por completude e transparência: o
+`SessionExpiryBanner`/`Toast` que ela usa também consome os tokens
+compartilhados (`Guardrail 31`), logo também está no blast radius — decisão de
+detalhe documentada, não uma extrapolação do escopo do CTO (a tarefa recebe o
+menor esforço desta tabela, 0.5 PD, justamente por não ganhar composição nova).
+
+| ID | Reestima | Tela/Componente | Mudança que motiva a reestimativa (`UX-SPEC.md` Parte II, Seção 3.5/1.4) | Esforço adicional | Depende de | Status | Lote |
+|---|---|---|---|---|---|---|---|
+| **FE-R00** | `FE-00` | Fundação do Design System | Substituição atômica de 8 tokens novos + 3 alterados; integração `next/font/google` (3 fontes); componente novo `Icon`; componente novo `BrandCrest` (+ `BrandCrest` compacto no `TopNav` existente); `accessibility-review` completo pré-merge sobre os 17 componentes existentes; commit isolado (Seção 1.2-R) | **L (6 PD)** | — | **Concluída** — commit isolado em 2 partes conforme Seção 6.2-R item 4 (`git log`: `5c7bad0` tokens/fontes, `efaf297` `Icon`/`BrandCrest`), nenhuma tela consumindo os componentes novos ainda (composição fica para FE-R01…FE-R12). **Tokens** (`src/design-system/tokens.css`): `--color-primary`/`--color-focus-ring` trocados para `#1c6e46` (escala 50/100/400/hover/active recalculada em HSL preservando a proporção relativa da escala anterior — UX-SPEC não define a escala completa, só o valor-base, decisão de detalhe do Frontend); `--color-warning`/`--color-danger` refinados para os valores reais do mockup (hover/active desses dois também recalculados pelo mesmo método); 8 tokens novos (`--color-brand-navy[-strong]`, `--color-brand-gold[-contrast/-text-safe]`, `--color-focus-ring-on-dark`, `--color-pitch-bg`, `--color-navy-tint`); `--color-success`/`-bg` viram alias de `--color-primary`/`--color-pitch-bg` (Guardrail 37 — nunca redeclarar com hex próprio sem novo ADR). **Fontes** (`app/layout.tsx`, ADR-012): `next/font/google` para Public Sans (400/500/700), Bebas Neue (peso único 400 — confirmado no manifesto de fontes do pacote antes de fechar a tarefa, conforme checagem obrigatória da Seção 1.1-R) e JetBrains Mono (400/500/700); `npm run build` executado localmente para confirmar que o download em build-time funciona de fato (não só compila) — zero alteração em `vercel.json`/CSP. **`Icon`** (`src/components/ui/Icon/`): decisão de detalhe — SVG inline autoral por glifo (`lock`, `alert-triangle`, `eye`, `eye-off`, `zap`, `more-vertical`, `menu`), sem dependência de pacote de ícone externo (Lucide/Feather cogitados e descartados: nenhum ganho real sobre 7 glifos geométricos simples, evita superfície nova a auditar pelo DevSecOps, RNF-04); `aria-hidden` por padrão, `aria-label`+`role="img"` quando não há texto adjacente; `stroke="currentColor"` (nunca fixa cor própria, herda do contexto — resolve a exigência de "claro vs. navy" da Seção 5.4 sem prop dedicada). **`BrandCrest`** (`src/components/ui/BrandCrest/`): placeholder (SVG geométrico próprio, não reproduz `logo.jpg`) em variantes `large`/`compact`, com prop `decorative`; pendência de asset real documentada no próprio componente (RNF-D04/Seção 1.6-R) — não bloqueia esta tarefa, só o merge futuro do asset real quando PM+stakeholder confirmarem direito de uso; integrado ao `TopNav` existente (`AppNav.tsx`) em modo `decorative` ao lado do texto de marca (o texto já fornece o nome acessível do link, então o teste de acessibilidade pré-existente do `AppNav` não muda de comportamento). **`accessibility-review`** (WCAG 2.1 AA, pré-merge, Guardrail 39): auditoria cobriu os 21 componentes compartilhados mapeados a partir da Seção 3.2 do `UX-SPEC.md` (não apenas os "17" citados nesta linha — inclui também `Combobox`/`Select`, adicionados após a baseline original) contra os novos valores de token; nenhum componente usa hex hardcoded fora de `tokens.css` (confirmado por varredura), então nenhuma cor "escapou" da substituição atômica. Todos os pares cor-de-fundo × cor-de-texto efetivamente usados pelos componentes recalculados via a fórmula de luminância relativa do WCAG 2.1 e conferidos contra a Seção 5.3 do `UX-SPEC.md` Parte II — nenhuma violação bloqueante. **Achado não-bloqueante sinalizado ao UX/UI**: o par `--color-danger`/`--color-danger-bg` calcula 6,32:1 pela fórmula (não 7,41:1 como o `UX-SPEC.md` registra — esse valor corresponde, na verdade, ao par "texto sobre branco"); ambos os valores reais passam com folga o piso AA, a divergência é só de documentação, comentário deixado em `tokens.css` para a próxima revisão do UX-SPEC corrigir o número. **Testes**: 818 testes (Vitest + Testing Library + jest-axe) passando em 104 arquivos após a mudança, incluindo os novos `Icon.test.tsx`/`BrandCrest.test.tsx`; `typecheck`/`lint`/`build` limpos. Guia de estilo (`app/dev/design-system/page.tsx`) ganhou seções de vitrine para `Icon`/`BrandCrest` (mesmo padrão usado por `FE-00` para os demais componentes). | RD0 |
+| **FE-R01** | `FE-01` | T01 — Login | Hero navy full-bleed + `BrandCrest` grande + título real "Acesso interno" (não wordmark) + link de retorno com contraste corrigido (Seção 1.5-R); nenhuma mudança de lógica de formulário/erro/redirect | **S (1 PD)** | `FE-R00` | Não iniciada | RD2 |
+| **FE-R02** | `FE-02` | T02 — Ranking Público | Reescrita estrutural: de cartão-por-atleta com contagem agregada para matriz atleta×últimas N rodadas (dots `P`/`A`/`L` com rótulo textual) + `MedalBadge` (com correção de a11y obrigatória) + painel "Resumo da temporada" (desktop, 2 de 3 métricas — ver Seção 6.1-R item 1) + `TopNav` com `BrandCrest`/pill dourado | **M (4 PD)** | `FE-R00`, `BE-R01` | **Concluída** — integração contra a API **real** (`ranking_publico_recentes`, `BE-R01`, já `Concluída`; endpoint publicado no `API-CONTRACT.yaml` v0.13.0 antes desta tarefa começar, nenhum mock necessário, ponto de sincronização não acionado). Junta DOIS endpoints por `atleta_id` (nenhum substitui o outro): `ranking_publico` (BE-03, inalterado) continua a fonte de ORDEM/pontuação; `ranking_publico_recentes` (BE-R01) é a fonte da matriz + estatísticas de grupo — `RankingList.tsx` (`Promise.all`, único estado de carregamento/erro para as duas fontes). Dois componentes novos do design system, reutilizáveis (Guardrail 31): `MedalBadge` (`src/components/ui/MedalBadge/`) — conteúdo visual é o próprio emoji 🥇🥈🥉 (decisão já fechada, Seção 7.2 item 6), com a **correção de a11y obrigatória** desta revisão (texto ordinal `sr-only`, ex. "1º lugar", para os 3 primeiros — só posições 4+ mostram ordinal visível); `PresenceDot` (`src/components/ui/PresenceDot/`) — dot com letra `P`/`A`/`L` visível + `role="img"`/`aria-label` por extenso ("Presente"/"Ausente"/"Lesionado", nunca letra solta por voz), decisão de detalhe deste agente (não escalada) de já promovê-lo a componente único do DS agora, antecipando o reuso literal que `FE-R03`/T03 já anuncia ("mesmo componente/estilo confirmado em T02"). **Reconciliação de colunas** (`matrix.ts`, decisão de detalhe documentada, não escalada — Guardrail 32): `ranking_publico_recentes` devolve uma janela própria por atleta (não datas compartilhadas); as colunas exibidas são construídas pela união de `rodada_id` de todos os atletas (ordenada, cortada em `N=7`), o que reproduz o cabeçalho único de datas do mockup no caso normal e continua correto no caso de borda (atleta com histórico mais curto) — colunas ausentes para um atleta específico mostram placeholder textual "Sem registro nesta rodada" (`role="img"`+`aria-label`), nunca célula muda (WCAG 1.4.1). Mobile mostra as 5 mais recentes das até 7 colunas (`firstMobileVisibleColumnIndex`), ocultas via CSS (`display:none`/`@media min-width:1024px`, Seção 6.2-R item 2) — mesma tabela real em todo breakpoint (sem reflow para "cartão", ao contrário da Parte I: a própria matriz já é tabular no wireframe mobile). Painel "Resumo da temporada" usa só `rodadas_jogadas`/`media_presenca` (estatística de GRUPO, mesmo valor em toda linha de `recentes`) — "Próxima rodada" não implementada (Seção 6.1-R item 1). **`TopNav`**: decisão de detalhe documentada em `PublicHomeShell.tsx` — o hero navy (`BrandCrest` + marca + pill "Acesso interno" dourado, visível só a partir de `lg`) não duplica "Ranking"/"Presença mensal" como links paralelos dentro da faixa navy; o componente `Tabs` já existente permanece a única navegação entre as duas telas (evita "variação paralela" do mesmo controle, Guardrail 31), só muda de vizinhança visual. Gradiente do hero: navy→navy-strong (nunca até `--color-primary` atrás de texto) + uma faixa verde decorativa de 6px no rodapé (`::after`) — achado de contraste desta tarefa: dourado puro sobre `--color-primary` dá ≈3,19:1 (reprovaria AA se o kicker caísse sobre a parte verde de um gradiente completo), documentado em `PublicHomeShell.module.css`. **Achado de acessibilidade corrigido durante a implementação** (nunca deixado como pendência): `<header>`/`<footer>` foram colocados como irmãos de `<main>` (não descendentes) depois que o `accessibility-review` (axe, `landmark-banner-is-top-level`) reprovou `<header>` aninhado em `<main>`. Emoji mantidos conforme mockup real (nenhum `Icon` no lugar deles). Nunca solicita/renderiza `contato`/`data_nascimento` (RN-01/ADR-005, reforçado nas duas funções de fetch). Testes novos: `MedalBadge.test.tsx` (4), `PresenceDot.test.tsx` (5), `matrix.test.ts` (8), `rankingRecentesApi.test.ts` (4), `format.test.ts` (+3 casos), `RankingList.test.tsx`/`PublicHomeShell.test.tsx` reescritos (6+5, incluindo `jest-axe`) — suíte completa 853 testes/109 arquivos sem regressão; `tsc --noEmit`/`eslint`/`next build` limpos. | RD1 |
+| **FE-R03** | `FE-03` | T03 — Presença Mensal | Repintura de tokens; `Accordion` deixa de ser necessário (mockup real mostra a matriz do mês diretamente) — **redutor** de esforço frente à Parte I | **S (1 PD)** | `FE-R00` | **Concluída** — integração contra a API **real** (`presenca_mensal_publica`, `BE-03`, já `Concluída`/aprovada pelo QA, mesma fonte de dado da Parte I; nenhuma mudança de contrato/lógica de busca nesta tarefa, só de apresentação), sem mock. `Accordion` removido de `PresencaMensal.tsx` (continua disponível no design system/guia de estilo, só deixa de ser usado por esta composição, conforme `UX-SPEC.md` Parte II Seção 2.3/"Nota de verificação de fidelidade" item 8): a lista de presentes de cada rodada do mês passa a ser exibida diretamente (sem expandir/recolher), reutilizando o componente `PresenceDot` (design system, já promovido a componente único por `FE-R02`/T02 antecipando este reuso) para marcar cada nome presente, com o mesmo vocabulário de tokens de cartão/borda/superfície já usado pela tabela de T02 (`RankingList.module.css`) — paridade visual do par T02/T03 sem duplicar decisão de estilo. Repintura de tokens confirmada como zero-esforço adicional: nenhuma variável CSS mudou de nome em `FE-R00`, só de valor, então `PresencaMensal.module.css` herda a nova paleta/tipografia automaticamente. **Achado de dado, não decidido unilateralmente (`BLOCKER-010`, `BLOCKERS.md`, escalado a `ux-ui`/`software-architect`, mesmo padrão de precedente de `BLOCKER-004`/`BLOCKER-005` para T02)**: `UX-SPEC.md` Parte II Seção 2.3 descreve a composição como "uma matriz atleta × data do mês inteiro (dots `P`/`A`/`L`... com legenda 'Presente/Ausente/Lesionado')" — uma linha por atleta, réplica estrutural da matriz de T02. A view pública real (`presenca_mensal_publica`) não suporta essa estrutura: é uma linha por rodada, com apenas os nomes de quem esteve presente (sem o universo de atletas ativos do período, sem distinguir `ausente` de `lesionado`) — construir a grade literal exigiria um novo endpoint público (atleta ativo × rodada do mês civil navegável, RN-09, diferente da janela fixa de N=7 rodadas de `ranking_publico_recentes`/`BE-R01`), fora do escopo desta tarefa (dependência declarada nesta própria linha é só `FE-R00`, nenhuma tarefa de Backend). Implementação real mantém a estrutura por rodada já disponível — satisfaz o critério de aceite literal desta linha ("mostra a matriz do mês diretamente", sem accordion) — com legenda reduzida a apenas "Presente" (não os 3 itens do `UX-SPEC.md`, para não anunciar uma distinção `ausente`/`lesionado` que o dado real não sustenta). Divergência documentada em `PresencaMensal.tsx` (comentário de topo) e em `BLOCKER-010`, não escondida; não bloqueia o fechamento deste lote (mesmo padrão de `BLOCKER-005`, tela implementada e correta contra seu próprio critério de aceite, divergência é só contra uma seção do `UX-SPEC.md` que aparentemente herdou a descrição de T02 sem ajuste à fonte de dado real, mais restrita, de T03). Testes: `PresencaMensal.test.tsx` reescrito (9 testes, incluindo `jest-axe`) para refletir a lista direta sem accordion — suíte completa 853 testes/109 arquivos sem regressão; `tsc --noEmit`/`eslint`/`next build` limpos. Fecha o **Lote RD1** (`FE-R02`+`FE-R03`+`BE-R01`, todas `Concluída`). | RD1 |
+| **FE-R04** | `FE-04` | T04 — Cadastro/Edição de Atleta | Aplicação "leve": herda `TextInput`/`Button`/`Modal`/`TypedConfirmationModal` repintados; substitui 🔒 por `Icon name="lock"` no aviso de privacidade; nenhuma composição nova | **S (1 PD)** | `FE-R00` | Não iniciada | RD4 |
+| **FE-R05** | `FE-05` | T05 — Lançamento de Rodada | Reescrita do padrão de interação: de `Stepper` de 3 etapas para lista contínua única (stat-tiles + `SegmentedControl`+eventos revelados progressivamente por atleta) + modal de confirmação final (preserva a intenção de RNF-10) + emoji reais ⚽🟨🟥 com rótulo textual adjacente — maior mudança de estado/composição entre as 6 telas do mockup | **L (6 PD)** | `FE-R00` | Não iniciada | RD2 |
+| **FE-R06** | `FE-06` | T06 — Histórico de Rodadas | Repintura + duas colunas novas ("Confronto", "Status") | **M (3 PD)** | `FE-R00`, `BE-R02` | Não iniciada | RD3 |
+| **FE-R07** | `FE-07` | T07 — Correção/Estorno | Aplicação "leve": `DiffViewer` herda tokens sem composição nova; `Icon name="more-vertical"` se ação secundária mantida | **S (1 PD)** | `FE-R00` | Não iniciada | RD4 |
+| **FE-R08** | `FE-08` | T08 — Log de Auditoria | Aplicação "leve": lista somente-leitura herda tokens sem composição nova | **S (0.5 PD)** | `FE-R00` | Não iniciada | RD4 |
+| **FE-R09** | `FE-09` | T09 — Montagem de Times | Maior mudança de composição da iniciativa: `PitchBackground` (CSS Grid/Flexbox, `ADR-014`) dividido em Colete/Sem Colete; `PlayerChip` (variante leve de `Card`, focável, DnD nativo opcional em `lg`); rótulos de posição/formação decorativos; painel de equilíbrio reformulado para "diferença" (não médias); banner "✓ Restrição respeitada"; ação "🔄 Novo sorteio" (paridade mobile+desktop); `ConflictList` repintado com nomes "Colete"/"Sem Colete" — zero mudança de contrato de API/heurística (`ADR-007`/`ADR-010` inalterados) | **L (7 PD)** | `FE-R00` | **Concluída** — integração contra as APIs **reais** (`BE-11`/`BE-13`/`BE-16`, já `Concluída`; `BE-12`/T10 reaproveitado sem alteração, ver banner de restrição abaixo); nenhuma pendência de mock, nenhuma mudança de contrato/heurística (`ADR-007`/`ADR-010` inalterados — `TimeMontado`/`SugestaoTimesResultado`/`swapAtletas` continuam exatamente os mesmos). Dois componentes novos do design system (Guardrail 31, `src/components/ui/`): **`PitchBackground`** (+ `PitchTeamHeader`/`PitchPlayerList`) — CSS Grid/Flexbox sobre DOM real (`ADR-014`), moldura navy (chrome) ao redor de um campo verde listrado (`--color-primary`/`-hover`, nunca o inverso — UX-SPEC.md Parte II Seção 5.4), dividido em duas áreas por uma linha de meio-campo dourada; empilhado em `base`, lado a lado a partir de `lg` (Seção 6, delta). **`PlayerChip`** — `<button>` real focável (não um `<div>` com `role="button"` reimplementado), `aria-label` explícito ("Trocar {nome}, nível técnico {valor}") que já inclui o dado real de RN-03 mesmo não pintado no chip (reconciliando a célula resumida da Seção 3.2, "nome + nível técnico", com o comp aprovado, que só desenha pin+nome+posição — decisão de detalhe documentada no próprio componente, não escalada); suporta HTML5 DnD nativo como atalho opcional (`onDropAtleta`) — decisão de detalhe: `draggable` fica sempre presente no DOM sem detecção de breakpoint via JS, já que a API nativa de DnD só é acionada por ponteiro de mouse real (touch não dispara `dragstart`), restringindo o atalho a desktop na prática sem `matchMedia`; o seletor modal (`TrocarJogadorModal`, inalterado) permanece o único `onClick` de cada chip, em qualquer viewport (Guardrail 30/RF-D01.4, interação não reaberta — nenhum botão "Trocar jogador" avulso foi adicionado: a leitura do wireframe da Seção 2.6 que mostra esse rótulo na fileira de ações é tratada como taquigrafia não-normativa do mockup ASCII, já satisfeita pelo mecanismo de tocar/clicar em qualquer `PlayerChip`, não uma affordance nova — decisão de detalhe documentada, não escalada, para não reabrir o contrato de interação já confirmado). Rótulos de posição tática (ATA/MEI/VOL/LAT/ZAG) são texto visível normal, **não** `aria-hidden` (equidade de informação para quem usa leitor de tela — WCAG 1.1.1 é sobre não omitir informação, não sobre esconder tudo que é decorativo), atribuídos por um ciclo fixo determinístico por posição no time (`posicaoDecorativa`, `times.ts`), sem nenhum dado/lógica de posicionamento real (RF-D01.2/Seção 7.2 item 8, decisão já fechada pelo organizador, não reaberta). **`aria-hidden="true"`** da célula da Seção 3.2 aplicado só à linha de meio-campo puramente decorativa (`.centerLine`), nunca ao contêiner inteiro — decisão de detalhe documentada em `PitchBackground.tsx` reconciliando aquela célula resumida com o próprio `ADR-014` (consequência positiva explícita: "cada jogador continua sendo um elemento DOM focável") e com a Seção 2.6 ("`PlayerChip` dentro do `PitchBackground`", claramente não oculto) — aplicar `aria-hidden` ao contêiner todo esconderia times/jogadores reais de tecnologia assistiva, o oposto do que o ADR exige. Anel de foco de cada `PlayerChip` sobre o campo verde é dourado (`--color-focus-ring-on-dark`), via override do custom property `--color-focus-ring` escopado ao contêiner `.pitch` (mesma técnica já apontada como necessária futuramente em `AppNav.module.css`/FE-R12, aplicada aqui pela primeira vez em produção) — nunca o verde padrão, que se confundiria com o próprio fundo (UX-SPEC.md Parte II Seção 5.3 regra 2/5.4). **Painel de equilíbrio** (`balance-strip`): "Dif. pontos" e "Titulares N×N" são dado novo só na forma de exibição, não no dado em si — decisão de detalhe documentada em `times.ts` (`sumNivelTecnico`): o cabeçalho de cada time no comp mostra "62 pts"/"59 pts" (ordem de grandeza incompatível com a média de nível técnico já existente, ~6-7), então "pts" é a **soma** (não a média) de `nivel_tecnico` dos atletas do time — mesmo dado por atleta já existente (RN-03), nenhuma mudança de contrato; "Dif. idade" usa a média já existente (`idade_media`), formatada em pt-BR com sufixo "a" (ex. "1,4a", `formatDiferenca`); ambas nunca inventam número (`"—"` quando `null`, mesma regra de `recomputeTeamStats`). **Banner "✓ Restrição respeitada"** — decisão de detalhe (documentada, não escalada, a mais relevante desta tarefa): `SugestaoTimesOk` (BE-11) não devolve quais restrições existem/foram satisfeitas (só a resposta de conflito, `ADR-010`, tem esse detalhe); sem mudar o contrato de `POST /api/times/sugestao`, a única fonte real (não inventada) dessa informação é reconciliar, 100% no cliente, a lista de restrições ativas já publicada (`GET /api/restricoes`, BE-12/T10, reaproveitado sem nenhuma alteração) com a divisão atual de times (`restricoesRespeitadas`, `times.ts`) — uma restrição aparece no banner só quando os dois atletas dela estão presentes na divisão atual **e** em times diferentes; carregada em paralelo à rodada/presentes em `MontagemTimesShell.tsx`, com tratamento de erro isolado (degrada para `[]`, nunca quebra o fluxo principal de gerar/confirmar times). **Ação "🔄 Novo sorteio"**: reaproveita `handleGerar` (mesma função da fase de seleção) mantendo paridade mobile+desktop; achado corrigido durante a implementação (nunca deixado como pendência): `erroGeracao` só era renderizado dentro de `PresencaSelecao` (fase "seleção") — uma falha ao clicar "Novo sorteio" a partir da fase "resultado" ficaria sem feedback visível; corrigido com um `AlertBanner` adicional na fase "resultado" (`MontagemTimesShell.tsx`). **Renomeação "Time A"/"Time B" → "Colete"/"Sem Colete"** (`labelParaIndice`, `times.ts`) — a renomeação real antecipada pela nota de conclusão de `BE-R02` ("renomeação real é escopo de FE-R09/T09"): a partir desta tarefa toda nova divisão confirmada persiste `app.time.label` como "Colete"/"Sem Colete"; compatível sem mudança de Backend com a convenção posicional de `BE-R02` (`label asc`: "Colete" ainda ordena antes de "Sem Colete", preservando `times[0]`); índices ≥ 2 mantêm o esquema alfabético antigo como fallback nunca exercitado (`QUANTIDADE_TIMES` fixo em 2). **`ConflictList`**: auditado, nenhuma mudança de código necessária — busca literal confirmou que o componente nunca citou "Time A"/"Time B" em nenhum texto próprio (nem o intro do estado de conflito, nem `grupo.mensagem` do backend), então a "repintura com nomes reais" desta linha é inteiramente satisfeita pela renomeação global de `labelParaIndice` acima (cascata automática caso um nome de time volte a aparecer perto do fluxo de conflito) somada à substituição atômica de tokens já feita por `FE-R00` (danger inalterado, confirmação não alteração). Nenhuma tela de seleção de presentes (`PresencaSelecao.tsx`) foi tocada — fora do escopo desta linha (herda tokens automaticamente, sem composição nova, mesmo padrão "leve" já usado por outras telas). Guia de estilo (`app/dev/design-system/page.tsx`) ganhou uma seção de vitrine para `PitchBackground`/`PlayerChip` (mesmo padrão de `FE-R00`/`FE-R02`). Testes novos/atualizados: `PlayerChip.test.tsx` (9, incluindo `jest-axe` e DnD via `dataTransfer` simulado), `PitchBackground.test.tsx` (5, incluindo `jest-axe`), `times.test.ts` (+27 casos: `labelParaIndice` renomeado, `sumNivelTecnico`, `formatDiferenca`, `formatTitulares`, `posicaoDecorativa`, `restricoesRespeitadas`), `TimesResultado.test.tsx` reescrito (19, cobrindo PlayerChip/DnD/balance-strip/banner de restrição/Novo sorteio/Substituições por label real), `MontagemTimesShell.test.tsx`/`TrocarJogadorModal.test.tsx` atualizados para "Colete"/"Sem Colete" — suíte unitária completa (111 arquivos, 888 testes) sem regressão; `tsc --noEmit`/`eslint .`/`next build` limpos. Suíte de integração (`test:integration`) não re-executada — nenhum endpoint de Backend foi criado/alterado por esta tarefa (só consumo de `GET /api/restricoes`, já coberto pelos testes de integração de `BE-12`/T10). | RD3 |
+| **FE-R10** | `FE-10` | T10 — Gestão de Restrições Obrigatórias | Aplicação "leve": CRUD simples herda tokens; `Icon name="zap"` para conflito | **S (1 PD)** | `FE-R00` | Não iniciada | RD4 |
+| **FE-R11** | `FE-11` | T11 — Substituição no Intervalo | Aplicação "leve": herda tokens/`TopNav`/`BottomTabBar` novos, nenhuma composição própria adicional (sub-tela de T09) | **S (1 PD)** | `FE-R00` | Não iniciada | RD3 |
+| **FE-R12** | `FE-12` *(além das 12 citadas pelo CTO — ver nota acima)* | Sessão e expiração transversal | `SessionExpiryBanner`/`Toast` herdam tokens automaticamente; validar que qualquer indicador sobre chrome navy usa `--color-focus-ring-on-dark`, não o verde padrão (Seção 1.5-R) | **S (0.5 PD)** | `FE-R00` | **Concluída** — auditoria de contraste sobre `SessionExpiryStatus`/`SessionExpiryBanner`/`AlertBanner`/`Toast`/`ToastProvider` (`src/features/sessao/`, `src/components/ui/SessionExpiryBanner/`, `src/components/ui/Toast/`) contra a regra de `UX-SPEC.md` Parte II Seção 5.3 (regra 2)/5.4 — nota: a própria célula desta linha referencia "Seção 1.5-R", que não existe como tal no documento; o conteúdo substantivo da regra (foco padrão verde reprova 1.4.11 a 2,45:1 sobre navy, usar `--color-focus-ring-on-dark`) está de fato na Seção 5.3/5.4, divergência de numeração apenas, não uma inconsistência de conteúdo — não escalado ao UX/UI por não haver ambiguidade sobre o que implementar. **Constatação (nenhuma mudança de lógica/CSS necessária, conforme a ressalva da própria tarefa)**: varredura de código confirmou que, nesta data, nenhuma tela real do produto expõe esses componentes sobre chrome navy — a única ocorrência de `--color-brand-navy`/`--color-brand-navy-strong` fora de `tokens.css` é o preenchimento interno do SVG de `BrandCrest` (um ícone, não uma superfície de fundo); o repintado do `TopNav`/`BottomTabBar` interno para navy (UX-SPEC.md Parte II Seção 6.2-R) ainda não foi implementado por nenhuma tarefa `FE-R0x` (todas "Não iniciada" nesta tabela) e `InternalShell` monta `SessionExpiryStatus` como irmão do `AppNav`, fora do `TopNav`, sobre o fundo claro (`--color-bg`) da própria casca. **Correção de rastreabilidade (achado `BUG-QA-RD0-02`, `QA-REPORT.md` Seção 18.2.2, aplicada nesta revisão)**: a versão anterior desta nota afirmava que "Seção 1.5-R... não existe como tal no documento"; isso estava incorreto — `TASK.md` **tem** uma Seção 1.5-R própria (linha 754, "Regras de contraste obrigatórias"), que contém a mesma regra substantiva citada acima ("`--color-focus-ring` padrão sobre qualquer superfície navy... usar `--color-focus-ring-on-dark`"), consistente também com `UX-SPEC.md` Seção 5.3/5.4. A referência "Seção 1.5-R" no critério de aceite desta linha é, portanto, uma citação interna correta ao próprio `TASK.md` — a conclusão técnica da auditoria (nenhuma mudança de CSS necessária) não muda. Adicionalmente, mesmo prospectivamente, nem `AlertBanner` (usado pelo `SessionExpiryBanner`) nem os itens de `Toast` chegam a ser compostos diretamente sobre navy sem uma camada opaca própria — ambos sempre renderizam com fundo opaco da própria variante (`--color-{variant}-bg`, claro nas 4 variantes), o `Toast` inclusive portalizado para `document.body`/flutuante — logo o par verde-sobre-navy proibido pela Seção 5.3 regra 2 não ocorre nestes dois componentes mesmo depois do repintado futuro do `TopNav`. Documentada essa constatação diretamente no código (comentários de auditoria datados em `AlertBanner.tsx`, `ToastProvider.tsx` e `SessionExpiryStatus.tsx`) em vez de introduzir um override de `--color-focus-ring-on-dark` sem superfície navy real para justificá-lo (evita regra morta/não testável). **Nota encaminhada, não bloqueante**: deixado um comentário em `AppNav.module.css` (`.topNav`) apontando que, quando uma tarefa futura de fato repintar `TopNav`/`BottomTabBar` para `--color-brand-navy`, o `:focus-visible` global (`app/globals.css`, verde) precisará de override local para `--color-focus-ring-on-dark` naquele momento — nenhuma tarefa `FE-R01`…`FE-R11` cita esse repintado por nome, então fica registrado aqui para não se perder (não é um desvio de escopo desta tarefa, é apenas um apontador para quem implementar). Nenhuma mudança de comportamento: suíte completa (105 arquivos/827 testes, incluindo os 4 testes de `SessionExpiryBanner`, 7 de `Toast`/`AlertBanner` e 4 de `SessionExpiryStatus`, todos com `jest-axe`) e `tsc --noEmit` confirmados verdes após a mudança — fecha o Lote RD0 (`FE-R00`+`FE-R12`, únicas tarefas do lote). | RD0 |
+
+**Total de esforço adicional de Frontend desta Parte II: 27 PD** (soma das 13
+linhas acima) **+ 6 PD de Backend** (`BE-R01`+`BE-R02`) **+ 0.5 PD de spike**
+(`SPK-02`) — insumo direto para a Seção 5 (Riscos de Prazo).
+
+---
+
+## 4. Dependências e Ordem de Execução (delta)
+
+### 4.1 Cadeia crítica
+
+1. `FE-R00` (commit 1: tokens; commit 2: `Icon`/`BrandCrest`) → bloqueia o
+   merge (não o desenvolvimento) de `FE-R01`, `FE-R02`, `FE-R03`, `FE-R04`,
+   `FE-R05`, `FE-R06`, `FE-R07`, `FE-R08`, `FE-R09`, `FE-R10`, `FE-R11`,
+   `FE-R12`.
+2. `accessibility-review` completo sobre os componentes compartilhados das 11
+   telas (Seção 1.2-R) → bloqueia o merge do commit 1 de `FE-R00` — é
+   pré-condição do próprio `FE-R00`, não uma tarefa separada.
+3. `BE-R01` → bloqueia o merge final de `FE-R02` (não bloqueia o início do
+   desenvolvimento de `FE-R02` contra um mock do novo contrato).
+4. `SPK-02` → informa (não bloqueia o início de) `BE-R02`; `BE-R02` → bloqueia
+   o merge final de `FE-R06`.
+5. Confirmação de direito de uso de `logo.jpg` (PM+stakeholder, Seção 1.6-R) →
+   bloqueia **apenas o merge em `main`** do componente `BrandCrest` (dentro de
+   `FE-R00`) — não bloqueia o desenvolvimento nem o merge dos demais tokens/
+   componentes de `FE-R00` em branch de integração.
+
+### 4.2 O que pode rodar em paralelo
+
+- `BE-R01`, `BE-R02` (após `SPK-02` informar o fallback) e `SPK-02` podem
+  começar **no mesmo dia** que `FE-R00`, sem esperar nenhum token — nenhum dos
+  três toca `tokens.css`/componentes visuais.
+- Dentro de RD0, o desenvolvimento de `FE-R01`/`FE-R02`/`FE-R03`/`FE-R05`/
+  `FE-R06`/`FE-R09`/telas "leve" pode começar em branches de feature contra a
+  especificação de tokens já definida (`UX-SPEC.md` Seção 3.1, valores finais
+  e já aprovados no Gate 2) **antes** do merge de `FE-R00` em `main` — apenas o
+  merge final de cada uma fica bloqueado até `FE-R00` fechar, não o trabalho de
+  implementação em si. Isso permite paralelismo real entre RD0 e RD1-RD4.
+- RD1, RD2, RD3 e RD4 são mutuamente independentes entre si (nenhuma
+  depende de outra além de RD0) — podem ser sequenciadas pelo CTO/Tech Lead na
+  ordem de prioridade de produto já registrada em `PRD.md` Parte II, Seção 5
+  (T02/T09/T01/T05/T03/T06 primeiro — RD1+RD2+RD3 — depois RD4).
+- Fechamento de `DEBT-05`/`DEBT-06` (já rastreados em `SECURITY-REVIEW.md`,
+  dono Backend/DevOps, **não recriados como tarefa nesta Parte II**) roda em
+  paralelo total a todo o resto desta decomposição — ver Seção 5, risco 5.
+
+### 4.3 O que bloqueia o quê (resumo não-óbvio)
+
+- **Nenhuma tela pode receber sign-off "atende" do organizador (RF-D02) antes
+  do merge de `FE-R00` em `main` e do `accessibility-review` completo estar
+  fechado** — mesmo que a composição de uma tela específica (ex.: `FE-R04`,
+  aplicação leve) esteja pronta e revisada, ela ainda está rodando contra os
+  tokens antigos até `FE-R00` mesclar; um sign-off dado contra os tokens
+  antigos não seria válido contra o padrão final aprovado.
+- **`BrandCrest` pronto ≠ `BrandCrest` em produção**: o código pode estar
+  100% implementado e revisado, mas o merge fica retido por uma decisão de
+  outro dono (PM+stakeholder) — isso não é um bloqueio técnico do Tech Lead,
+  é uma dependência de governança explícita (Seção 1.6-R).
+
+---
+
+## 5. Riscos de Prazo Sinalizados (delta)
+
+| # | Risco | Impacto no prazo | Dono / ação necessária | Prazo |
+|---|---|---|---|---|
+| 1 | **Volume total desta Parte II (~33.5 PD: 27 PD Frontend + 6 PD Backend + 0.5 PD spike) é maior que qualquer lote individual da Parte I** — para 1 Frontend dedicado, ~27 PD ≈ 5-6 semanas de trabalho focado | O CTO deve calibrar a `capacity-and-timeline-validation` deste Gate 3 contra a decisão já registrada do organizador de pausar a v1 e dedicar toda a capacidade a este redesenho (Gate 1 desta iniciativa) — sem essa decisão, este volume competiria diretamente com o backlog funcional pausado | Tech Lead (esta estimativa) / CTO (calibrar expectativa no Gate 3) | Gate 3 desta iniciativa |
+| 2 | **`FE-R09` (T09, 7 PD) é a maior tarefa individual e a única com composição visual inteiramente nova de alta complexidade** (campo gráfico + `PlayerChip` + DnD opcional) | Recomenda-se não conceder sign-off do organizador a T09 até o gate de acessibilidade de RD0 estar fechado **e** `PlayerChip`/foco de teclado estarem validados nesta tarefa especificamente — retrabalho de ARIA/foco depois do sign-off seria mais caro que corrigir antes | Frontend (implementação) / UX-UI (accessibility-review desta tela específica antes do sign-off) | Antes do sign-off de T09 |
+| 3 | **Dependência de governança não técnica pode atrasar o merge de `BrandCrest`** mesmo com código pronto (Seção 1.6-R/4.3) — PM+stakeholder ainda não confirmaram direito de uso do brasão real do Grupo Rola | Se não confirmado a tempo, T01/T02/`TopNav` ficam sem `BrandCrest` em produção mesmo com o restante do redesenho pronto — degradação parcial aceitável, não bloqueia as demais telas | PM + stakeholder | Antes do merge de `BrandCrest` em `main` (não bloqueia o resto de `FE-R00`) |
+| 4 | **Escalada da "próxima rodada" (Seção 6.1-R, item 1) pode gerar expectativa de nova funcionalidade** (agendamento de rodada futura) fora do escopo Must/Should já aprovado em `PRD.md` | Risco de escopo, não de prazo *desta* iniciativa — mas se o organizador insistir em vê-la implementada, isso reabre `PRD.md`/`PRD-TECNICO.md` fora do que este `TASK.md` cobre | Software Architect/BA/PM (avaliar se vira novo item de backlog) | Se e quando o organizador cobrar a ausência dessa métrica no painel |
+| 5 | **Capacidade de Backend é baixo risco frente à condição do CTO de "migração integral de capacidade de Backend"** — `BE-R01`+`BE-R02` somam 6 PD, muito abaixo dos ~27 PD de Frontend; há folga de sobra para Backend também fechar `DEBT-05`/`DEBT-06` (já rastreados, não recriados aqui) no mesmo período, sem disputa real de capacidade | Nenhum — registrado para o CTO confirmar que a condição do Gate 1 desta iniciativa está satisfeita sem necessidade de decisão adicional | Nenhuma ação necessária | — |
+| 6 | **Artefato de origem do mockup (Artifact do `claude.ai`) segue não persistido como arquivo estático versionado no repositório** (RF-D03/RN-D05 — pendência que segue em aberto, fora do escopo deste `TASK.md` resolver). `UX-SPEC.md` Parte II Seção 2.0/2.1-2.6 já captura a especificação em prosa/tabelas/wireframes ASCII (fonte de verdade textual válida), mas não há imagem estática de referência anexada para detalhes visuais finos não descritos em texto (ex.: gradiente exato do campo em T09, espaçamento fino) | **Não bloqueia** `FE-R04`/`FE-R07`/`FE-R08`/`FE-R10` (aplicação leve, suficientemente descrita em texto) nem `FE-R00` (tokens já têm hex exatos). **Pode atrasar** a implementação fina de `FE-R01`/`FE-R02`/`FE-R05`/`FE-R06`/`FE-R09` (as 6 telas do mockup) se o Frontend precisar de referência visual pixel-a-pixel não coberta pela descrição textual — dependência a resolver **antes de cada uma dessas 5 tarefas especificamente**, não um bloqueio geral da iniciativa | PM/UX-UI (persistir o artefato em formato versionado, RF-D03.1, ainda pendente) | Antes do início da implementação fina de cada uma das 5 tarefas listadas, se e quando o Frontend identificar necessidade real de referência visual além do texto |
+
+---
+
+## 6. Lacunas Sinalizadas ao Software Architect (delta)
+
+### 6.1-R Lacunas estruturais novas identificadas nesta decomposição (escaladas, não decididas pelo Tech Lead)
+
+1. **Campo "Próxima rodada" no painel "Resumo da temporada" de T02**
+   (`UX-SPEC.md` Parte II, Seção 2.2) pressupõe um conceito de agendamento de
+   rodada futura que **não existe** em nenhum requisito de RF-01 a RF-08 (RF-02
+   só registra rodadas já ocorridas; não há entidade "rodada agendada" no
+   modelo de dados). Isto não é lacuna de detalhe de apresentação — é ausência
+   de funcionalidade/modelo de dados de negócio. **Decisão do Tech Lead**:
+   `BE-R01`/`FE-R02` **excluem** esse dado específico do escopo desta Parte II
+   (o painel exibe só "Rodadas jogadas" e "Média de presença", as duas
+   estatísticas derivadas de dado já existente) — escalado ao Software
+   Architect/BA/PM como candidato a nova funcionalidade futura ("agendar
+   próxima rodada"), não implementado nem decidido silenciosamente aqui.
+2. **Disponibilidade de dado de atribuição de time/gol por atleta para
+   rodadas migradas do legado** (necessário à coluna "Confronto" de T06,
+   `BE-R02`) — incerteza real, não presumida como resolvida; roteada a
+   `SPK-02` (Seção 2). Se o spike confirmar ausência total desse dado para
+   rodadas legado, o Software Architect deve confirmar se o fallback "—" é
+   aceitável como comportamento permanente ou se merece nota complementar em
+   `SDD.md` Anexo C — o Tech Lead não decide isso sozinho além do fallback
+   técnico imediato (não bloqueante).
+
+### 6.2-R Decisões de detalhe tomadas pelo Tech Lead (documentadas, não escaladas)
+
+1. **Mecanismo de exposição de "últimas N rodadas"/estatísticas agregadas de
+   T02** (`BE-R01`): extensão de view pública já existente ou nova view curada,
+   usando o mecanismo de RLS+views já aprovado (`ADR-005`) — nenhum novo ADR
+   necessário, é a mesma classe de decisão que `BE-03` (Parte I) e a resolução
+   de `BLOCKER-005` já usaram.
+2. **Valor de "N" (últimas rodadas exibidas em T02)**: `N = 7`, espelhando o
+   exemplo do mockup real em desktop (`UX-SPEC.md` Seção 2.2, "até 7 colunas de
+   data") — RF-03.1 delega essa escolha explicitamente à "camada de
+   apresentação"; o Tech Lead fixa este valor para `BE-R01`/`FE-R02` não
+   ficarem indefinidos. Mobile exibe um subconjunto responsivo das mesmas
+   últimas 7 (ex.: 5 mais recentes, conforme espaço, decisão de `FE-R02`).
+3. **Convenção de path dos assets de marca**: `public/brand/` — ver Seção
+   1.6-R.
+4. **Estrutura de commits do PR de fundação (`FE-R00`)**: commit 1 (só
+   `tokens.css`/`tokens.ts`) → commit 2 (`Icon`/`BrandCrest`, sem consumidor
+   ainda) → commits de composição por lote (RD1-RD4) — implementação concreta
+   da condição de "isolamento" exigida pelo Gate 2 do CTO (`ADR-013`).
+5. **"Status" de rodada em T06** (`Encerrada`/`Corrigida`): derivado por
+   presença de entrada em log de auditoria (RF-04.4) para aquela rodada —
+   nenhum novo campo de tabela; cálculo via `JOIN`/subquery no próprio
+   endpoint (`BE-R02`).
+
+### 6.3-R Nenhuma outra lacuna estrutural nova identificada
+
+Fora dos dois pontos da Seção 6.1-R (já escalados, não decididos), nenhuma
+outra ambiguidade encontrada nesta decomposição exigiu reabrir `SDD.md`/
+`UX-SPEC.md` Parte II como incompleto — todas as demais já estavam delegadas
+explicitamente ao Tech Lead (Seção 6.2-R) ou já tinham dono e prazo nomeados
+nos Gates 1/2 desta iniciativa.
+
+---
+
+## Checklist de Prontidão (`capacity-and-timeline-validation`, antes do Gate 3 desta iniciativa)
+
+- [x] Toda tarefa tem dono/time responsável — Seção 3.1 (Backend) e 3.2
+      (Frontend), nenhuma linha sem prefixo de dono.
+- [x] Toda tarefa pertence a exatamente um lote (Seção 3.0), e todo lote tem
+      pelo menos uma tarefa — 5 lotes (RD0-RD4) cobrindo as 15 linhas de
+      tarefa (2 Backend + 13 Frontend reestimadas) + 1 spike (`SPK-02`,
+      referenciado no lote RD3 por coerência de retomada, sem coluna `Lote`
+      própria, mesmo padrão já usado por `SPK-01` na Parte I).
+- [x] Toda tarefa tem critério de aceite testável — Seção 3.1 (coluna
+      própria) e Seção 3.2 (coluna "Mudança que motiva a reestimativa" funciona
+      como critério de aceite específico desta reestimativa: cada linha
+      descreve exatamente o que muda e, portanto, o que precisa ser
+      verificado).
+- [x] Toda tarefa não-spike tem estimativa de esforço; `SPK-02` está marcada
+      como timebox, sem estimativa de entrega forçada.
+- [x] Toda dependência entre tarefas está mapeada, com o que pode rodar em
+      paralelo explícito — Seção 4.1 (cadeia crítica), 4.2 (paralelismo), 4.3
+      (bloqueios não-óbvios).
+- [x] Toda diretriz de implementação relevante está traduzida em regra
+      prática — Seção 1, cada subseção referencia o ADR/UX-SPEC de origem e
+      converte em "Obrigatório"/"Proibido" concreto.
+- [x] Toda lacuna estrutural encontrada está sinalizada na Seção 6.1-R, nunca
+      decidida em silêncio; toda lacuna de detalhe tem a decisão documentada
+      na Seção 6.2-R.
+- [x] Nenhuma das 6 seções está vazia ou com placeholder.
+- [x] Rascunho de ajuste a `GUARDRAILS.md` produzido (`guardrails-drafting`) e
+      submetido ao CTO junto com esta Parte II — ver `.md/GUARDRAILS.md`,
+      Seção 10 (proposta, pendente de aprovação).
+
+**Veredito deste rascunho**: pronto para submissão ao Gate 3 desta iniciativa
+do CTO (`capacity-and-timeline-validation`). Não é considerado final até
+aprovação (Aprovado ou Aprovado com ressalvas) — reprovação pontual reabre só
+a(s) tarefa(s)/risco(s) apontado(s), não o documento inteiro. Backend e
+Frontend permanecem bloqueados para iniciar implementação de produção contra
+esta Parte II até o veredito deste Gate 3 (podem preparar branch/scaffolding,
+não devem considerar estimativas/ordem de execução acima como definitivas
+antes da aprovação).

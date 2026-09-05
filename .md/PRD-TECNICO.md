@@ -88,10 +88,16 @@ já herdada do PRD.md, Seção 4). Nível técnico **não é campo de entrada ma
 
 ### RF-03 — Ranking Público
 
+*(RF-03.1 revisado em 2026-09-04 — decisão direta do organizador, no contexto da
+Iniciativa de Redesenho Visual; ver Interpretação registrada #14, Seção 7.)*
+
 - **RF-03.1** O sistema deve sempre exibir, na área pública sem login, para cada
-  atleta: nome de exibição (RN-06), pontuação acumulada, número de presenças e
-  número de ausências — o sistema nunca deve exibir contato ou data de nascimento
-  na área pública (RN-01).
+  atleta: nome de exibição (RN-06), o status de presença (Presente/Ausente/
+  Lesionado) em cada uma das últimas N rodadas lançadas (quantidade "N" definida
+  pela camada de apresentação, fora do escopo deste documento) e a pontuação
+  acumulada — o sistema **não** deve exigir a exibição de número agregado de
+  presenças ou de ausências nesta tela; o sistema nunca deve exibir contato ou
+  data de nascimento na área pública (RN-01).
 - **RF-03.2** Quando dois ou mais atletas têm pontuação acumulada idêntica, o
   sistema deve ordená-los aplicando o critério de desempate definido em RN-08, na
   ordem ali estabelecida.
@@ -284,7 +290,7 @@ flowchart TD
 flowchart TD
     A[Visitante acessa link publico] --> B[Sistema carrega estado mais recente do historico]
     B --> C[Calcula ordenacao: pontuacao desc, depois criterios RN-08]
-    C --> D[Exibe nome de exibicao RN-06 + pontuacao + presencas/ausencias]
+    C --> D[Exibe nome de exibicao RN-06 + status PAL das ultimas N rodadas + pontuacao]
     D --> E{Visitante quer ver visao mensal?}
     E -- Sim --> F[Exibe presenca por rodada agrupada por mes civil RN-09]
     E -- Nao --> G[Fim]
@@ -511,13 +517,40 @@ conta própria (nenhuma delas altera escopo ou objetivo de negócio do `PRD.md`)
     PM antes de o Software Architect prosseguir com o desenho de arquitetura. Até
     confirmação em contrário, trata-se apenas de migração pontual, dentro da
     autoridade de interpretação de detalhe do BA.
+14. *(Revisão 2026-09-04)* **Número agregado de presenças/ausências no ranking
+    público (RF-03.1) vs. matriz de status das últimas N rodadas do mockup
+    aprovado da Iniciativa de Redesenho Visual.** O UX/UI (`UX-SPEC.md`, Seção
+    7.2, item 7) sinalizou tensão entre a redação original de RF-03.1 (número
+    agregado de presenças e de ausências, exigido também no fluxo 4.3, nó D) e
+    duas evidências convergentes: (a) o organizador já havia removido essas
+    colunas da tabela pública num commit direto ao código de produção
+    (`d9b77e5`); (b) o mockup do redesenho aprovado usa exclusivamente uma
+    matriz de status (Presente/Ausente/Lesionado) das últimas N rodadas por
+    atleta, sem número agregado em nenhum lugar da tela. **Esta não é uma
+    ambiguidade de interpretação de detalhe que o BA resolva sozinho** — é uma
+    pergunta sobre o que a tela deve efetivamente exibir ao público (objetivo
+    de produto), por isso foi corretamente roteada ao organizador em vez de
+    decidida unilateralmente pelo BA ou pelo UX/UI. **Decisão do organizador
+    (2026-09-04, confirmação direta)**: manter apenas a matriz de status das
+    últimas N rodadas por atleta, sem contagem agregada de presenças/ausências.
+    **Porquê registrado aqui**: rastreabilidade — RF-03.1 (Seção 1) e o fluxo
+    4.3 (Seção 4, nó D) foram reescritos para refletir essa decisão; a redação
+    anterior de RF-03.1 não reflete mais o requisito real a partir desta data.
 
 Nenhuma das interpretações acima altera o escopo ou o objetivo de negócio
-validado no `PRD.md` — todas são refinamentos de detalhe dentro do escopo já
-aprovado, incluindo as duas adicionadas na revisão de 2026-09-02 (itens 12 e 13),
-que tratam de *como* incorporar uma restrição técnica nova sobre dados já
-confirmada pelo stakeholder, não de *o que* o produto faz. Nenhuma exigiu
-escalonamento ao PM.
+validado no `PRD.md` sem confirmação direta do organizador quando o ponto em
+questão de fato tocava escopo/objetivo — todas são refinamentos de detalhe
+dentro do escopo já aprovado, incluindo as duas adicionadas na revisão de
+2026-09-02 (itens 12 e 13), que tratam de *como* incorporar uma restrição
+técnica nova sobre dados já confirmada pelo stakeholder, não de *o que* o
+produto faz. O item 14, adicionado na revisão de 2026-09-04, é o único desta
+lista que não é uma interpretação de detalhe do BA — é o registro de uma
+decisão de escopo/objetivo de negócio tomada diretamente pelo organizador
+após sinalização do UX/UI, exatamente o tipo de ponto que este documento
+determina não ser decidido unilateralmente pelo BA (ver Guardrails). Nenhum
+dos catorze itens exigiu escalonamento formal ao PM além do próprio registro
+aqui — no caso do item 14, a decisão já chegou pronta, diretamente do
+organizador.
 
 ---
 
@@ -574,3 +607,391 @@ PM.
 incorporada. Liberado para o Software Architect, que deve tratar a descoberta do
 schema real do Supabase legado como etapa formal de investigação técnica antes de
 finalizar o modelo de dados no `SDD.md` (Seção 6, risco item 8).
+
+---
+---
+
+# PARTE II — PRD-TÉCNICO Delta: Iniciativa de Redesenho Visual
+
+**Dono**: Business Analyst
+**Status**: Pronto para Software Architect / UX-UI
+**Relação com a Parte I**: delta sobre o mesmo produto, não um levantamento novo.
+Nenhuma regra de negócio, fluxo funcional ou modelo de dados da Parte I é reaberta
+aqui — RF-01 a RF-08, RN-01 a RN-13, os 6 fluxos da Seção 4 e as dependências da
+Seção 5 permanecem integralmente válidos. Esta Parte II detalha exclusivamente a
+Iniciativa de Redesenho Visual registrada em `PRD.md`, Parte II, ao nível que o
+Software Architect/UX-UI precisam para desenhar/implementar sem reinterpretar
+intenção de produto — com uma exceção pontual analisada abaixo (Seção 1, RF-D01):
+a possibilidade de a revivência do simulador tático de T09 alterar um contrato de
+interação já aprovado (RF-05.4).
+**Input de origem**: `PRD.md`, Parte II (PM, `stakeholder-alignment-check` limpo,
+2026-09-04) + `UX-SPEC.md` (estado atual, 11 telas, T09 Seção 2/5.2/6.2/7.3) +
+`SDD.md` (design system atual, `tokens.css`) + `CTO-REVIEW.md` (Gate 1 desta
+iniciativa, quatro registros 2026-09-04, incluindo Guardrail 30/31) +
+`GUARDRAILS.md` (regras 28, 30, 31) + `BLOCKERS.md` (nenhum bloqueio aberto
+relevante a este delta).
+**Escopo de envolvimento do BA nesta iniciativa**: conforme o próprio `PRD.md`
+Parte II Seção 7 já registra, o CTO sinalizou que o BA "provavelmente não é
+necessário" na ausência de mudança de regra/dado/fluxo — a maior parte das
+perguntas em aberto é de PM/UX-UI/stakeholder diretamente, não do BA. Este
+documento trata essas perguntas como **confirmação/roteamento** (não reabertura),
+exceto o item 1 da Seção 7 do `PRD.md` Parte II (interação de T09), que o próprio
+PM identificou como o único ponto que pode exigir levantamento funcional pleno do
+BA — tratado com esse rigor abaixo (RF-D01, RN-D03, Interpretação #14).
+**Skills aplicadas**: `requirement-elicitation` (Seção 1, restrita ao ponto de
+interação de T09 e aos requisitos que tornam a decisão de cobertura/sign-off
+verificável), `user-flow-mapping` (Seção 4, com apoio de `mermaid-studio`),
+`dependency-and-integration-analysis` (Seção 5), `assumption-resolution` (Seção
+6), `acceptance-criteria-drafting` (formato EARS, com apoio de
+`requirements-specification`), `prd-tecnico-drafting`.
+
+---
+
+## 1. Requisitos Funcionais
+
+Nenhum requisito funcional da Parte I muda de comportamento. Os itens abaixo são
+**novos, específicos desta iniciativa** — cobrem exclusivamente (a) o único ponto
+com risco real de mudança de comportamento (interação de T09) e (b) os requisitos
+de processo que tornam verificável a condição de "pronto" definida em `PRD.md`
+Parte II, Seção 3 (sign-off por tela, zero violação WCAG bloqueante, zero tela sem
+decisão de cobertura). Formato de critério de aceite: EARS.
+
+### RF-D01 — Preservação do contrato de interação de "Trocar jogador" em T09
+
+*(Resolve `PRD.md` Parte II, Seção 7, item 1 — o único item desta iniciativa que
+exigia levantamento funcional pleno do BA, não confirmação leve.)*
+
+- **RF-D01.1** O sistema deve sempre manter, na versão redesenhada de T09, o
+  contrato de interação de "Trocar jogador" já definido por RF-05.4 (Parte I) e
+  detalhado em `UX-SPEC.md` (Seção 2, Seção 5.2, Seção 6.2): em viewport
+  touch/mobile, a troca é feita exclusivamente por meio de um seletor modal
+  ("trocar com quem?"); em viewport desktop/`lg`, arrastar-e-soltar pode ser
+  oferecido como atalho adicional, mas **nunca substitui** o seletor modal, que
+  permanece sempre disponível (Guardrail 30 — drag-and-drop nunca é a única forma
+  de interação).
+- **RF-D01.2** Se a nova representação visual de T09 (simulador tático de campo)
+  exibir jogadores posicionados espacialmente dentro da área de cada time, então
+  isso deve ser tratado como camada de renderização visual sobre a mesma
+  atribuição de time (Time A/Time B) já definida por RF-05 — não introduz, por si
+  só, capacidade de reposicionamento livre de jogador para uma coordenada
+  arbitrária do campo (ex.: "jogador X na posição de lateral-direito") nesta
+  release.
+- **RF-D01.3** Se o organizador confirmar (`PRD.md` Parte II, Seção 7, item 5) que
+  espera a capacidade de posicionar jogadores em posições específicas do campo —
+  não apenas a atribuição de time —, então esse pedido deixa de poder ser tratado
+  como redesenho visual: o BA/PM devem tratá-lo como candidato a nova
+  funcionalidade, fora do escopo desta iniciativa, e o UX/UI não deve desenhá-lo
+  como parte do delta visual sem esse registro prévio.
+- **RF-D01.4** O sistema não deve, em nenhuma viewport, exigir arrastar-e-soltar
+  como único meio de completar a ação "Trocar jogador" — todo caminho de interação
+  introduzido pela nova pele visual de T09 deve continuar acessível 100% por
+  teclado/seleção (RF-05.4 herdado; Guardrail 30; WCAG 2.1.1/2.1.2).
+
+### RF-D02 — Sign-off binário de tela pelo organizador
+
+- **RF-D02.1** Quando uma tela redesenhada é apresentada ao organizador para
+  avaliação, o sistema de processo (não o software) deve registrar o resultado
+  como um de dois estados possíveis — "atende" (sign-off concedido) ou "não
+  atende" (sign-off pendente/recusado) — nunca como aprovação informal não
+  registrada (ex.: comentário verbal sem registro rastreável).
+- **RF-D02.2** O sistema de processo deve sempre vincular cada sign-off de tela a
+  uma checagem prévia de zero violação bloqueante de WCAG 2.1 AA (RF-D05) — não
+  deve existir sign-off "atende" registrado para uma tela com violação bloqueante
+  aberta.
+- **RF-D02.3** A iniciativa não deve ser considerada concluída enquanto qualquer
+  uma das 11 telas não tiver sign-off "atende" registrado (`PRD.md` Parte II,
+  Seção 3, métrica primária).
+
+### RF-D03 — Persistência versionada do artefato de origem
+
+- **RF-D03.1** Antes de qualquer tarefa de UX/UI ou Frontend consumir o mockup
+  aprovado como especificação de trabalho, o conteúdo do mockup (telas, paleta,
+  tipografia, componentes, desktop+mobile) deve ser capturado em formato
+  versionado dentro do repositório (ex.: descrição formal/assets dentro do
+  `UX-SPEC.md` revisado ou pasta de assets própria) — o link do Artifact do
+  `claude.ai` não deve ser tratado como fonte de verdade de trabalho (Premissa 1,
+  `PRD.md` Parte II, Seção 6; ressalva do Gate 1 do CTO).
+- **RF-D03.2** Se o link do Artifact ficar inacessível, expirado ou for editado
+  após a captura versionada, o sistema de processo não deve depender dele para
+  nenhuma decisão de sign-off subsequente — a fonte de verdade passa a ser
+  exclusivamente o artefato versionado no repositório.
+
+### RF-D04 — Decisão de cobertura registrada para as 11 telas
+
+- **RF-D04.1** O sistema de processo deve sempre associar a cada uma das 11
+  telas (T01-T11) exatamente uma decisão de cobertura registrada em `UX-SPEC.md`:
+  (a) "nova linguagem visual aplicada integralmente", ou (b) "entrada em plano de
+  migração faseado, com prazo explícito registrado".
+- **RF-D04.2** Se uma tela não tiver nenhuma das duas decisões registradas
+  (RF-D04.1), então a iniciativa não deve ser considerada concluída, mesmo que as
+  demais 10 telas já tenham sign-off "atende" (Guardrail 31; `PRD.md` Parte II,
+  Seção 3, métrica de consistência de design system).
+- **RF-D04.3** Se a decisão registrada para uma tela for "plano de migração
+  faseado" (RF-D04.1-b), então o registro deve incluir prazo explícito — "manter
+  como está por enquanto" sem prazo não satisfaz RF-D04.1.
+
+### RF-D05 — Zero violação bloqueante de WCAG 2.1 AA na nova paleta/tipografia
+
+- **RF-D05.1** Quando uma tela é redesenhada com a nova paleta (navy `#16234a` +
+  dourado `#d9b64a` + verde de campo `#1c6e46`) e tipografia (Bebas Neue/Public
+  Sans/JetBrains Mono), o sistema de processo deve exigir uma execução de
+  `accessibility-review` própria sobre essa tela — a aprovação de acessibilidade
+  já obtida pela paleta atual (`tokens.css`) não deve ser tratada como herdada
+  automaticamente pela nova paleta (Guardrail 28; `CTO-REVIEW.md`, Gate 1 desta
+  iniciativa).
+- **RF-D05.2** Se `accessibility-review` identificar qualquer violação
+  bloqueante de WCAG 2.1 AA (contraste, foco, navegação por teclado) numa tela
+  redesenhada, então o sign-off "atende" (RF-D02) não deve ser concedido para
+  aquela tela até a violação ser corrigida e reavaliada.
+
+---
+
+## 2. Requisitos Não-Funcionais
+
+| # | Requisito | Detalhe |
+|---|---|---|
+| RNF-D01 | **Acessibilidade (WCAG 2.1 AA) reaplicada, não herdada** | Toda tela redesenhada exige nova checagem de contraste/foco/navegação por teclado sobre a paleta navy/dourado/verde e a tipografia Bebas Neue/Public Sans/JetBrains Mono — herdado de RF-D05/Guardrail 28. Responsabilidade de execução: UX/UI (`accessibility-review`). |
+| RNF-D02 | **Nenhuma regressão de acessibilidade de interação em T09** | O ganho visual do simulador tático não pode reduzir a superfície de interação por teclado/seleção já validada (RF-D01, Guardrail 30). Qualquer nova affordance visual (ex.: campo gráfico) precisa expor equivalente acessível, não apenas visual. |
+| RNF-D03 | **Hospedagem de fonte externa e CSP** | Bebas Neue/Public Sans/JetBrains Mono são fontes Google — a decisão de self-host vs. CDN tem implicação direta na CSP (`DEBT-03`, ainda pendente). **Decisão técnica não é do BA** — roteada ao Software Architect, em conjunto com o fechamento de `DEBT-03` (Premissa 5, `PRD.md` Parte II, Seção 6). O requisito de negócio aqui é apenas: nenhuma fonte externa deve ser adotada em produção antes dessa decisão conjunta ser tomada. |
+| RNF-D04 | **Convenção de path e direito de uso de assets de marca** | `logo.jpg`/`logo_comary.jpg` já presentes na árvore de trabalho, fora de processo governado. Convenção de path é decisão de Tech Lead/Frontend (não do BA); confirmação de direito de uso dos escudos reais dos clubes é decisão de PM+stakeholder (não do BA). Requisito de negócio: nenhum desses assets deve ser mesclado/publicado antes de ambas as confirmações. |
+| RNF-D05 | **Retrabalho sobre baseline já fechada (`tokens.css`/FE-00)** | A troca de paleta/tipografia é revisão estrutural do design system já aprovado em L0, não tarefa aditiva independente — deve usar o mecanismo de "alteração visível" já previsto em `UX-SPEC.md` Seção 3.3, com reestimativa formal pelo Tech Lead (Premissa 7, `PRD.md` Parte II, Seção 6). Decisão de sequenciamento é do Tech Lead, não do BA. |
+| RNF-D06 | **Rastreabilidade do artefato de origem** | Herdado de RF-D03: nenhuma decisão de sign-off ou de cobertura de tela deve referenciar exclusivamente o link do Artifact do `claude.ai` como evidência — a evidência auditável é o artefato versionado no repositório. |
+| RNF-D07 | **Consistência de nomenclatura** | Toda documentação de pipeline gerada a partir desta iniciativa deve referir-se a ela como "Iniciativa de Redesenho Visual" (nome de trabalho "Refactor Visual"), não "v2.0" — decisão já registrada pelo PM (`PRD.md` Parte II, cabeçalho e Seção 6, item 6), não reaberta aqui. |
+
+---
+
+## 3. Regras de Negócio
+
+Formato: Regra / Racional / Exceção. Nenhuma regra de negócio da Parte I (RN-01 a
+RN-13) é alterada — as regras abaixo são específicas ao processo/governança desta
+iniciativa de redesenho.
+
+| # | Regra | Racional | Exceção |
+|---|---|---|---|
+| **RN-D01** | Toda uma das 11 telas (T01-T11) deve ter, ao final desta iniciativa, exatamente uma decisão de cobertura visual registrada em `UX-SPEC.md`: nova linguagem aplicada integralmente, ou plano de migração faseado com prazo explícito. | Guardrail 31 (nenhuma tela cria variação paralela de design system sem decisão explícita); é a métrica de consistência de design system definida em `PRD.md` Parte II, Seção 3. | Nenhuma — aplica-se às 11 telas sem exceção, inclusive às 6 já cobertas pelo mockup aprovado (cuja decisão registrada é "aplicar integralmente", já dada por aprovada). |
+| **RN-D02** | Sign-off de "pronto" por tela é ato binário do organizador contra os tokens de design já aprovados (paleta, tipografia, componentes do mockup) — nunca aprovação informal ("parece bom", "melhor que antes"). | É a métrica primária de sucesso desta iniciativa (`PRD.md` Parte II, Seção 3) — precisa ser auditável, tela a tela, contra um padrão definido, não subjetivamente reavaliado depois. | Nenhuma. |
+| **RN-D03** | O contrato de interação de "Trocar jogador" em T09 (RF-05.4, Parte I) não muda nesta iniciativa: seletor modal por toque continua sendo o mecanismo primário e sempre disponível em qualquer viewport; arrastar-e-soltar, se oferecido em desktop/`lg`, é apenas atalho opcional, nunca exclusivo (Guardrail 30). | Preservar a confiabilidade/acessibilidade em touch já validada e documentada (`UX-SPEC.md` Seção 2/5.2/6.2); "reviver um recurso do legado" não pode, por si só, justificar reabrir um padrão de interação já rejeitado explicitamente por motivo de confiabilidade/acessibilidade — isso seria regressão disfarçada de melhoria visual. | Se o organizador confirmar explicitamente que deseja reposicionamento livre de jogador no campo (não apenas troca de time — `PRD.md` Parte II, Seção 7, item 5), esta regra deixa de cobrir esse caso: o pedido deve ser tratado como candidato a nova funcionalidade e roteado ao PM (RF-D01.3), não implementado silenciosamente como "parte do redesenho visual". |
+| **RN-D04** | Zero violação bloqueante de WCAG 2.1 AA na nova paleta/tipografia é pré-condição obrigatória para qualquer sign-off "atende" de tela — não existe sign-off condicional a "corrigir depois". | Métrica de acessibilidade desta iniciativa (`PRD.md` Parte II, Seção 3); a aprovação de acessibilidade da paleta atual não é herdada automaticamente pela nova paleta (Gate 1 do CTO desta iniciativa; Guardrail 28). | Nenhuma. |
+| **RN-D05** | O artefato de origem do mockup (Artifact do `claude.ai`) não é especificação de trabalho válida para nenhum agente downstream até ser capturado em formato versionado no repositório. | Rastreabilidade de pipeline — o próprio CTO confirmou (Gate 1 desta iniciativa) que o link é "uma casca vazia" sem controle de versão, editável/expirável, acessível só à sessão do organizador; mesmo racional de rastreabilidade que rege todo o resto do pipeline. | Nenhuma — mesmo com resumo textual detalhado disponível (como o que orientou este próprio levantamento do BA), a especificação de trabalho formal só existe após a captura versionada. |
+| **RN-D06** | Nenhuma regra de negócio, fluxo funcional ou modelo de dados muda em decorrência desta iniciativa; qualquer elemento do mockup que implique mudança de comportamento deve ser roteado ao BA antes de ser tratado como "só visual". | Delimitação central da iniciativa (`PRD.md` Parte II, Seção 1) — é redesenho visual sobre produto já definido, não novo levantamento funcional. | T09 (interação de "Trocar jogador") é o único ponto identificado com risco real de tocar essa fronteira — já analisado e resolvido em RN-D03/RF-D01; nenhum outro ponto foi identificado nesta revisão. |
+| **RN-D07** | A ambiguidade da paleta dupla (Grupo Rola marinho-dourado vs. Clube Comary verde) não é resolvida pelo BA — permanece pendente de esclarecimento direto do PM/UX-UI com o stakeholder antes de qualquer estimativa de esforço. | `PRD.md` Parte II já atribui essa decisão a PM+UX-UI (Seção 6, item 3), não ao BA; decidir sozinho aqui seria inventar critério de produto não confirmado, violando o limite de autoridade do BA. | Nenhuma — o BA não resolve esta ambiguidade por conta própria, mesmo sendo tecnicamente capaz de propor uma leitura, porque a decisão tem impacto direto de ordem de grandeza sobre a estimativa (não é só interpretação de detalhe). |
+
+---
+
+## 4. Fluxos de Usuário/Processo
+
+Nenhum fluxo funcional da Parte I (Seções 4.1-4.6) muda. Os fluxos abaixo são
+fluxos de **processo/governança** específicos desta iniciativa — necessários para
+o Software Architect/Tech Lead/UX-UI saberem exatamente quando cada porta de
+decisão precisa ser atravessada.
+
+### 4.1 Fluxo de Decisão de Cobertura por Tela (as 11 telas)
+
+```mermaid
+flowchart TD
+    A[UX-UI avalia cada uma das 11 telas T01-T11] --> B{Tela esta dentro das 6 do mockup aprovado?}
+    B -- Sim T01 T02 T03 T05 T06 T09 --> C[Decisao registrada: nova linguagem aplicada integralmente]
+    B -- Nao T04 T07 T08 T10 T11 --> D{UX-UI decide: extensao integral ou migracao faseada?}
+    D -- Extensao integral --> C
+    D -- Migracao faseada --> E[Registrar plano com prazo explicito em UX-SPEC.md RF-D04.3]
+    C --> F[Tela elegivel para Frontend reestimar RF-D04.1]
+    E --> F
+    F --> G{Todas as 11 telas tem decisao registrada?}
+    G -- Nao --> A
+    G -- Sim --> H[Guardrail 31 satisfeito - iniciativa pode avancar para sign-off]
+```
+
+### 4.2 Fluxo de Sign-off do Organizador por Tela
+
+```mermaid
+flowchart TD
+    A[Tela redesenhada implementada pelo Frontend] --> B[UX-UI executa accessibility-review sobre a tela RF-D05.1]
+    B --> C{Violacao bloqueante WCAG 2.1 AA encontrada?}
+    C -- Sim --> D[Correcao necessaria antes de qualquer sign-off] --> B
+    C -- Nao --> E[Tela apresentada ao organizador para avaliacao]
+    E --> F{Organizador declara: atende?}
+    F -- Nao --> G[Sign-off pendente - registrar feedback especifico] --> H[Ajuste pelo Frontend/UX-UI] --> B
+    F -- Sim --> I[Sign-off atende registrado RF-D02]
+    I --> J{Todas as 11 telas com sign-off atende?}
+    J -- Nao --> A
+    J -- Sim --> K[Metrica primaria da iniciativa satisfeita PRD.md Parte II Secao 3]
+```
+
+### 4.3 Fluxo de Confirmação da Interação de T09 (registro da decisão já tomada)
+
+```mermaid
+flowchart TD
+    A[Simulador tatico de campo revivido como ancora visual de T09] --> B{Simulador introduz drag-and-drop como unico meio de Trocar jogador?}
+    B -- Sim, seria unico meio --> C[Bloqueado por Guardrail 30 - nao pode ser implementado assim]
+    B -- Nao, seletor modal continua disponivel --> D[Interacao preservada - RF-D01.1/RN-D03]
+    D --> E{Simulador exige reposicionamento livre no campo, alem de troca de time?}
+    E -- Nao confirmado ainda --> F[Tratar como fora de escopo desta release ate confirmacao RF-D01.2]
+    E -- Sim, organizador confirma --> G[Deixa de ser redesenho visual - escalar ao PM como candidato a nova funcionalidade RF-D01.3]
+    F --> H[UX-UI desenha T09 com campo grafico + selecao touch/atalho drag desktop, sem reposicionamento livre]
+```
+
+---
+
+## 5. Dependências entre Requisitos e Integrações Externas
+
+### 5.1 Dependências entre requisitos/decisões
+
+| Item | Bloqueia / Depende de | Motivo |
+|---|---|---|
+| RF-D03 (Persistência versionada do artefato de origem) | **Bloqueia** o início de qualquer trabalho formal de UX/UI sobre o mockup (RF-D04, RF-D01) | Sem captura versionada, não há especificação de trabalho válida a seguir (RN-D05) — já registrado como Premissa 1/ressalva do Gate 1 do CTO, aqui traduzido em requisito verificável. |
+| RN-D07 (Ambiguidade de paleta dupla, não resolvida pelo BA) | **Bloqueia** qualquer estimativa de esforço de Tech Lead sobre as telas afetadas (especialmente T09, onde Time A/Time B pode usar as duas paletas) | Confirmado como ponto de ordem de grandeza na estimativa pelo CTO (Gate 1 desta iniciativa); decisão pendente de PM/UX-UI com o stakeholder. |
+| RF-D04 (Decisão de cobertura das 11 telas) | **Bloqueia** reestimativa de Frontend em `TASK.md` delta para as 5 telas fora do mockup (T04, T07, T08, T10, T11) | Sem decisão registrada de profundidade de tratamento, o Tech Lead não tem base para estimar esforço dessas 5 telas — já registrado como Premissa 2 do `PRD.md` Parte II. |
+| RF-D01 (Interação de T09) | **Bloqueia** o desenho final de UX/UI para T09 | UX/UI não deve desenhar a interação final do simulador tático até este requisito (já resolvido nesta Parte II) ser incorporado como restrição de desenho — herdado da Premissa 8/pergunta 1 do `PRD.md` Parte II. |
+| RNF-D03 (Hospedagem de fonte externa vs. `DEBT-03`/CSP) | **Depende de** decisão do Software Architect, em conjunto com o fechamento de `DEBT-03` | Não é decisão do BA nem do UX-UI isoladamente — implicação direta de segurança (CSP); já registrado como Premissa 5 do `PRD.md` Parte II. |
+| RNF-D04 (Convenção de path + direito de uso de assets de marca) | **Depende de** Tech Lead/Frontend (path) e PM+stakeholder (direito de uso) | Nenhum dos dois é decisão do BA; requisito aqui é apenas o gate de bloqueio de merge/publicação até ambas as confirmações existirem — já registrado como Premissa 4 do `PRD.md` Parte II. |
+| RF-D02/RF-D05 (Sign-off por tela / zero violação WCAG) | **Depende de** implementação real de cada tela pelo Frontend | Não há o que dar sign-off ou rodar `accessibility-review` sobre uma tela ainda não implementada — sequenciamento natural do fluxo 4.2. |
+| RNF-D05 (Retrabalho sobre baseline `tokens.css`/FE-00) | **Depende de** decisão de sequenciamento do Tech Lead em `TASK.md` delta | Já registrado como Premissa 7 do `PRD.md` Parte II — não é decisão do BA. |
+| Migração integral de capacidade de Backend para o redesenho | **Depende de** finalização de `DEBT-05`/`DEBT-06`/confirmação real de `DEBT-03` em produção (Backend/DevOps) | Condição explícita do veredito final do Gate 1 do CTO desta iniciativa (`CTO-REVIEW.md`) — não é responsabilidade do BA/PM resolver, mas o BA registra a dependência para não ser perdida na tradução para `TASK.md`. |
+
+### 5.2 Integrações externas
+
+Nenhuma integração externa nova é introduzida por esta iniciativa — confirmado
+pela delimitação central do `PRD.md` Parte II, Seção 1 ("nenhuma regra de negócio,
+fluxo funcional ou modelo de dados muda"). A única dependência externa relevante
+não é uma integração de sistema, mas um **artefato de conteúdo**: o mockup
+publicado como Artifact do `claude.ai` (`https://claude.ai/code/artifact/75a686fe-
+5e8f-46fe-8c98-c3a2120e428b`), tratado como não-durável/não-versionado (RN-D05,
+RF-D03) — dependência de captura, não de integração em tempo de execução.
+
+Dependências técnicas externas herdadas da Parte I (banco legado Supabase, RF-08)
+permanecem válidas e não são tocadas por este delta — esta iniciativa não altera
+nada relacionado à migração de dados.
+
+Fontes tipográficas externas (Google Fonts: Bebas Neue, Public Sans, JetBrains
+Mono) são uma dependência técnica nova, mas sua resolução (self-host vs. CDN) é
+decisão de arquitetura do Software Architect, não do BA — registrada aqui apenas
+como dependência a rastrear (RNF-D03), não decidida.
+
+---
+
+## 6. Premissas e Riscos Resolvidos
+
+Cada premissa/risco do `PRD.md` Parte II, Seção 6, é revisitada abaixo. Para a
+maioria, a resolução correta do BA é **confirmar o roteamento já correto** (não
+inventar uma decisão que é de outro dono) — apenas o item 8 (interação de T09)
+exigia resolução funcional própria do BA, cumprida integralmente nesta Parte II.
+
+| # | Premissa/Risco herdado (`PRD.md` Parte II) | Resolução do BA | Evidência/Base |
+|---|---|---|---|
+| 1 | Artefato de origem não durável/não versionado. | **Confirmado como bloqueio de processo, traduzido em requisito verificável.** Não cabe ao BA capturar o artefato (é ação de PM+UX-UI) — o BA formaliza a regra de que nenhum trabalho downstream deve tratar o link como especificação válida (RN-D05, RF-D03). | `CTO-REVIEW.md`, Gate 1 desta iniciativa — tentativa de `WebFetch` do CTO confirmou "casca vazia", sem conteúdo verificável. |
+| 2 | Cobertura de apenas 6 das 11 telas — risco ao Guardrail 31. | **Traduzido em requisito verificável** (RF-D04, RN-D01): toda tela precisa de decisão registrada, sem definir qual profundidade cada uma das 5 remanescentes recebe — essa profundidade é decisão de UX/UI, não do BA, conforme já atribuído no `PRD.md` Parte II, Seção 4. | `PRD.md` Parte II, Seção 4 ("Decisão de cobertura") e Seção 5, item 8. |
+| 3 | Ambiguidade da paleta dupla (Grupo Rola/marinho-dourado vs. Clube Comary/verde). | **Não resolvida pelo BA** (RN-D07) — decisão explicitamente atribuída a PM+UX-UI com o stakeholder no próprio `PRD.md` Parte II; o BA registra a dependência (Seção 5.1) sem inventar critério. | `PRD.md` Parte II, Seção 6, item 3. |
+| 4 | Assets de marca fora de processo governado. | **Não resolvida pelo BA** — path é decisão de Tech Lead/Frontend; direito de uso é decisão de PM+stakeholder. BA registra o gate de bloqueio de merge/publicação (RNF-D04) até ambas existirem. | `PRD.md` Parte II, Seção 6, item 4. |
+| 5 | Fonte externa (Google Fonts) vs. CSP (`DEBT-03`). | **Não resolvida pelo BA** — decisão técnica do Software Architect, em conjunto com o fechamento de `DEBT-03`. BA registra apenas o requisito de negócio de que nenhuma fonte externa entra em produção antes dessa decisão (RNF-D03). | `PRD.md` Parte II, Seção 6, item 5. |
+| 6 | Rótulo "v2.0" prematuro. | **Já resolvido pelo PM, não reaberto.** BA apenas herda a nomenclatura "Iniciativa de Redesenho Visual"/"Refactor Visual" em toda a documentação gerada (RNF-D07). | `PRD.md` Parte II, cabeçalho e Seção 6, item 6. |
+| 7 | Retrabalho sobre trabalho já aprovado (`tokens.css`/FE-00). | **Não resolvida pelo BA** — sequenciamento de reestimativa é decisão do Tech Lead. BA registra apenas a obrigatoriedade do mecanismo de "alteração visível" já existente em `UX-SPEC.md` (RNF-D05). | `PRD.md` Parte II, Seção 6, item 7; `UX-SPEC.md` Seção 3.3. |
+| 8 | Simulador tático de T09 pode introduzir mudança funcional disfarçada de visual. | **Resolvido pelo BA — único item desta iniciativa que exigia levantamento funcional pleno.** Decisão: o contrato de interação de RF-05.4 (seletor modal por toque, sempre disponível; drag-and-drop apenas como atalho opcional em desktop) é preservado; o simulador tático é tratado como camada de renderização visual sobre a mesma atribuição de time, não como novo mecanismo de reposicionamento livre. Se o organizador confirmar que espera reposicionamento livre no campo, isso deixa de ser "visual" e deve ser escalado ao PM como candidato a nova funcionalidade (RF-D01, RN-D03, Interpretação #14). | `UX-SPEC.md`, Seção 2 (T09), Seção 5.2, Seção 6.2 (já antecipa drag-and-drop como atalho opcional em desktop, modal sempre disponível); `GUARDRAILS.md`, regra 30; `PRD.md` Parte II, Seção 6, item 8, e Seção 7, itens 1 e 5. |
+| 9 | Sequenciamento de capacidade — Risco 1 do CTO, aceito conscientemente. | **Não é premissa do BA a validar** — é decisão de priorização já tomada pelo dono do produto e registrada formalmente pelo PM/CTO. BA não reabre. | `PRD.md` Parte II, "Registro formal da decisão de inversão de prioridade". |
+| 10 | Dependência cruzada com DevOps (`DEBT-05`/`DEBT-06`/`DEBT-03`). | **Não é responsabilidade do BA/PM resolver** — BA registra a dependência (Seção 5.1) para que não se perca na tradução para `TASK.md` do Tech Lead, sem assumir responsabilidade de execução. | `PRD.md` Parte II, Seção 6, item 10; `CTO-REVIEW.md`, veredito final do Gate 1 desta iniciativa. |
+
+---
+
+## 7. Interpretações Registradas
+
+Continuação da numeração da Parte I (itens 1-13). Toda ambiguidade de
+**interpretação de detalhe** resolvida pelo BA por conta própria nesta iniciativa
+(nenhuma altera escopo ou objetivo de negócio do `PRD.md`):
+
+14. **Interação de "Trocar jogador" em T09 frente à revivência do simulador
+    tático** (`PRD.md` Parte II, Seção 7, item 1 — o único item desta iniciativa
+    que o próprio PM sinalizou como possivelmente exigindo levantamento funcional
+    pleno). **Interpretação escolhida**: a nova versão de T09 **mantém** o
+    contrato de interação já validado em `UX-SPEC.md`/RF-05.4 — seletor modal por
+    toque, sempre disponível em qualquer viewport; arrastar-e-soltar, se oferecido
+    em desktop/`lg`, permanece apenas atalho opcional, nunca exclusivo (já
+    antecipado em `UX-SPEC.md`, Seção 6.2, antes mesmo desta iniciativa existir).
+    O simulador tático de campo é tratado como **nova representação visual**
+    (renderização gráfica da atribuição de time já existente), não como novo
+    mecanismo de interação. **Porquê**: (a) o `UX-SPEC.md` já rejeitou
+    explicitamente drag-and-drop obrigatório em touch por confiabilidade/
+    acessibilidade, e essa decisão não foi reaberta por nenhuma instância do
+    `PRD.md` Parte II — "reviver um recurso do legado" é uma decisão de
+    prioridade de produto (adotada pelo PM), não uma reavaliação técnica do
+    padrão de interação; (b) o Guardrail 30 (drag-and-drop nunca é a única forma
+    de interação) é regra vigente do projeto, não específica desta iniciativa, e
+    continua se aplicando integralmente; (c) tratar a revivência do simulador
+    como puramente visual é a leitura que preserva 100% da acessibilidade já
+    validada, sem exigir nenhuma reavaliação técnica nova — é a interpretação de
+    menor risco compatível com a delimitação central da própria iniciativa
+    (`PRD.md` Parte II, Seção 1: "nenhuma regra de negócio, fluxo funcional ou
+    modelo de dados muda"). **Limite explícito desta interpretação**: ela cobre
+    apenas a *atribuição* de jogador a um time (equivalente à troca já existente).
+    Se o organizador confirmar (`PRD.md` Parte II, Seção 7, item 5) que espera
+    **reposicionamento livre de jogador dentro do campo** (ex.: definir a posição
+    tática específica de cada jogador, não apenas o time), isso ultrapassa o
+    escopo desta interpretação — deixa de ser interpretação de detalhe e passa a
+    ser um pedido de nova funcionalidade (RF-05 não cobre posicionamento tático
+    individual), que o BA não decide sozinho: deve ser escalado ao PM antes de
+    UX/UI desenhar essa capacidade (RF-D01.3). Até essa confirmação, T09
+    permanece desenhada apenas com atribuição de time via campo gráfico + seletor
+    touch/atalho drag desktop, sem reposicionamento livre.
+15. **Ambiguidade da paleta dupla, direito de uso de assets, hospedagem de fonte
+    externa, profundidade de cobertura das 5 telas remanescentes** — o BA
+    verificou cada um desses pontos (`PRD.md` Parte II, Seção 6/7) e confirmou
+    que **nenhum deles é interpretação de detalhe de requisito**: são decisões de
+    produto (paleta, cobertura), de arquitetura (fonte/CSP) ou de execução
+    (path/direito de uso) já explicitamente atribuídas a outros donos no próprio
+    `PRD.md` Parte II. **Interpretação escolhida**: o BA não resolve nenhum
+    desses pontos por conta própria — apenas traduz cada um em requisito/
+    dependência verificável (Seções 1, 2 e 5 desta Parte II), preservando o
+    roteamento já correto. **Porquê**: decidir qualquer um desses pontos sozinho
+    seria extrapolar o limite de autoridade do BA (interpretação de requisito de
+    negócio já aceito), não resolver ambiguidade de interpretação de detalhe.
+
+Nenhuma das duas interpretações acima altera o escopo ou o objetivo de negócio
+validado no `PRD.md` — a interpretação #14 é a resolução funcional que o próprio
+PM delegou explicitamente ao BA (não uma decisão de escopo tomada por conta
+própria: o BA confirmou que o padrão já aprovado permanece, e explicitou o limite
+exato em que essa confirmação deixaria de valer); a interpretação #15 é uma
+confirmação de que os demais pontos abertos **não** são do BA, evitando que o BA
+"invente" decisão de produto/arquitetura que não é sua. Nenhuma exigiu
+escalonamento ao PM nesta revisão — o único gatilho de escalonamento identificado
+(reposicionamento livre em T09) é condicional, ainda não confirmado pelo
+organizador, e já está registrado com o roteamento correto (RF-D01.3) para o
+momento em que essa confirmação ocorrer.
+
+---
+
+## Checklist de Prontidão — Parte II
+
+- [x] Todo requisito funcional tem critério de aceite testável (EARS) — RF-D01 a
+      RF-D05, cada um com subitens EARS.
+- [x] Toda regra de negócio tem racional declarado — RN-D01 a RN-D07, nenhuma sem
+      coluna "Racional" preenchida.
+- [x] Todo fluxo de usuário/processo relevante tem pontos de decisão e caminhos
+      alternativos mapeados — Seção 4, 3 diagramas Mermaid (cobertura por tela,
+      sign-off por tela, confirmação de interação em T09), cada um com pelo menos
+      um ponto de decisão e caminho alternativo.
+- [x] Toda dependência entre requisitos nomeia o que bloqueia o quê; toda
+      integração externa está nomeada — Seção 5.1 (9 dependências nomeadas) e
+      Seção 5.2 (confirmado: nenhuma integração externa nova; artefato de mockup
+      tratado como dependência de captura, não integração; fontes Google como
+      dependência técnica roteada ao Software Architect).
+- [x] Toda premissa/risco herdado do PM foi validado ou refutado com evidência
+      citada — Seção 6, 10 itens, cada um com resolução do BA (confirmação de
+      roteamento correto para 9 itens; resolução funcional plena para o item 8).
+- [x] Toda ambiguidade resolvida pelo BA está registrada na Seção 7, com a
+      interpretação escolhida e o porquê — itens 14 e 15 (continuação da
+      numeração da Parte I).
+- [x] Nenhuma das 7 seções está vazia ou com placeholder.
+
+Nenhuma ambiguidade resolvida nesta Parte II tocou escopo ou objetivo de negócio
+do `PRD.md` — a única que poderia ter tocado (reposicionamento livre em T09,
+`PRD.md` Parte II, Seção 7, item 5) permanece condicional e não confirmada; caso o
+organizador confirme essa expectativa, o gatilho de escalonamento ao PM já está
+registrado (RF-D01.3, Interpretação #14) e deve ser executado antes de qualquer
+desenho de UX/UI para essa capacidade especificamente. Não há entrada em
+`BLOCKERS.md` aberta por este agente nesta revisão — todos os pontos em aberto
+identificados já têm dono e roteamento corretos registrados no `PRD.md` Parte II
+e confirmados/traduzidos em requisito verificável nesta Parte II.
+
+**Veredito**: PRD-TÉCNICO Delta (Parte II) pronto. Liberado para o Software
+Architect (ponto de atenção: RNF-D03, decisão de hospedagem de fonte em conjunto
+com `DEBT-03`) e para o UX-UI (ponto de atenção: RF-D01/RN-D03/Interpretação #14
+como restrição de desenho vinculante para T09; RF-D04 como checklist de cobertura
+das 11 telas; RF-D02/RF-D05 como critério de sign-off).

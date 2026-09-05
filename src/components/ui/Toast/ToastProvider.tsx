@@ -45,6 +45,15 @@ const DEFAULT_DURATION: Record<ToastVariant, number | null> = {
  * sucesso/info/aviso, `aria-live="assertive"` para erro crítico (`danger`) —
  * duas regiões vivas persistentes no DOM (Seção 5.1, critério 4.1.3), nunca
  * exigindo foco manual do usuário para o anúncio acontecer.
+ *
+ * **Auditoria FE-R12**: `.toast` (Toast.module.css) sempre tem fundo opaco
+ * próprio (`--color-{variant}-bg`) e é portalizado para `document.body`,
+ * flutuando sobre o conteúdo — nunca composto diretamente sobre
+ * `--color-brand-navy`. O botão de fechar (`.dismiss`) herda o
+ * `:focus-visible` global (`--color-focus-ring`, verde), que é o par correto
+ * contra o fundo claro da própria variante — a regra de
+ * `--color-focus-ring-on-dark` (UX-SPEC.md Parte II Seção 5.3, regra 2) não
+ * se aplica aqui (ver mesma nota em `AlertBanner.tsx`).
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastEntry[]>([]);
