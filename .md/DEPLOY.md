@@ -81,6 +81,14 @@ Seção 7.9 para o registro completo, incluindo o que não foi possível
 verificar (renderização client-side da nova view, por bloqueio do
 classificador de segurança do próprio ambiente a uma tentativa de `vercel
 env pull`).
+**Atualização 2026-09-05 (Seção 7.10)**: ajuste pós-deploy de produto
+(`75a0c0e`, redução da matriz de "últimas rodadas" no ranking público)
+publicado em produção pelo mesmo caminho direto (`vercel --prod`, `gh`
+indisponível), sem migration nova.
+**Atualização 2026-09-05 (Seção 7.11)**: correção de bug visual (`df02a44`,
+desalinhamento de linhas na tabela do ranking público, causado por
+`display: flex` num `<td>` fora do algoritmo de layout de tabela)
+publicada em produção pelo mesmo caminho direto, sem migration nova.
 Este documento continuará a ser atualizado incrementalmente
 (`deployment-execution`, `observability-setup`,
 `non-functional-requirement-validation`, `deploy-report-drafting`).
@@ -1527,6 +1535,127 @@ na Seção 8/9.
 1. Validar em navegador real (ou via `playwright-skill`) que a home pública
    carrega sem rolagem com 5 colunas (desktop) / 2 colunas (mobile) na
    matriz de últimas rodadas — não confirmável por `curl` puro.
+2. `BLOCKER-009` segue pendente de decisão do organizador — inalterado por
+   este ajuste.
+3. Observar produção pela janela padrão de 24h (Definition of Done do
+   chapéu DevOps) — nenhum incidente até o momento desta execução.
+
+### 7.11 Correção de bug visual (`df02a44`) — desalinhamento de linhas na tabela do ranking público (T02) — PRODUÇÃO — 2026-09-05
+
+**Natureza da mudança**: bug visual reportado diretamente pelo organizador
+(screenshot da home pública mostrando as linhas divisórias da tabela de
+ranking desalinhadas entre a coluna de nome e as colunas de data),
+corrigido diretamente pelo mesmo agente que já executa este fluxo (sem
+passar por `executor`/QA/DevSecOps, mesmo padrão da Seção 7.10). Escopo
+confirmado por leitura do diff real (`git show df02a44`): `td.nameCell`
+usava `display: flex`, tirando essa célula do algoritmo de layout de
+tabela enquanto as demais células da linha seguiam `display: table-cell`,
+causando a borda inferior da linha ficar em offsets verticais diferentes
+entre colunas. Correção moveu o `display: flex` para um `<span>` interno
+novo (`.nameCellContent`), mantendo o `<td>` como célula de tabela normal —
+puramente CSS/JSX de apresentação, nenhum contrato de API, dado ou schema
+alterado. Mesmo racional de escopo da Seção 7.10 quanto a não acionar nova
+auditoria de DevSecOps: sem dado sensível, autenticação ou autorização
+envolvidos.
+
+**1. Confirmação de estado antes de agir**:
+- `git rev-parse HEAD` / `git rev-parse origin/main` → ambos
+  `df02a449d51e75384be1f1a8bc46c63a12ce7106`, `git status --short` limpo.
+- `git diff 75a0c0e..HEAD -- supabase/migrations/` → **vazio**. Nenhuma
+  migration nova desde o último deploy real de produção confirmado
+  (Seção 7.10) — nenhuma ação de `supabase db push` necessária.
+- Verificação de código feita diretamente pelo autor da mudança antes do
+  commit (não repetida do zero por este agente): `npx tsc --noEmit` limpo,
+  `npx vitest run src/features/ranking-publico/RankingList.test.tsx` — 6/6
+  passando (incluindo o teste de acessibilidade axe).
+
+**2. `gh` CLI — reconfirmado indisponível**, mesmo padrão das Seções
+7.4-7.10. Caminho usado: CLI direta da Vercel (`npx vercel whoami` →
+`leandrosegheto17`), com `VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9` e
+`VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu` explícitos (mesmo
+desalinhamento do `.vercel/project.json` local já registrado no item 5 da
+Seção 7.9, contornado da mesma forma).
+
+**3. Estado antes do deploy**: `vercel env ls production` reconfirmou os
+mesmos 5 secrets de produção presentes e `Encrypted`, nenhum valor
+alterado. `vercel alias ls` confirmou `futebol-app-lsm.vercel.app` ainda
+apontando para `futebol-d50c6sb66-…` (o deployment da Seção 7.10) —
+convergente com o esperado.
+
+**4. Build e deploy de fato executados**:
+
+```
+$ VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9 \
+  VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu \
+  npx vercel --prod --yes
+
+▲ Production  https://futebol-5w1mx8hqk-leandrosegheto17s-projects.vercel.app
+✓ Compiled successfully
+✓ Generating static pages (21/21)
+▲ Aliased     https://futebol-app-leandrosegheto17s-projects.vercel.app
+{"status":"ok","deployment":{"id":"dpl_4bJivVGj2HLBYmHjSnyswv5Pkf6e", ...},
+ "readyState":"READY","target":"production"}
+```
+
+Build limpo (Next.js 14.2.35), 21 rotas geradas — mesma contagem da Seção
+7.10, nenhuma rota nova/removida, consistente com mudança puramente de
+apresentação. `npm install` reportou as mesmas 14 vulnerabilidades já
+conhecidas (4 moderate, 9 high, 1 critical) — reconferidas contra os
+débitos já aceitos em `SECURITY-REVIEW.md` (`DEBT-01/02/04`); nenhum
+achado novo.
+
+Como já ocorrido nas Seções 7.9/7.10, o deploy foi automaticamente
+aliasado só ao alias default do projeto, não ao alias real de produção.
+Reatribuído explicitamente:
+
+```
+$ npx vercel alias set futebol-5w1mx8hqk-leandrosegheto17s-projects.vercel.app futebol-app-lsm.vercel.app
+Success! https://futebol-app-lsm.vercel.app now points to
+futebol-5w1mx8hqk-leandrosegheto17s-projects.vercel.app
+```
+
+**5. Confirmação de saúde pós-deploy**:
+
+```
+$ curl -s -D - -o /dev/null https://futebol-app-lsm.vercel.app/
+HTTP/1.1 200 OK
+Age: 0
+X-Vercel-Cache: PRERENDER
+Content-Security-Policy: default-src 'self'; ...
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+
+$ curl -s https://futebol-app-lsm.vercel.app/api/health
+{"status":"ok"}
+```
+
+`Age: 0` confirma conteúdo gerado por esta build. Headers de segurança
+presentes, inalterados. **Não verificado por `curl`**: a correção de
+alinhamento em si (mudança de CSS pós-hidratação/renderização client, não
+diferenciável no HTML estático puro) — mesma limitação já registrada nas
+Seções 7.9/7.10 para mudanças visuais desta tabela.
+
+**6. Rollback**: mecanismo (`vercel rollback`/reatribuição de alias) segue
+disponível e já testado de ponta a ponta (Seção 7.4); o deployment anterior
+(`futebol-d50c6sb66-…`, `75a0c0e`) permanece `Ready`, disponível como
+reversão imediata caso necessário. Não reexercitado nesta execução —
+mudança de baixíssimo risco (CSS/JSX de apresentação, sem migration), sem
+indício de necessidade.
+
+**7. Observabilidade**: inalterada em relação à Seção 7.10 — Guardrail 36
+(saúde do Supabase) ativo; observabilidade de aplicação segue não
+implementada, lacuna já registrada na Seção 8/9.
+
+| Versão/Commit | Ambiente | Horário | Resultado |
+|---|---|---|---|
+| Correção de alinhamento de linhas da tabela de ranking (`df02a44`) | **Produção** (`futebol-app-lsm.vercel.app`) | 2026-09-05 | **Deploy real, bem-sucedido.** Sem migration nova (confirmado por diff vazio contra `75a0c0e`); build Vercel limpo (`dpl_4bJivVGj2HLBYmHjSnyswv5Pkf6e`, 21 rotas, mesma contagem da Seção 7.10); alias de produção reatribuído; `/`(200, `Age: 0`)/`/api/health`(`{"status":"ok"}`) confirmados; headers de segurança presentes; mesmos 14 débitos de `npm audit` já aceitos, nenhum achado novo. Verificação de código (typecheck + teste do componente, 6/6) feita diretamente pelo autor da mudança antes do commit, não repetida do zero. Caminho usado: CLI direta da Vercel (`gh` indisponível), mesmo padrão das Seções 7.4-7.10. Não verificado por `curl`: a correção visual em si (não visível em HTML estático). Nenhum incidente na checagem imediata pós-deploy. `BLOCKER-009` (staging) segue `Aberto`, fora do escopo deste ajuste pontual. |
+
+**Próximos passos (nenhum decidido unilateralmente por este agente)**:
+1. Validar em navegador real (ou via `playwright-skill`) que as linhas da
+   tabela de ranking estão de fato alinhadas — não confirmável por `curl`
+   puro.
 2. `BLOCKER-009` segue pendente de decisão do organizador — inalterado por
    este ajuste.
 3. Observar produção pela janela padrão de 24h (Definition of Done do
