@@ -80,7 +80,15 @@ jobs:
       - name: Auditoria de dependências (npm audit)
         run: |
           npm ci
-          npm audit --audit-level=high
+          node scripts/security-audit-gate.mjs
+        # Não usa mais `npm audit --audit-level=high` puro (BLOCKER-008,
+        # .md/BLOCKERS.md): esse comando falha em qualquer advisory alta/
+        # crítica, sem reconhecer débito de segurança já triado e aceito com
+        # prazo (DEBT-01/DEBT-02/DEBT-04, .md/SECURITY-REVIEW.md). O gate
+        # customizado (scripts/security-audit-gate.mjs) só deixa passar
+        # advisory listada em security/npm-audit-allowlist.json com prazo de
+        # revisão ainda válido — advisory nova ou débito com prazo vencido
+        # continuam falhando o build (fail-closed).
 
   migration-convention-check:
     name: Convenção de rollback de migrations

@@ -52,6 +52,27 @@ formal — devida "antes do fechamento de L2", mas nunca disparada por um
 gap de governança no fechamento daquele lote — realizada por antecipação
 (Seção 19): classificação mantida em Baixa, sem mudança de fato desde L1.
 
+**Atualização (2026-09-04, fechamento retroativo de L2, L3, L4 e L5)**: o
+QA fechou retroativamente o veredito agregado destes 4 lotes
+(`QA-REPORT.md` Seções 12-17) — `BE-03`/`FE-02`/`FE-03` (L2), `BE-06`/
+`BE-07`/`FE-04` (L3), `BE-08`/`FE-05` (L4), `BE-09`/`BE-10`/`BE-16`/
+`FE-06`/`FE-07`/`FE-08` (L5), nenhum bug alta/crítica em nenhuma das 13
+tarefas. As 5 skills de auditoria completa rodam agora, pela primeira
+vez, sobre estes 4 lotes — ver Seções 29-38 (L2, veredito **Aprovado**,
+`DEBT-03`/CSP confirmado resolvido), Seções 39-48 (L3, veredito
+**Aprovado com débito registrado** — achado novo `DEBT-10`, Média,
+`contato`/`data_nascimento` sem redação em `sessionStorage` de
+`AtletaForm`, cenário que o próprio `DEBT-08`/L1 já previa e deixava como
+item de checklist para esta auditoria), Seções 49-58 (L4, veredito
+**Aprovado**, nenhum achado), Seções 59-68 (L5, veredito **Aprovado**,
+nenhum achado novo — `BUG-QA-BE09-01` do QA reconfirmado, não
+reclassificado) e Seção 69 (resumo consolidado). Achado transversal mais
+relevante desta rodada: `DEPLOY.md` revelou que um deploy real de
+produção já aconteceu fora do fluxo governado — `DEBT-03` foi resolvido
+nesta mesma janela, mas o prazo de reavaliação de `DEBT-04` ("antes do
+primeiro deploy de produção") foi ultrapassado sem reverificação
+dedicada, sinalizado formalmente ao CTO/DevOps na Seção 69.
+
 ---
 
 ## 0. Método
@@ -1585,3 +1606,1605 @@ se enquadra no critério de `BLOCKERS.md` (`PIPELINE-CONVENTIONS.md` §4:
 lacuna estrutural de artefato upstream que impede o trabalho) — o Lote L6
 não foi impedido de nada por essa lacuna, apenas identificada e corrigida
 retroativamente dentro desta própria auditoria.
+
+---
+
+# Fechamento retroativo de L2, L3, L4 e L5 (auditoria completa, 2026-09-04)
+
+**Gatilho**: `QA-REPORT.md` Seção 12 ("Fechamento retroativo dos Lotes
+L2–L5") — o CTO priorizou fechar o gap de governança já sinalizado pela
+própria Seção 19 acima (reavaliação atrasada de `DEBT-01`) e pelo
+`EXECUTION-LOG.md` (Lote L6, "Achado de processo sinalizado"): `BE-03`/
+`FE-02`/`FE-03` (L2), `BE-06`/`BE-07`/`FE-04` (L3), `BE-08`/`FE-05` (L4) e
+`BE-09`/`BE-10`/`BE-16`/`FE-06`/`FE-07`/`FE-08` (L5) nunca receberam
+veredito agregado de QA nem auditoria completa de DevSecOps como unidade
+fechada, apesar de todas as 13 tarefas estarem `Concluída` há mais tempo
+que L6. O QA fechou o lado funcional (`QA-REPORT.md` Seções 12-17,
+2026-09-04): **L2 Aprovado com ressalvas** (achado de processo/
+documentação, não bug), **L3 Aprovado**, **L4 Aprovado**, **L5 Aprovado
+com ressalvas** (`BUG-QA-BE09-01`, cobertura de teste, baixa severidade) —
+nenhum bug de severidade alta/crítica em nenhuma das 13 tarefas. Isso
+libera, pela primeira vez, a auditoria completa das 5 skills sobre estes 4
+lotes, na mesma ordem em que o próprio código foi implementado (L2 antes
+de L3, antes de L4, antes de L5) — apesar de L6 já ter sido auditado antes
+por ter sido fechado funcionalmente primeiro pelo QA.
+
+**Nota transversal sobre o estado real do sistema nesta data** (contexto
+que se aplica aos 4 lotes abaixo, não repetida em cada um): `DEPLOY.md`
+(Seção "Status", reconciliação de 2026-09-04) registra que **um deploy real
+de produção já aconteceu** (`futebol-app-lsm.vercel.app`, 8 deploys de
+Produção confirmados via `npx vercel ls`), descoberto fora do fluxo
+governado deste pipeline. Isso supera a suposição usada pela auditoria de
+L6 (Seção 19 acima, "os prazos de `DEBT-04`... não são acionados por este
+lote... o deploy é de staging") — o prazo "antes do primeiro deploy de
+produção" de `DEBT-04` **já foi tecnicamente ultrapassado sem
+reverificação dedicada** (confirmado por leitura de `DEPLOY.md` item 5 da
+Seção 10: "`DEBT-04`... não verificado nesta reconciliação se segue igual,
+fora do escopo desta correção pontual"). Em paralelo, `DEBT-03` (CSP
+ausente) **foi corrigida** nesta mesma janela (`vercel.json`, confirmado
+por leitura direta — `Content-Security-Policy` presente, `default-src
+'self'`, `connect-src` já restrito ao domínio real do Supabase do projeto)
+e `DEBT-07` (retenção de `tentativa_login.ip`) teve o workflow de expurgo
+implementado e validado localmente (`.github/workflows/
+tentativa-login-purge.yml`), ambos ainda pendentes de confirmação de
+execução real contra produção (responsabilidade de DevOps, já registrada
+em `DEPLOY.md`). Nenhum destes três pontos é um achado de código de L2-L5
+— são débitos herdados de L0/L1, cujo cronograma de prazo mudou porque a
+premissa "ainda não houve deploy de produção" deixou de ser verdadeira.
+Tratados como reconfirmação, não como achado novo, em cada seção de débito
+herdado abaixo; a única ação nova deste agente é **sinalizar o descompasso
+de cronograma ao CTO/DevOps** (Seção do resumo consolidado, ao final).
+
+---
+
+# Lote L2 — Ranking e Presença Pública (auditoria completa, 2026-09-04)
+
+## 29. Método
+
+- **Gatilho**: `QA-REPORT.md` Seção 13 — Lote L2 (`BE-03`, `FE-02`,
+  `FE-03`) "Aprovado com ressalvas" — a ressalva é a documentação de
+  produto (`PRD-TECNICO.md`/`UX-SPEC.md`/`BLOCKERS.md`) desatualizada
+  depois que um commit direto do organizador (`d9b77e5`) removeu
+  presenças/cartões da tabela pública, **não** um bug de código nem um
+  achado de segurança — não reclassificado aqui, apenas referenciado
+  (Seção 32).
+- **Primeira auditoria completa de `BE-03` como lógica de negócio**: `BE-03`
+  já havia sido tocada perifericamente pelo scan contínuo de L0 (Seção
+  0, "as views públicas em si são BE-03, fora de L0") e citada como
+  contexto em L1 (`DEBT-03`, origens de fetch), mas nunca recebeu as 5
+  skills completas como unidade própria — esta é essa auditoria,
+  reunida com a primeira auditoria de `FE-02`/`FE-03`.
+- **Referências**: `SDD.md` Seção 7 (7.5 Superfície de Exposição — a
+  linha "Páginas públicas de ranking/visão mensal" da tabela é
+  literalmente este lote —, 7.6 LGPD), `GUARDRAILS.md` regras 5-7
+  (RLS deny-by-default/`anon` sem escrita), 19 (dado pessoal nunca na
+  área pública), `ADR-005` (fronteira de exposição pública via RLS/views),
+  `API-CONTRACT.yaml` v0.12.0 (`RankingPublicoItem`/
+  `PresencaMensalPublicaItem`), `QA-REPORT.md` Seção 13 e Seção 4/4.7
+  (validação anterior de `BE-03`, referenciada, não repetida).
+- **Código lido linha a linha**: `supabase/migrations/
+  20260902101300_create_public_views.sql` e
+  `20260903091500_add_ausencias_to_ranking_publico.sql` (definição exata
+  das duas views + grants), `src/features/ranking-publico/*`
+  (`rankingApi.ts`, `RankingList.tsx`, `PublicHomeShell.tsx`, `format.ts`),
+  `src/features/presenca-mensal/*` (`presencaMensalApi.ts`,
+  `PresencaMensal.tsx`, `format.ts`), `src/lib/supabase/anon-client.ts`.
+- **Comandos executados diretamente**: `Grep` para `console\.(log|error
+  |warn|debug)` e `dangerouslySetInnerHTML` em `src/features/
+  ranking-publico`, `src/features/presenca-mensal` e `src/lib/supabase`
+  — **zero ocorrências** em ambos; leitura de `vercel.json` (confirma
+  `Content-Security-Policy` presente, ver nota transversal acima);
+  leitura de `package.json` (nenhuma dependência nova associada a este
+  lote — `next`/`vitest`/demais inalterados desde L6).
+- **CTO-REVIEW.md**: presente e lido novamente. Nenhum achado
+  estratégico novo deste lote pendente de decisão de negócio — o achado
+  de documentação de produto da Seção 13.1 do QA é uma decisão de
+  produto já tomada (commit `d9b77e5`, fora da cadeia de agentes), não
+  uma questão de risco/compliance em aberto que caiba a este agente
+  decidir ou escalar como pendência nova.
+- **API-CONTRACT.yaml**: presente, v0.12.0. `RankingPublicoItem`/
+  `PresencaMensalPublicaItem` conferidos campo a campo contra a saída
+  real das duas views (mesma verificação já feita por QA via `psql`,
+  Seção 4/4.7 — reconfirmada aqui por leitura cruzada do YAML contra a
+  migration, não repetindo a reprodução empírica que já é papel do QA).
+- **Não repetido nesta rodada**: as 5 skills completas sobre L0/L1/L6 —
+  sem mudança de lógica de negócio nessas tarefas motivada por este lote.
+
+## 30. Achados críticos do Lote L2 (bloqueiam deploy)
+
+Nenhum.
+
+## 31. Achados de alta severidade do Lote L2 (bloqueiam deploy)
+
+Nenhum.
+
+## 32. `security-requirement-validation` — achados de média/baixa severidade do Lote L2
+
+Nenhum achado novo de segurança neste lote. Verificações relevantes,
+documentadas por transparência (não são débitos, são confirmações
+positivas):
+
+- **Fronteira de exposição pública (`SDD.md` 7.5/`ADR-005`)**: confirmado
+  por leitura direta de `20260902101300_create_public_views.sql` que
+  `ranking_publico` e `presenca_mensal_publica` **nunca** referenciam
+  `contato`/`data_nascimento` em nenhum ponto da definição SQL — a
+  garantia é estrutural (a coluna não existe na view, não é apenas
+  omitida de um `SELECT`), consistente com o que o QA já reproduziu
+  empiricamente (Seção 4.1/4.2 do `QA-REPORT.md`, inclusive tentando
+  extrair `contato` diretamente via `psql` como `anon`).
+  `20260903091500_add_ausencias_to_ranking_publico.sql` (incremento de
+  `ausencias`) reconfirmado como puramente aditivo — `CREATE OR REPLACE
+  VIEW` reproduz as 5 colunas pré-existentes sem alteração, acrescenta
+  só `ausencias`, sem introduzir nenhuma coluna sensível nova.
+- **RLS deny-by-default + `anon` restrito a `SELECT` nas 2 views
+  (`GUARDRAILS.md` regras 5-6)**: nenhum `GRANT` novo para `anon`/
+  `public` em nenhuma tabela base, reconfirmado por leitura das
+  migrations (nenhuma migration deste lote altera `revoke`/`grant` de
+  nenhuma tabela — só cria/substitui as duas views) — consistente com a
+  verificação empírica do QA via `information_schema.role_table_grants`
+  (exatamente 2 linhas, ambas `SELECT` nas views).
+- **Defesa em profundidade do lado do cliente (`rankingApi.ts`/
+  `presencaMensalApi.ts`)**: ambos os módulos usam uma lista literal e
+  exaustiva de colunas (`RANKING_PUBLICO_COLUMNS`/
+  `PRESENCA_MENSAL_COLUMNS`) — **nunca `select("*")`** — confirmado por
+  leitura direta. Esta é a segunda camada (a garantia real e não
+  contornável já está no banco), mas reduz a chance de uma view futura
+  ganhar uma coluna sensível por engano e o Frontend passar a
+  arrastá-la sem querer via `select("*")`.
+- **`getAnonClient()` (`src/lib/supabase/anon-client.ts`)**: usa
+  exclusivamente `NEXT_PUBLIC_SUPABASE_ANON_KEY` (chave pública por
+  desenho) — nunca a `service role` — confirmado por leitura; nenhuma
+  rota destas duas telas passa por `middleware.ts`/Route Handler
+  próprio (consistente com `SDD.md` 7.5: "toda leitura pública passa
+  direto pelo PostgREST... nunca por este app").
+- **`console.*`/`dangerouslySetInnerHTML`**: zero ocorrências em todo
+  `src/features/ranking-publico`/`src/features/presenca-mensal`
+  (confirmado por `Grep` própria).
+- **Achado de processo de `FE-02` (`QA-REPORT.md` Seção 13.1, não
+  reclassificado)**: a decisão de produto de remover presenças/cartões
+  da tabela pública (commit `d9b77e5`) **reduz** a superfície de dado
+  exposto publicamente, nunca aumenta — do ponto de vista de segurança,
+  não há achado a fazer aqui; o gap é puramente de reconciliação de
+  documentação (`PRD-TECNICO.md`/`UX-SPEC.md`/`BLOCKERS.md`), fora do
+  escopo de auditoria de segurança deste agente. Concordo com o QA que
+  isso não bloqueia o lote e não escalo como achado de compliance.
+
+**Conclusão**: nenhum achado novo de severidade alta/crítica nem de
+média/baixa neste lote.
+
+## 33. `sensitive-data-exposure-check` — conclusão dedicada (Lote L2)
+
+- **`contato`/`data_nascimento` nunca circulam nesta fronteira**:
+  confirmado em três camadas independentes — (1) estrutural, a coluna
+  não existe na definição SQL da view; (2) RLS/GRANT, `anon` só tem
+  `SELECT` nas duas views, nunca nas tabelas base; (3) client-side,
+  `rankingApi.ts`/`presencaMensalApi.ts` usam allowlist explícita de
+  coluna, nunca `select("*")`. As três camadas reforçam-se mutuamente —
+  a falha de qualquer uma isolada ainda não vazaria o dado.
+  `RankingPublicoItem` expõe `atleta_id, nome_exibicao,
+  pontuacao_acumulada, presencas, cartoes` (5 campos, hoje a UI só
+  renderiza posição/nome/pontos por decisão de produto, ver Seção 32);
+  `PresencaMensalPublicaItem` expõe `ano, mes, rodada_id, rodada_data,
+  total_presentes, nomes_presentes` — `nomes_presentes` é
+  `apelido_exibicao`, nunca `nome_completo`/dado de contato.
+- **Mensagens de erro**: `rankingApi.ts`/`presencaMensalApi.ts`
+  propagam `error.message` do PostgREST diretamente
+  (`throw new Error(error.message)`) até `RankingList.tsx`/
+  `PresencaMensal.tsx`, que **nunca renderizam essa mensagem
+  diretamente** — ambos os componentes capturam a exceção e exibem um
+  texto fixo de erro genérico (confirmado por leitura); a mensagem
+  bruta do PostgREST (que nesta rota nunca inclui dado de linha, só
+  metadado de erro de consulta) não chega à tela, mas também não é um
+  vetor sensível mesmo que chegasse (não há como injetar dado de outra
+  tabela numa mensagem de erro de `SELECT` restrito por `GRANT`).
+- **`console.*`**: zero ocorrências (Seção 32).
+
+**Conclusão**: nenhum achado de exposição de dado sensível no Lote L2.
+
+## 34. `compliance-validation` — LGPD (nível de implementação, escopo Lote L2)
+
+- **Minimização estrutural (`SDD.md` 7.5/7.6)**: reconfirmada em três
+  camadas (Seção 33) — nenhuma mudança de postura desde a auditoria de
+  L0 (Seção 5), que já havia atestado a ausência de `contato`/
+  `data_nascimento` nas migrations originais; este lote é a primeira
+  vez que o **consumo real** dessas views (via código Frontend) é
+  auditado, e ele preserva a mesma garantia.
+- **Base legal**: legítimo interesse do organizador (RNF-01/`SDD.md`
+  7.6) já aceito para o sistema como um todo — nenhuma finalidade nova
+  introduzida por este lote (leitura pública agregada, sem
+  identificação de contato).
+- **RN-12 implícito**: `nome_exibicao`/`nomes_presentes` são
+  `apelido_exibicao`, não uma identidade formal/documento — consistente
+  com o restante do sistema (nenhuma tela, pública ou interna, usa
+  identidade civil como identificador de UI).
+- **Conclusão desta seção**: nenhum achado de compliance obrigatório em
+  aberto no escopo do Lote L2.
+
+## 35. Requisitos de segurança operacional para o DevOps (Lote L2)
+
+1. **Reconfirmação de `DEBT-03` (CSP) — status atualizado nesta
+   auditoria**: `vercel.json` já contém `Content-Security-Policy`
+   (`default-src 'self'`; `connect-src` restrito a `'self'` + ao
+   domínio real do projeto Supabase) — a origem que este lote de fato
+   usa (`getAnonClient()`, fetch client-side ao Supabase) está coberta.
+   `DEBT-03` estava com prazo "após L2 estabilizar as origens de fetch
+   necessárias" (Seção 3) — **esse prazo está satisfeito**: a política
+   já reflete exatamente a origem que `FE-02`/`FE-03` usam, sem entrada
+   solta/genérica demais. Pendente apenas a confirmação operacional
+   (fora do escopo de código) de que a política está de fato ativa no
+   deploy de produção real, não só commitada — ação já registrada como
+   pendência do próprio DevOps em `DEPLOY.md`, reforçada aqui.
+2. **Reconfirmação de `DEBT-04` (advisories `next`) — cronograma
+   alterado, ver nota transversal no topo desta seção**: nenhuma
+   dependência nova por este lote; a classificação (Média) e a análise
+   de aplicabilidade original (Seção 3) permanecem tecnicamente válidas
+   (nenhuma advisory nova de classe CWE-285/863 identificada por este
+   agente nesta rodada), mas o prazo original ("antes do primeiro
+   deploy de produção") já foi ultrapassado sem uma reverificação
+   dedicada pós-deploy real — recomendação operacional: DevOps/Backend
+   reexecutar `npm audit --json` contra o estado atual e confirmar
+   explicitamente que nenhuma advisory nova atingiu a classe de
+   autorização antes de tratar isso como debt de rotina.
+3. Nenhum requisito operacional novo específico deste lote além dos já
+   vigentes (Seção 4/16/25) — este lote não introduz secret novo,
+   rota de rede nova, nem mudança de superfície de borda.
+
+## 36. Checklist de "Pronto" do Lote L2 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seções 30-31).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 34).
+- [x] Todo achado de baixa/média severidade registrado como débito, com
+      prazo de correção — nenhum achado de segurança novo neste lote;
+      `DEBT-01`/`02`/`04` (herdados) reconfirmados sem mudança de
+      severidade (Seção 35); `DEBT-03` confirmado resolvido nesta
+      auditoria.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 35.
+- [x] Achado de relevância estratégica sinalizado ao CTO — o descompasso
+      de cronograma de `DEBT-04` (Seção 35, item 2, nota transversal) é
+      sinalizado no resumo consolidado ao final deste documento, não
+      apenas aqui, por ser transversal aos 4 lotes.
+
+## 37. Veredito
+
+## **Lote L2 (BE-03, FE-02, FE-03): APROVADO**
+
+A auditoria completa das 5 skills sobre as 3 tarefas do Lote L2 **não
+encontrou nenhum achado de segurança novo** — nem crítico, nem alto, nem
+de média/baixa severidade. A fronteira de exposição pública mais sensível
+do sistema (`ADR-005`) segue protegida em três camadas independentes
+(ausência estrutural de coluna na view, RLS/GRANT restrito, allowlist de
+coluna no cliente), verificadas por leitura direta de todo o código deste
+lote (migrations + `rankingApi.ts`/`presencaMensalApi.ts` +
+componentes), não apenas por aceite da validação já feita pelo QA.
+`console.*`/`dangerouslySetInnerHTML`: zero ocorrências. `DEBT-03` (CSP)
+confirmado resolvido nesta auditoria — origem de fetch de `anon` já
+coberta pela política publicada em `vercel.json`.
+
+**Achado de processo do QA (`QA-REPORT.md` Seção 13.1, documentação de
+produto desatualizada após decisão do organizador) não é um achado de
+segurança** — reduz superfície de exposição, não aumenta; fora do escopo
+de ação deste agente, referenciado apenas por transparência.
+
+**Sinalização ao CTO (paralela, registro — não pré-requisito da
+liberação)**: ver resumo consolidado ao final deste documento para o
+descompasso de cronograma de `DEBT-04` (produção já está ativa, prazo já
+ultrapassado sem reverificação dedicada) — transversal aos 4 lotes,
+tratado uma única vez lá.
+
+**Lote L2 está liberado para o Tech Lead** (`EXECUTION-FLOW.md` §5) —
+nenhum achado alta/crítica em aberto, nenhum achado de compliance
+obrigatório não resolvido, um débito herdado (`DEBT-03`) fechado nesta
+auditoria, os demais (`DEBT-01`/`02`/`04`) reconfirmados com prazo e dono
+inalterados (exceto a nota de cronograma de `DEBT-04`, tratada no resumo
+consolidado).
+
+## 38. Entrada correspondente em `BLOCKERS.md`
+
+Nenhuma entrada nova necessária. Nenhum achado desta auditoria volta para
+o time de implementação como ação bloqueante.
+
+---
+
+# Lote L3 — Cadastro de Atletas (auditoria completa, 2026-09-04)
+
+## 39. Método
+
+- **Gatilho**: `QA-REPORT.md` Seção 14 — Lote L3 (`BE-06`, `BE-07`,
+  `FE-04`) "Aprovado", sem ressalva — nenhum achado de nenhuma
+  severidade em nenhuma das 3 tarefas, primeira validação de QA das
+  três. Primeira vez que as 5 skills de auditoria completa rodam sobre
+  este lote.
+- **Por que este é o lote de maior sensibilidade de dado pessoal do
+  sistema até aqui (enunciado da tarefa)**: `BE-06` introduz a primeira
+  tabela/API que **lê e grava** `contato`/`data_nascimento` na área
+  interna (`app.atleta`, já existente desde `BE-02`, mas nunca
+  exercitada por nenhuma API antes deste lote); `BE-07` introduz o
+  único mecanismo de exclusão/anonimização de dado pessoal do sistema
+  inteiro (LGPD Art. 18, `ADR-011`); `FE-04` é a única tela que
+  coleta/edita dado de possível menor de idade. Tratado como superfície
+  de alta sensibilidade para `sensitive-data-exposure-check` e
+  `compliance-validation`, com leitura linha a linha de 100% do código
+  de produção deste lote (não apenas amostragem).
+- **Referências**: `SDD.md` Seção 7.6 (bases legais duplas — legítimo
+  interesse para adulto, consentimento do responsável para menor,
+  redação corrigida em 2026-09-04) e 7.7 (direito à anonimização,
+  `ADR-011`), `GUARDRAILS.md` regras 9 (nenhuma linha de `atleta`
+  excluída fisicamente), 19-21 (LGPD/dado pessoal), `API-CONTRACT.yaml`
+  v0.12.0 (`AtletaResponse`/`AtletaBody`/rotas `/api/atletas*`),
+  `QA-REPORT.md` Seção 14.
+- **Código lido linha a linha**: `src/modules/atletas/{repository,
+  mutate,anonimizar,presenter,validation,constants}.ts`, as 3 rotas
+  (`app/api/atletas/route.ts`, `app/api/atletas/[id]/route.ts`,
+  `app/api/atletas/[id]/anonimizar/route.ts`),
+  `supabase/migrations/20260903110000_create_anonimizar_atleta_function.sql`,
+  `supabase/migrations/20260903100000_create_atleta_nivel_tecnico_view.sql`,
+  `src/features/atletas/{AtletaForm,AtletasList,AnonimizacaoZona,
+  atletasApi,idade,format}.ts(x)`, `src/features/sessao/
+  writeActionSession.ts`/`useHandleSessionExpired.ts` (reconfirmação,
+  ver achado novo abaixo), `src/components/ui/TypedConfirmationModal/*`.
+- **Comandos executados diretamente**: `Grep` para `console\.(log|error
+  |warn|debug)` em `src/modules/atletas`, `app/api/atletas`,
+  `src/features/atletas` — **zero ocorrências**; `Grep` para
+  `dangerouslySetInnerHTML` em todo `src/`/`app/` — **zero
+  ocorrências**; `Grep` dedicado para `unsavedData`/`saveUnsavedData`/
+  `useHandleSessionExpired` em todo `src/features` — usado para
+  verificar o item de checklist deixado em aberto por `DEBT-08` (Seção
+  12, L1: "reavaliar quando `FE-04`+ usar `saveUnsavedData` com dado de
+  atleta") — **achado novo abaixo (`DEBT-10`)**; leitura cruzada de
+  `API-CONTRACT.yaml` contra `presenter.ts` (`paraAtletaResponse`) para
+  confirmar ausência de campo não documentado.
+- **CTO-REVIEW.md**: presente e lido novamente. `SDD.md` 7.6 já foi
+  objeto de correção de redação pelo próprio Software Architect
+  (2026-09-04, Gate 2/3 do CTO) — nenhum achado estratégico novo deste
+  lote pendente de decisão de negócio identificado por este agente além
+  do que já foi resolvido na própria arquitetura.
+- **API-CONTRACT.yaml**: presente, v0.12.0. `AtletaResponse` conferido
+  campo a campo contra `paraAtletaResponse` — `contato`/
+  `data_nascimento` documentados como campos legítimos da área interna
+  (não um vazamento, é o próprio propósito de `BE-06`), consistente com
+  `SDD.md` 7.5 ("Área interna... formulários protegidos por senha").
+- **Não repetido nesta rodada**: as 5 skills completas sobre L0/L1/L2/
+  L6 — sem mudança de lógica de negócio nessas tarefas motivada por
+  este lote.
+
+## 40. Achados críticos do Lote L3 (bloqueiam deploy)
+
+Nenhum.
+
+## 41. Achados de alta severidade do Lote L3 (bloqueiam deploy)
+
+Nenhum.
+
+## 42. `security-requirement-validation` — achados de média/baixa severidade do Lote L3
+
+- **Middleware (`GUARDRAILS.md` regra 17/19, `SDD.md` 7.2/7.5)**: `GET
+  /api/atletas`/`GET /api/atletas/{id}` — a primeira rota de leitura
+  interna a devolver `contato`/`data_nascimento` — está corretamente
+  coberta por `INTERNAL_READ_PROTECTED_PREFIXES` (`/api/atletas`),
+  confirmado por leitura direta de `middleware.ts` (comentário do
+  próprio arquivo nomeia este caso explicitamente) e pelos casos
+  correspondentes de `middleware.test.ts`; `POST`/`PUT`/rota de
+  anonimizar já cobertas por `WRITE_METHODS`, sem necessidade de
+  entrar na lista de prefixos.
+- **`GRANT EXECUTE` de `app.anonimizar_atleta` restrito a
+  `service_role`**: confirmado por leitura da migration (`revoke all...
+  from public`/`from anon`, `grant execute... to service_role`),
+  reforça a verificação empírica do QA via `has_function_privilege`.
+  Função declara `set search_path = app, pg_temp` explicitamente
+  (defesa contra search-path hijacking, mesmo padrão de
+  `lancar_rodada`/`excluir_rodada`).
+- **Idempotência/irreversibilidade de `anonimizar_atleta`**: reprocessar
+  um atleta já anonimizado é recusado pela própria função
+  (`errcode='AN001'`) em vez de sobrescrever de novo silenciosamente —
+  confirmado por leitura; `SELECT ... FOR UPDATE` serializa chamadas
+  concorrentes para o mesmo `atleta_id`.
+- **Nenhuma rota de `DELETE` físico para `atleta`
+  (`GUARDRAILS.md` regra 9)**: confirmado por leitura de
+  `app/api/atletas/**/route.ts` — o único verbo de "remoção" existente
+  é `POST .../anonimizar`.
+- **Validação de entrada (defesa em profundidade)**: `atletaBodySchema`
+  (`zod`) valida `data_nascimento` como data ISO real (rejeita data
+  futura), calcula idade em UTC (não depende do fuso do processo), e
+  aplica `superRefine` para exigir `consentimento_responsavel_obtido`
+  quando `idade < 18` — reaplicado tanto em `POST` quanto em `PUT`
+  (RF-01.6). Nenhuma interpolação de string em query — todo acesso via
+  `supabase-js` parametrizado.
+- **`console.*`/`dangerouslySetInnerHTML`**: zero ocorrências (Seção
+  39).
+
+---
+
+### DEBT-10 (novo, 2026-09-04) — `AtletaForm` (`FE-04`) preserva `contato`/`data_nascimento` sem redação em `sessionStorage` ao expirar a sessão durante o envio
+
+- **Severidade**: **Média** (mesma classe de `DEBT-05`-`DEBT-07`, L1 —
+  fraqueza real e confirmada por leitura de código, não hipotética, mas
+  sem exploração direta por terceiro não autorizado no estado atual do
+  sistema).
+- **Onde**: `src/features/atletas/AtletaForm.tsx`, função `submit`
+  (linha ~169) — ao capturar `SessionExpiredError` (a API respondeu
+  `401` durante `createAtleta`/`updateAtleta`), o código chama
+  `handleSessionExpired({ unsavedData: body })`, onde `body` é o
+  `AtletaBody` completo montado por `buildBody()` (linha ~125) —
+  inclui **`contato`** e **`data_nascimento`** em texto puro, além de
+  `nome_completo`/`apelido_exibicao`/`pontuacao_inicial`/
+  `consentimento_responsavel_obtido`. `useHandleSessionExpired`
+  (`src/features/sessao/useHandleSessionExpired.ts`) repassa isso a
+  `saveUnsavedData` (`writeActionSession.ts`), que grava
+  `JSON.stringify(data)` **sem nenhuma redação/sanitização** em
+  `window.sessionStorage`, sob a chave
+  `sessao_interna:dados_nao_salvos:<pathname>`.
+- **Confirmação de que este é exatamente o gatilho que `DEBT-08` (Seção
+  12, L1) previu e deixou como item de checklist explícito**: a entrada
+  original dizia, literalmente, "quando `FE-04` em diante... chamar
+  `useHandleSessionExpired({ unsavedData: ... })` [com] risco real de
+  que o formulário preservado contenha campo de dado pessoal do atleta
+  (ex.: `contato`/`data_nascimento`)... exigir que a tela redija/omita
+  esses campos antes de preservar". Verificado agora, por leitura direta
+  do código de `FE-04`: **o risco previsto se materializou** — nenhuma
+  redação foi aplicada.
+- **Achado agravante, não apenas confirmação do previsto**: `Grep` em
+  todo `src/`/`app/` por `takeUnsavedData` mostra que esta função **só é
+  chamada dentro dos próprios testes do módulo `sessao`** — nenhuma tela
+  de produção (nem `AtletaForm.tsx`, nem `LancamentoRodadaForm.tsx`, os
+  dois únicos chamadores de `saveUnsavedData` hoje) jamais lê/restaura o
+  rascunho preservado. Ou seja, o mecanismo de "retomar o formulário"
+  descrito no `UX-SPEC.md` Seção 1.3 **não está de fato implementado**
+  do lado de restauração — o dado sensível é gravado em
+  `sessionStorage`, nunca lido de volta, nunca removido pelo próprio
+  fluxo (só seria sobrescrito por uma futura chamada com a mesma chave,
+  ou apagado quando a aba/janela do navegador for fechada, comportamento
+  padrão de `sessionStorage`). Isso piora a análise de minimização (LGPD
+  Art. 6º, III): o dado persiste no navegador do operador sem cumprir
+  nenhuma finalidade funcional — pura retenção sem propósito, exatamente
+  o tipo de gap que o princípio de minimização existe para prevenir
+  (mesma classe de raciocínio já usada para `DEBT-07`, IP de tentativa
+  de login).
+- **Por que Média, não Alta/Crítica**: (a) `sessionStorage` só é legível
+  por JavaScript executado na mesma origem — não há, em todo o
+  repositório, nenhuma ocorrência de `dangerouslySetInnerHTML` ou outro
+  vetor de XSS conhecido (confirmado por `Grep` global, Seção 39); a
+  exploração exigiria XSS ou acesso físico/malware no navegador do
+  próprio operador já autenticado; (b) o operador que vê esse dado em
+  `sessionStorage` é a mesma pessoa que já tem acesso legítimo a ele
+  (digitou no próprio formulário, ou o carregou via `GET
+  /api/atletas/{id}`, rota já protegida por sessão) — não é uma
+  exposição a um terceiro não autorizado; (c) `GUARDRAILS.md` regra 19
+  fala especificamente de "área pública"/"página acessível sem sessão
+  válida" — este é armazenamento client-side dentro da área já
+  autenticada, não uma violação direta e literal daquela regra; (d) o
+  vetor é limitado à janela de vida de uma aba do navegador
+  (`sessionStorage`, não `localStorage`).
+- **Por que não é ignorado como Baixa**: é dado pessoal sensível de
+  LGPD (`contato`/`data_nascimento`, os mesmos dois campos que
+  `GUARDRAILS.md` regra 19/`SDD.md` 7.5 tratam como a superfície mais
+  protegida do sistema inteiro), persistido fora do banco de dados, sem
+  criptografia, sem TTL, sem finalidade funcional cumprida (mecanismo
+  de restauração nunca implementado) — e o próprio `DEBT-08` já havia
+  atribuído a este agente, explicitamente, a responsabilidade de
+  reavaliar exatamente este cenário quando ele ocorresse.
+- **Decisão do DevSecOps (autoridade de classificação/bloqueio deste
+  agente)**: **não bloqueia o fechamento do Lote L3** — severidade
+  Média, registrado como débito com prazo, conforme o guardrail deste
+  agente ("só severidade alta/crítica bloqueia por padrão").
+- **Remediação recomendada**: (1) em `AtletaForm.tsx`, montar um
+  payload reduzido para `unsavedData` (whitelist explícita:
+  `nome_completo`, `apelido_exibicao`, `pontuacao_inicial`,
+  `consentimento_responsavel_obtido` — nunca `contato`/
+  `data_nascimento`), em vez de repassar `body` inteiro; (2)
+  separadamente (decisão de produto/UX, não deste relatório): decidir
+  se o mecanismo de restauração via `takeUnsavedData` será
+  efetivamente implementado (a promessa do `UX-SPEC.md` Seção 1.3 seguir
+  não cumprida) ou se `saveUnsavedData` deve parar de ser chamado por
+  telas que não pretendem restaurar o rascunho — de qualquer forma,
+  ambas as opções devem preservar a redação do item (1).
+- **Prazo**: antes do primeiro uso real deste fluxo por um usuário final
+  em produção (contexto agravado pela nota transversal no topo deste
+  fechamento: produção já está ativa — recomenda-se tratar como
+  prioridade mais próxima que os demais débitos de baixa severidade,
+  mesmo não bloqueando o lote).
+- **Dono**: Frontend (implementação da correção).
+
+---
+
+**Conclusão da Seção 42**: um achado novo (`DEBT-10`, Média,
+não-bloqueante) — nenhum achado de severidade alta/crítica.
+
+## 43. `sensitive-data-exposure-check` — conclusão dedicada (Lote L3)
+
+- **`AtletaResponse` (`GET`/`POST`/`PUT /api/atletas*`)**: expõe
+  `contato`/`data_nascimento` **deliberadamente** — é o próprio
+  propósito desta API (área interna, protegida por sessão em toda
+  leitura/escrita, `SDD.md` 7.5) — confirmado que nenhum campo a mais
+  vaza (`presenter.ts` monta um shape explícito, nunca `select("*")`
+  repassado direto).
+- **`anonimizar_atleta` — dado pessoal nunca em variável de execução**:
+  confirmado por leitura da migration — a função nunca lê o valor real
+  de `nome_completo`/`apelido_exibicao`/`contato`/`data_nascimento`
+  antes de sobrescrevê-los; `log_auditoria.valores_antes` grava
+  exatamente o literal `"[REDACTED]"` nos 4 campos. Reforça, por
+  leitura independente, a mesma conclusão já alcançada pelo QA via
+  teste de integração com asserção negativa.
+- **Achado novo, tratado como `DEBT-10` (Seção 42)**: `contato`/
+  `data_nascimento` persistidos sem redação em `sessionStorage` quando
+  a sessão expira durante o envio do formulário — única exposição fora
+  do fluxo desenhado encontrada neste lote.
+- **Mensagens de erro**: nenhuma das 3 rotas ecoa detalhe interno
+  (stack trace, mensagem bruta do Postgres) ao cliente — confirmado por
+  leitura de todos os `route.ts`: `400` devolve só `path`/`message` do
+  `zod`; `404` (atleta não encontrado) devolve mensagem fixa; `409`
+  (duplicidade) devolve a lista de duplicatas já conhecida pelo próprio
+  chamador (`nome_completo`/`id`, não um dado novo revelado).
+- **`console.*`**: zero ocorrências.
+
+**Conclusão desta seção**: um achado de exposição/retenção de dado
+sensível fora do banco (`DEBT-10`), Média severidade, não-bloqueante —
+nenhum vazamento a terceiro não autorizado identificado.
+
+## 44. `compliance-validation` — LGPD (nível de implementação, escopo Lote L3)
+
+- **Duas bases legais distintas (`SDD.md` 7.6, redação corrigida
+  2026-09-04)**: confirmado por leitura de `AtletaForm.tsx` — o aviso
+  de privacidade fixo no topo do formulário é consistente com a Seção
+  7.6 corrigida; o bloco de consentimento (`showConsentBlock`) é
+  anunciado via `aria-live="polite"` **permanente** (nunca
+  `display:none` puro) e reaparece também quando o servidor devolve
+  erro de RF-01.3 mesmo com o bloco oculto no cliente (defesa contra
+  divergência de relógio) — nunca deixa um erro "órfão".
+  `consentimento_responsavel_obtido` é boolean declarativo (RN-02),
+  nunca verificado pelo sistema além da declaração — consistente com o
+  desenho já aprovado.
+- **Anonimização (LGPD Art. 18, `ADR-011`)**: mecanismo completo e
+  funcional — sobrescrita dos 4 campos + `ativo=false` +
+  `anonimizado_em` + desativação de `restricao_obrigatoria` associada,
+  tudo em uma única transação PL/pgSQL; irreversível por desenho
+  (`TypedConfirmationModal`, exige digitar "ANONIMIZAR", foco inicial
+  em "Cancelar", botão `aria-disabled` até o texto bater — confirmado
+  por leitura de `AnonimizacaoZona.tsx`/`TypedConfirmationModal`).
+  Estado pós-anonimização com os 4 campos `readOnly`/`aria-readonly`,
+  nunca editáveis de novo.
+- **Nenhuma linha de `atleta` excluída fisicamente
+  (`GUARDRAILS.md` regra 9)**: confirmado — nenhuma rota `DELETE`
+  existe para `atleta`.
+- **Minimização de dados — achado novo**: `DEBT-10` (Seção 42) é uma
+  lacuna de minimização (retenção de `contato`/`data_nascimento` fora
+  do banco, sem finalidade cumprida) — **avaliado como débito, não como
+  compliance obrigatório não resolvido**, pela mesma régua já aplicada
+  a `DEBT-07`: (a) não é a ausência de um mecanismo de compliance
+  exigido por lei que o sistema devesse ter implementado desde já
+  (diferente de `anonimizar_atleta`, que é a própria materialização do
+  Art. 18 e está completa e funcional); (b) é uma lacuna de higiene de
+  retenção incidental a uma funcionalidade auxiliar (`FE-12`/`DEBT-08`)
+  que não é ela mesma o mecanismo de tratamento de dado pessoal
+  principal do lote. Não bloqueia a aprovação de L3.
+- **Conclusão desta seção**: nenhum achado de compliance **obrigatório**
+  em aberto no escopo do Lote L3 — `DEBT-10` é débito de minimização,
+  registrado com prazo (Seção 42), não uma lacuna de mecanismo legal
+  exigido.
+
+## 45. Requisitos de segurança operacional para o DevOps (Lote L3)
+
+Nenhum item novo específico deste lote além dos já vigentes (Seções 4/
+16/25/35) — este lote não introduz secret novo, rota de rede nova, nem
+dependência nova (`git diff -- package.json` entre L2 e L3 não mostra
+alteração motivada por este lote). Reforço: `DEBT-10` (Seção 42) é uma
+correção de código do Frontend, não requer nenhuma ação de
+infraestrutura do DevOps.
+
+## 46. Checklist de "Pronto" do Lote L3 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seções 40-41).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 44); `DEBT-10` é
+      débito, não compliance obrigatório.
+- [x] Todo achado de baixa/média severidade registrado como débito, com
+      prazo de correção — `DEBT-10` (Seção 42), Média, prazo definido,
+      dono Frontend; `DEBT-01`/`02`/`04` (herdados) reconfirmados sem
+      mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 45 (nenhum item novo).
+- [x] Achado de relevância estratégica sinalizado ao CTO — `DEBT-10` é
+      técnico (correção de Frontend), não exige decisão de negócio;
+      sinalizado ao CTO apenas por transparência, junto ao resumo
+      consolidado.
+
+## 47. Veredito
+
+## **Lote L3 (BE-06, BE-07, FE-04): APROVADO COM DÉBITO REGISTRADO**
+
+A auditoria completa das 5 skills sobre as 3 tarefas do Lote L3 —
+tratado com rigor adicional por ser a superfície de maior sensibilidade
+de dado pessoal do sistema até aqui (primeira API a ler/gravar
+`contato`/`data_nascimento`, único mecanismo de anonimização do sistema
+inteiro) — **não encontrou nenhum achado de severidade alta/crítica**. O
+middleware protege corretamente a primeira rota de leitura interna
+sensível (`GET /api/atletas*`); `app.anonimizar_atleta` está
+estruturalmente completa e correta (`GRANT EXECUTE` restrito,
+`search_path` explícito, idempotência via `errcode='AN001'`, dado
+pessoal real nunca em variável de execução, log de auditoria só com
+marcadores redigidos); nenhuma rota de exclusão física de `atleta`
+existe; validação de idade/consentimento em UTC, reaplicada em
+criação e edição.
+
+**Um achado novo, `DEBT-10`, Média severidade, não-bloqueante**:
+`AtletaForm.tsx` (`FE-04`) persiste `contato`/`data_nascimento` sem
+redação em `sessionStorage` quando a sessão expira durante o envio do
+formulário — confirmação, por leitura de código, do cenário que o
+próprio `DEBT-08` (auditoria de L1) já havia previsto e deixado como
+item de checklist explícito para esta auditoria. Agravante: o mecanismo
+de restauração (`takeUnsavedData`) nunca é chamado por nenhuma tela real
+— o dado é gravado, nunca lido de volta, retido sem cumprir finalidade
+funcional. Registrado com remediação recomendada (whitelist de campos
+não sensíveis antes de preservar), prazo antes do primeiro uso real
+deste fluxo em produção (contexto agravado por produção já estar ativa,
+ver nota transversal), dono Frontend.
+
+**Sinalização ao CTO (paralela, registro — não pré-requisito da
+liberação)**: `DEBT-10` é inteiramente técnico, comunicado por
+transparência; ver resumo consolidado ao final para o descompasso de
+cronograma transversal de `DEBT-04`.
+
+**Lote L3 está liberado para o Tech Lead** (`EXECUTION-FLOW.md` §5) —
+nenhum achado alta/crítica em aberto, nenhum achado de compliance
+obrigatório não resolvido, débito residual documentado com prazo e
+dono.
+
+## 48. Entrada correspondente em `BLOCKERS.md`
+
+Nenhuma entrada nova necessária. `DEBT-10` não volta como bloqueio para o
+time de implementação — fica registrado como débito com prazo e dono
+neste relatório (Seção 42), mesmo tratamento já aplicado aos débitos de
+L1 (`DEBT-05`-`09`).
+
+---
+
+# Lote L4 — Lançamento de Rodada (auditoria completa, 2026-09-04)
+
+## 49. Método
+
+- **Gatilho**: `QA-REPORT.md` Seção 15 — Lote L4 (`BE-08`, `FE-05`)
+  "Aprovado", sem ressalva — nenhum achado de nenhuma severidade,
+  primeira validação de QA de ambas. Primeira vez que as 5 skills de
+  auditoria completa rodam sobre este lote.
+- **Referências**: `SDD.md` Seção 7.2 (autorização binária sem RBAC),
+  `GUARDRAILS.md` regras 8 (ledger append-only), 10 (operação que
+  altera saldo roda em função/trigger PL/pgSQL única), 17,
+  `TASK.md` Seção 1.2, `API-CONTRACT.yaml` v0.12.0
+  (`LancarRodadaBody`/`RodadaResponse`), `QA-REPORT.md` Seção 15.
+- **Código lido linha a linha**: `src/modules/rodadas/{lancar,
+  repository,presenter,validation,constants}.ts`, `app/api/rodadas/
+  route.ts` (`POST`), `supabase/migrations/
+  20260903120000_seed_configuracao_pontuacao.sql` e
+  `20260903120100_create_lancar_rodada_function.sql`,
+  `src/features/rodadas/{LancamentoRodadaForm,EventosStep,
+  rodadasApi,participacaoState,format}.ts(x)`.
+- **Comandos executados diretamente**: `Grep` para `console\.(log|error
+  |warn|debug)` em `src/modules/rodadas`, `app/api/rodadas`,
+  `src/features/rodadas` — **zero ocorrências**; `Grep` para
+  `unsavedData` em `LancamentoRodadaForm.tsx` — confirma que o `body`
+  preservado (`data`, `participacoes: [{atleta_id, status, eventos}]`)
+  **nunca inclui `contato`/`data_nascimento`** (o schema de
+  `LancarRodadaBody`, `src/modules/rodadas/validation.ts`, não tem
+  esses campos) — o mesmo mecanismo genérico de `DEBT-08`/`DEBT-10` não
+  se aplica aqui, verificado explicitamente, não presumido; leitura
+  cruzada de `API-CONTRACT.yaml` contra `presenter.ts`.
+- **CTO-REVIEW.md**: presente e lido novamente. Nenhum achado
+  estratégico novo deste lote.
+- **Não repetido nesta rodada**: as 5 skills completas sobre L0/L1/L2/
+  L3/L6.
+
+## 50. Achados críticos do Lote L4 (bloqueiam deploy)
+
+Nenhum.
+
+## 51. Achados de alta severidade do Lote L4 (bloqueiam deploy)
+
+Nenhum.
+
+## 52. `security-requirement-validation` — achados de média/baixa severidade do Lote L4
+
+Nenhum achado novo de segurança neste lote. Verificações relevantes:
+
+- **Atomicidade real (`GUARDRAILS.md` regra 10)**: confirmado por
+  leitura linha a linha de `app.lancar_rodada` — `INSERT` em
+  `app.rodada` + um `app.participacao_rodada` por atleta + um
+  `app.evento_jogo` por evento + exatamente um `app.lancamento_pontos`
+  por atleta, todos dentro do corpo de uma única função PL/pgSQL
+  (transação implícita única); qualquer `raise exception` no meio do
+  `loop` reverte 100% do que já foi inserido nesta chamada — nenhum
+  `savepoint`/captura de exceção intermediária que permitisse commit
+  parcial.
+- **RF-02.6 (bloqueio de evento para atleta ausente) em defesa em
+  profundidade**: verificado tanto na validação `zod` de borda
+  (`validation.ts`) quanto estruturalmente dentro da função PL/pgSQL
+  (`errcode = 'RF026'`) — a segunda é a garantia real, a primeira é só
+  otimização de UX; nenhuma chamada direta à RPC (contornando a API)
+  consegue escapar da checagem estrutural.
+- **`GRANT EXECUTE` de `app.lancar_rodada` restrito a `service_role`**:
+  confirmado por leitura (`revoke all... from public/anon`, `grant
+  execute... to service_role`). `set search_path = app, pg_temp`
+  declarado explicitamente.
+- **Valor de pontos sempre lido de `app.configuracao_pontuacao` vigente
+  na data da rodada, nunca hardcoded**: confirmado por leitura — se
+  nenhum valor vigente for encontrado, a função levanta exceção
+  (`errcode='RN005'`) em vez de gravar um lançamento com valor
+  ausente/zerado silenciosamente.
+- **Controles desabilitados, não escondidos (`FE-05`)**: confirmado por
+  leitura de `EventosStep.tsx` — `disabled={bloqueado}` real em
+  `StepperCounter`, nunca `display:none`, para atleta ausente.
+- **`console.*`/`dangerouslySetInnerHTML`**: zero ocorrências.
+
+**Conclusão**: nenhum achado novo de severidade alta/crítica nem de
+média/baixa neste lote.
+
+## 53. `sensitive-data-exposure-check` — conclusão dedicada (Lote L4)
+
+- **Nenhum dado de `contato`/`data_nascimento` circula neste lote**:
+  `lancar_rodada` e toda a cadeia de código deste lote (`repository.ts`,
+  `presenter.ts`, `rodadasApi.ts`) trabalham exclusivamente com
+  `atleta_id` (uuid), `status`, `eventos` — nunca leem/gravam campo
+  pessoal do atleta. Confirmado por leitura de todos os `.select(...)`
+  e do corpo de `RodadaResponse`/`API-CONTRACT.yaml`.
+- **`unsavedData` de `LancamentoRodadaForm.tsx`**: confirmado (Seção
+  49) que o payload preservado em `sessionStorage` em caso de sessão
+  expirada não contém nenhum campo sensível de atleta — apenas
+  `atleta_id`, que sozinho não é dado pessoal sensível sob a régua já
+  usada por este relatório (mesma classe de identificador já presente
+  em toda a área interna, não equivalente a `contato`/
+  `data_nascimento`). Nenhum achado aqui, ao contrário de `FE-04`
+  (`DEBT-10`).
+- **Mensagens de erro**: nenhuma mensagem bruta do Postgres chega ao
+  cliente — `400`/`409`/`500` usam mensagens de negócio fixas ou
+  derivadas do `errcode` mapeado (`ERRCODE_EVENTO_PARA_AUSENTE`/
+  `ERRCODE_CONFIGURACAO_PONTUACAO_AUSENTE`), confirmado por leitura de
+  `lancar.ts`/`route.ts`.
+- **`console.*`**: zero ocorrências.
+
+**Conclusão desta seção**: nenhum achado de exposição de dado sensível
+no Lote L4.
+
+## 54. `compliance-validation` — LGPD (nível de implementação, escopo Lote L4)
+
+- **Minimização de dados**: nenhum campo pessoal novo equivalente a
+  `contato`/`data_nascimento` foi adicionado a nenhuma tabela deste
+  lote; `app.lancamento_pontos`/`app.participacao_rodada`/
+  `app.evento_jogo` só referenciam `atleta_id`.
+- **Ledger append-only (`GUARDRAILS.md` regra 8)**: reforçado — cada
+  atleta recebe exatamente um `app.lancamento_pontos` por rodada
+  (nunca um `UPDATE` sobre lançamento já existente), consistente com
+  correção/estorno (`BE-09`, L5) que só insere novos ajustes.
+- **Conclusão desta seção**: nenhum achado de compliance obrigatório em
+  aberto no escopo do Lote L4.
+
+## 55. Requisitos de segurança operacional para o DevOps (Lote L4)
+
+Nenhum item novo específico deste lote além dos já vigentes — nenhuma
+dependência nova, nenhuma rota pública nova, nenhuma mudança de
+superfície de exposição de borda.
+
+## 56. Checklist de "Pronto" do Lote L4 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seções 50-51).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 54).
+- [x] Todo achado de baixa/média severidade registrado como débito —
+      nenhum achado de segurança novo neste lote; `DEBT-01`/`02`/`04`
+      (herdados) reconfirmados sem mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 55 (nenhum item novo).
+- [x] Achado de relevância estratégica sinalizado ao CTO — nenhum
+      achado técnico deste lote exige decisão de negócio.
+
+## 57. Veredito
+
+## **Lote L4 (BE-08, FE-05): APROVADO**
+
+A auditoria completa das 5 skills sobre as 2 tarefas do Lote L4 **não
+encontrou nenhum achado de segurança novo** — nem crítico, nem alto,
+nem de média/baixa severidade. A atomicidade real da transação de
+lançamento (reversão de 100% do que já foi inserido no `loop` quando um
+atleta posterior falha a validação) foi confirmada por leitura linha a
+linha da função PL/pgSQL, reforçando a verificação empírica já feita
+pelo QA via chamada direta à RPC; `GRANT EXECUTE` restrito a
+`service_role`; controles de evento desabilitados (nunca escondidos)
+para atleta ausente, com defesa em profundidade estrutural (`errcode
+RF026`) contra bypass via chamada direta à RPC. Verificado
+explicitamente (não presumido) que o mecanismo de preservação de
+rascunho de `FE-05` nunca inclui dado pessoal sensível de atleta,
+diferente do achado equivalente em `FE-04` (`DEBT-10`, L3).
+
+**Sinalização ao CTO**: nenhum achado técnico deste lote exige decisão
+de negócio.
+
+**Lote L4 está liberado para o Tech Lead** (`EXECUTION-FLOW.md` §5) —
+nenhum achado alta/crítica em aberto, nenhum achado de compliance
+obrigatório não resolvido, nenhum débito de segurança novo.
+
+## 58. Entrada correspondente em `BLOCKERS.md`
+
+Nenhuma entrada nova necessária.
+
+---
+
+# Lote L5 — Correção, Histórico e Auditoria de Rodadas (auditoria completa, 2026-09-04)
+
+## 59. Método
+
+- **Gatilho**: `QA-REPORT.md` Seção 16 — Lote L5 (`BE-09`, `BE-10`,
+  `BE-16`, `FE-06`, `FE-07`, `FE-08`) "Aprovado com ressalvas" — a
+  ressalva é `BUG-QA-BE09-01` (baixa severidade, lacuna de **cobertura
+  de teste** de middleware para `/api/log-auditoria`; o comportamento
+  real já foi confirmado correto empiricamente pelo próprio QA via
+  `curl` direto) — não é um achado de segurança de comportamento, não
+  reclassificado aqui além da confirmação independente da Seção 62.
+  `BE-16` tratada como parte de L5 pelo mesmo critério já usado por QA
+  (Seção 12 do `QA-REPORT.md`: sua própria linha em `TASK.md` marca
+  `Lote: L5`, e `FE-06`/`FE-07` dependem dela).
+- **Referências**: `SDD.md` Seção 7.2 (RN-12, autorização binária),
+  `GUARDRAILS.md` regras 8 (ledger append-only), 10, 18 (log de
+  auditoria nunca com campo de autor), 20 (log de anonimização só com
+  marcadores redigidos), `API-CONTRACT.yaml` v0.12.0
+  (`CorrigirParticipacaoBody`/`LogAuditoriaItemResponse`/
+  `RodadaDetalheResponse`), `QA-REPORT.md` Seção 16.
+- **Código lido linha a linha**: `src/modules/rodadas/{corrigir,
+  excluir,detalhar,listar,simular-correcao,presenter}.ts`,
+  `src/modules/auditoria/{repository,presenter,validation}.ts`,
+  `app/api/rodadas/[id]/route.ts` (`GET`/`DELETE`), `app/api/rodadas/
+  [id]/participacoes/[atletaId]/route.ts` (`PATCH`), `app/api/rodadas/
+  [id]/participacoes/[atletaId]/simular-correcao/route.ts` (`POST`),
+  `app/api/log-auditoria/route.ts`, `supabase/migrations/
+  20260903130000_create_excluir_rodada_function.sql`,
+  `20260903130100_create_corrigir_participacao_rodada_function.sql`,
+  `20260903140000_create_calcular_correcao_participacao_rodada_function.sql`,
+  `src/features/historico/*`, `src/features/correcao-rodada/*`,
+  `src/features/log-auditoria/*` (com atenção dedicada a
+  `entryPresenter.ts#montarDiffAnonimizacao`, ver Seção 63).
+- **Comandos executados diretamente**: `Grep` para `console\.(log|error
+  |warn|debug)` em `src/modules/rodadas`, `src/modules/auditoria`,
+  `app/api/rodadas`, `app/api/log-auditoria`, `src/features/historico`,
+  `src/features/correcao-rodada`, `src/features/log-auditoria` — **zero
+  ocorrências**; `Grep` para `dangerouslySetInnerHTML` — zero
+  ocorrências (global, Seção 39); leitura de `middleware.ts` (confirma
+  `/api/rodadas`/`/api/log-auditoria` em
+  `INTERNAL_READ_PROTECTED_PREFIXES`, reforça a verificação empírica já
+  feita pelo QA via `curl`) para avaliar de forma independente
+  `BUG-QA-BE09-01`, já que trata de proteção de sessão.
+- **CTO-REVIEW.md**: presente e lido novamente. Nenhum achado
+  estratégico novo deste lote.
+- **API-CONTRACT.yaml**: presente, v0.12.0. Conferido campo a campo
+  contra `paraLogAuditoriaResponse`/`paraRodadaDetalheResponse` —
+  nenhum campo de autor, nenhum campo não documentado.
+- **Não repetido nesta rodada**: as 5 skills completas sobre L0/L1/L2/
+  L3/L4/L6.
+
+## 60. Achados críticos do Lote L5 (bloqueiam deploy)
+
+Nenhum.
+
+## 61. Achados de alta severidade do Lote L5 (bloqueiam deploy)
+
+Nenhum.
+
+## 62. `security-requirement-validation` — achados de média/baixa severidade do Lote L5
+
+Nenhum achado novo de segurança neste lote. Verificações relevantes:
+
+- **Reversão de 100% dos pontos, ledger append-only
+  (`GUARDRAILS.md` regra 8, `app.excluir_rodada`)**: confirmado por
+  leitura — para cada atleta afetado, um novo `lancamento_pontos`
+  (`origem='estorno'`) com `pontos_delta` = negativo da soma líquida já
+  gravada (soma de **todos** os lançamentos daquele atleta+rodada, não
+  só o original — cobre também o caso de uma rodada já corrigida antes
+  de ser excluída); o lançamento original nunca é alterado/removido.
+  Reentrada numa rodada já `excluida` é recusada (`errcode='RD001'`),
+  não gera segundo conjunto de estornos.
+- **"Aplica só a diferença" (`app.corrigir_participacao_rodada`)**:
+  confirmado — o total "antes" é a soma líquida de todos os
+  lançamentos já gravados (cobre correções sobre correções anteriores);
+  o `pontos_delta` do novo lançamento é exatamente `novo_total -
+  total_ja_liquido`, inclusive quando a diferença é zero (RN-07:
+  "toda correção gera log, inclusive correções triviais"). Cálculo
+  sempre lido de `configuracao_pontuacao` vigente **na data da
+  rodada**, nunca "agora" — neutraliza exatamente o método de cálculo
+  original.
+- **Preview e escrita real compartilham o mesmo cálculo por
+  construção**: confirmado que `app.corrigir_participacao_rodada` foi
+  redefinida (`CREATE OR REPLACE FUNCTION`) para delegar a
+  `app.calcular_correcao_participacao_rodada`, o mesmo helper que
+  `app.simular_correcao_rodada` (`BE-10`) usa — divergência entre
+  preview e gravação real estruturalmente impossível, não apenas
+  testada por coincidência.
+- **`GRANT EXECUTE` das 4 funções (`excluir_rodada`,
+  `corrigir_participacao_rodada`,
+  `calcular_correcao_participacao_rodada`, `simular_correcao_rodada`)
+  restrito a `service_role`**: confirmado por leitura de todas as
+  migrations; todas declaram `set search_path = app, pg_temp`.
+- **RN-12 (log sem campo de autor)**: confirmado estruturalmente — nem
+  `excluir_rodada` nem `corrigir_participacao_rodada` gravam nenhuma
+  coluna de autoria (a própria tabela `log_auditoria`, `BE-02`, não tem
+  essa coluna); `src/modules/auditoria/repository.ts`/`presenter.ts`
+  nunca selecionam/expõem um campo de autor porque ele não existe.
+- **`BUG-QA-BE09-01` (verificação independente do DevSecOps, além do
+  que o QA já reproduziu)**: confirmado por leitura direta de
+  `middleware.ts` que `/api/log-auditoria` está em
+  `INTERNAL_READ_PROTECTED_PREFIXES` — o comportamento é estruturalmente
+  correto; concordo com a classificação do QA (lacuna de **cobertura de
+  teste automatizado**, não de comportamento real, severidade Baixa,
+  sem prazo formal) — não reclassificado, não é um achado de segurança
+  ativo, apenas uma lacuna de regressão futura. Recomendo ao Backend
+  fechar essa lacuna de teste na mesma janela do próximo ajuste de
+  `middleware.test.ts`, mas não elevo a severidade.
+- **`console.*`/`dangerouslySetInnerHTML`**: zero ocorrências.
+
+**Conclusão**: nenhum achado novo de severidade alta/crítica nem de
+média/baixa neste lote (além da reconfirmação, não reclassificação, de
+`BUG-QA-BE09-01`, que já pertence ao domínio do QA).
+
+## 63. `sensitive-data-exposure-check` — conclusão dedicada (Lote L5)
+
+- **`log_auditoria` — reforço de defesa em profundidade contra
+  vazamento de dado pessoal redigido, verificado de forma independente**:
+  releitura própria (não apenas aceite do relato do QA) de
+  `src/features/log-auditoria/entryPresenter.ts#montarDiffAnonimizacao`
+  confirma que uma linha "antes" só é montada para uma chave quando
+  `valores_antes[chave]` é **exatamente** o literal `"[REDACTED]"` — o
+  valor efetivamente renderizado é sempre o texto fixo `"Dado
+  redigido"`, nunca `valores_antes[chave]` em si. Modo de falha
+  fechado: mesmo que o Backend um dia gravasse acidentalmente um dado
+  pessoal real em `valores_antes`, esta tela nunca o renderizaria —
+  confirma, por leitura de código (não apenas o teste automatizado que
+  o QA já reexecutou), que a garantia é estrutural do lado do Frontend
+  também, não só do Backend.
+- **`GET /api/log-auditoria`/`GET /api/rodadas*`**: nenhum campo de
+  `contato`/`data_nascimento` circula em nenhuma resposta deste lote —
+  confirmado por leitura de todos os `.select(...)` de
+  `src/modules/auditoria/repository.ts` e
+  `src/modules/rodadas/repository.ts` (`buscarApelidosAtletas` seleciona
+  só `id, apelido_exibicao`).
+- **Mensagens de erro**: `404`/`409` usam mensagens de negócio fixas
+  derivadas de `errcode` (`P0002`→404, `RD001`→409, `RD002`→404),
+  nunca a mensagem bruta de exceção do Postgres — confirmado por
+  leitura de todos os `route.ts` deste lote.
+- **`console.*`**: zero ocorrências.
+
+**Conclusão desta seção**: nenhum achado de exposição de dado sensível
+no Lote L5 — reforça, por verificação independente, a mesma conclusão
+já alcançada pelo QA para o ponto mais sensível deste lote
+(`DiffViewer` de anonimização).
+
+## 64. `compliance-validation` — LGPD (nível de implementação, escopo Lote L5)
+
+- **RN-12 (nenhuma identidade individual)**: confirmado estruturalmente
+  — ausência de coluna de autor no schema, não apenas convenção de
+  aplicação (Seção 62).
+- **Minimização de dados**: nenhum campo pessoal novo equivalente a
+  `contato`/`data_nascimento` foi adicionado a nenhuma tabela deste
+  lote.
+- **Compatibilidade com o direito à anonimização (`SDD.md` 7.7)**: o
+  log de correção/estorno (`BE-09`) grava `status`/`eventos`/pontos —
+  nunca um campo que seria afetado pela anonimização de um atleta (o
+  `entryPresenter.ts` só aplica o modo de redação especial quando
+  `tipo_evento = 'anonimizacao'`, confirmado por leitura); um atleta já
+  anonimizado que aparece num log de correção antigo continua sendo
+  referenciado só por `atleta_id`, resolvido para exibição via
+  `apelido_exibicao` (já sobrescrito para o placeholder estável pela
+  própria anonimização, `BE-07`) — nenhum dado pessoal residual
+  vazando por essa via.
+- **Conclusão desta seção**: nenhum achado de compliance obrigatório em
+  aberto no escopo do Lote L5.
+
+## 65. Requisitos de segurança operacional para o DevOps (Lote L5)
+
+Nenhum item novo específico deste lote além dos já vigentes — nenhuma
+dependência nova, nenhuma rota pública nova. Reforço não-bloqueante:
+`BUG-QA-BE09-01` (Seção 62) é uma lacuna de cobertura de teste do
+Backend, não uma ação de infraestrutura do DevOps.
+
+## 66. Checklist de "Pronto" do Lote L5 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seções 60-61).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 64).
+- [x] Todo achado de baixa/média severidade registrado como débito —
+      nenhum achado de segurança novo neste lote; `BUG-QA-BE09-01`
+      (QA, cobertura de teste) reconfirmado sem reclassificação;
+      `DEBT-01`/`02`/`04` (herdados) reconfirmados sem mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 65 (nenhum item novo).
+- [x] Achado de relevância estratégica sinalizado ao CTO — nenhum
+      achado técnico deste lote exige decisão de negócio.
+
+## 67. Veredito
+
+## **Lote L5 (BE-09, BE-10, BE-16, FE-06, FE-07, FE-08): APROVADO**
+
+A auditoria completa das 5 skills sobre as 6 tarefas do Lote L5 **não
+encontrou nenhum achado de segurança novo** — nem crítico, nem alto,
+nem de média/baixa severidade. A reversão de 100% dos pontos via
+`app.excluir_rodada` (soma líquida de todos os lançamentos, não só o
+original) e a aplicação de "só a diferença" via
+`app.corrigir_participacao_rodada` (mesma régua de vigência de
+`configuracao_pontuacao` na data da rodada) foram confirmadas por
+leitura linha a linha das 3 funções PL/pgSQL novas deste lote, todas
+com `GRANT EXECUTE` restrito a `service_role` e `search_path`
+explícito. O preview de correção (`BE-10`) compartilha o mesmo cálculo
+da escrita real por construção (`CREATE OR REPLACE FUNCTION`
+delegando ao mesmo helper), tornando divergência estruturalmente
+impossível. O modo de falha fechado do `DiffViewer` de anonimização
+(`FE-08`) foi reverificado de forma independente por este agente, não
+apenas aceito do relato do QA.
+
+**`BUG-QA-BE09-01`** (achado do QA, lacuna de cobertura de teste
+automatizado para `/api/log-auditoria` em `middleware.test.ts`) foi
+reconfirmado por este agente como comportamento real correto (leitura
+direta de `middleware.ts`) — concordo com a classificação do QA
+(Baixa, não é achado de segurança ativo), não reclassificado.
+
+**Sinalização ao CTO**: nenhum achado técnico deste lote exige decisão
+de negócio.
+
+**Lote L5 está liberado para o Tech Lead** (`EXECUTION-FLOW.md` §5) —
+nenhum achado alta/crítica em aberto, nenhum achado de compliance
+obrigatório não resolvido, nenhum débito de segurança novo.
+
+## 68. Entrada correspondente em `BLOCKERS.md`
+
+Nenhuma entrada nova necessária.
+
+---
+
+## 69. Resumo consolidado — Fechamento retroativo de L2, L3, L4 e L5 (2026-09-04)
+
+| Lote | Tarefas | Veredito de DevSecOps | Achado de segurança novo |
+|---|---|---|---|
+| **L2** — Ranking e Presença Pública | `BE-03`, `FE-02`, `FE-03` | **Aprovado** | Nenhum. `DEBT-03` (CSP) confirmado resolvido nesta auditoria. |
+| **L3** — Cadastro de Atletas | `BE-06`, `BE-07`, `FE-04` | **Aprovado com débito registrado** | `DEBT-10` (novo, Média, não-bloqueante) — `contato`/`data_nascimento` sem redação em `sessionStorage` ao expirar sessão em `AtletaForm`. |
+| **L4** — Lançamento de Rodada | `BE-08`, `FE-05` | **Aprovado** | Nenhum. |
+| **L5** — Correção, Histórico e Auditoria de Rodadas | `BE-09`, `BE-10`, `BE-16`, `FE-06`, `FE-07`, `FE-08` | **Aprovado** | Nenhum (`BUG-QA-BE09-01` é achado de QA, cobertura de teste, reconfirmado não-reclassificado). |
+
+**Nenhum dos 4 lotes foi bloqueado.** Nenhum achado de severidade
+alta/crítica em nenhuma das 13 tarefas auditadas nesta sessão. Nenhum
+achado de compliance obrigatório em aberto em nenhum dos 4 lotes.
+
+**Achado transversal mais relevante desta sessão — sinalização formal ao
+CTO e ao DevOps (paralela, registro; não pré-requisito de nenhum dos 4
+vereditos acima, todos já liberados pela via técnica que este agente tem
+autoridade de decidir sozinho)**:
+
+`DEPLOY.md` (reconciliação de 2026-09-04) revelou que **um deploy real de
+produção já aconteceu**, fora do fluxo governado deste pipeline, antes de
+qualquer um destes 4 lotes ter recebido veredito agregado de QA ou
+auditoria completa de DevSecOps. Isso muda a leitura de dois débitos
+herdados registrados com prazo "antes do primeiro deploy de produção"
+(Seção 3 deste documento):
+
+1. **`DEBT-03` (CSP ausente)** — **resolvido** nesta mesma janela (2026-09-04,
+   DevOps): `vercel.json` já publica uma política real, coerente com as
+   origens de fetch que `L2` de fato usa. Confirmado por leitura direta
+   nesta auditoria (Seção 35). Pendente apenas confirmação operacional
+   (fora do escopo de código) de que a política está ativa no deploy real,
+   não só commitada.
+2. **`DEBT-04` (advisories residuais de `next@14.2.35`)** — **prazo já
+   ultrapassado sem reverificação dedicada**: o próprio `DEPLOY.md`
+   (Seção 10, item 5) registra que isso "não foi verificado nesta
+   reconciliação... fora do escopo desta correção pontual". A análise de
+   aplicabilidade original (Seção 3 deste documento) permanece
+   tecnicamente válida — nenhuma advisory da classe CWE-285/863 foi
+   identificada por este agente em nenhuma das 4 reconfirmações feitas
+   nesta sessão (Seções 35/45/55/65) — mas o **processo** de reavaliação
+   automática que o prazo deveria ter disparado não ocorreu antes do
+   deploy real acontecer. **Recomendação formal**: DevOps/Backend
+   reexecutar `npm audit --json` contra o estado atual do `package.json`
+   como item de checklist explícito antes do próximo deploy de produção
+   (mesmo requisito já registrado na Seção 4, item 7, agora com urgência
+   maior por a produção já estar ativa), e o CTO considerar isso no
+   planejamento de roadmap de migração `next@15`/`16` já sinalizado
+   desde `DEBT-04` original.
+
+Este achado é de **natureza processual/de cronograma**, não um novo
+achado de segurança de código — nenhum dos 4 lotes auditados nesta sessão
+introduziu a condição (ela já existia desde L0/L1); a auditoria destes 4
+lotes apenas expôs, pela primeira vez desde a descoberta do deploy real em
+`DEPLOY.md`, que o cronograma de reavaliação de débitos "antes de
+produção" precisa de um dono explícito e um gatilho automático (mesma
+lição já registrada na Seção 19 deste documento, sobre a reavaliação
+atrasada de `DEBT-01` — este é o mesmo tipo de gap de governança,
+recorrendo pela segunda vez). Recomendo ao Tech Lead/CTO considerar
+formalizar um gatilho automático (ex.: `deploy-report-drafting` sempre
+reexecuta `npm audit --json` e compara contra `SECURITY-REVIEW.md` antes
+de qualquer deploy real, não apenas simulado) para que isso não dependa
+de descoberta manual novamente.
+
+**Débitos herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`) reconfirmados em
+todos os 4 lotes** (Seções 35/45/55/65) — nenhuma dependência nova
+introduzida por nenhuma das 13 tarefas, nenhuma mudança de
+classificação de severidade além do exposto acima para `DEBT-04`
+(cronograma, não severidade) e da resolução de `DEBT-03`.
+
+---
+
+## 70. Contexto e Método — Lote RD0 (Fundação do Redesenho, Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+**Gatilho**: `QA-REPORT.md` Seção 18 — Lote RD0 (`FE-R00` + `FE-R12`) aprovado
+com ressalvas em 2026-09-05 (dois débitos de baixa severidade, ambos de
+comentário/documentação, nenhum de código de produto). Por `TASK.md` Seção
+3.0/4.1, este é o **primeiro lote da Parte II a fechar** e é pré-condição de
+**merge** (não de desenvolvimento) para todos os lotes `RD1`-`RD4` seguintes
+— esta auditoria libera, portanto, também esse gate de merge do lado da
+segurança, não apenas o veredito das duas tarefas em si.
+
+**Referências de arquitetura/governança usadas como contra-o-quê-auditar**:
+`SDD.md` Seção 7 (a Seção 7 em si não tem requisito específico de design
+system/tokens — este lote não toca autenticação, autorização, criptografia
+de dado ou superfície de exposição pública descritas ali; usado como
+confirmação negativa, não como checklist positivo), `GUARDRAILS.md` Seção 10
+(regras 37-40, extraídas do Gate 2/3 do CTO desta iniciativa — as regras
+efetivamente aplicáveis a uma mudança de fundação de design system),
+`TASK.md` Parte II Seções 1.1-R (fontes/CSP), 1.2-R (substituição atômica),
+1.5-R (contraste), 1.6-R (asset de marca) e 6.2-R item 4 (estrutura exata dos
+2 commits). `CTO-REVIEW.md` consultado (Gate 2/Gate 3 da iniciativa,
+2026-09-04) — nenhuma condição de execução do CTO pendente relacionada a
+segurança além das já incorporadas literalmente nas regras 37-40 do
+`GUARDRAILS.md`; seguido como contexto, sem achado divergente.
+`API-CONTRACT.yaml` não se aplica a este lote (nenhuma tarefa de `RD0` toca
+API/payload — confirmado, ver Seção 72) — sinalizado, não uma ausência que
+limite a auditoria.
+
+**Método**: mesmo rigor dos fechamentos anteriores — nenhuma alegação do
+Frontend ou do QA aceita sem verificação direta. Reexecutados/conferidos
+nesta auditoria, de forma independente: `git show --stat`/`git diff` nos 2
+commits do lote (isolamento estrutural), `git diff` de `vercel.json` e de
+`package.json`/`package-lock.json` contra o estado anterior ao lote, leitura
+linha a linha de `tokens.css`, `Icon.tsx`, `BrandCrest.tsx`, `AppNav.tsx`/
+`.module.css`, `app/layout.tsx`, `grep` recursivo por referências ao asset
+real de marca e por `fonts.googleapis.com`/`fonts.gstatic.com` em todo
+`app`/`src`, e inspeção direta do **build de produção já gerado localmente**
+(`.next/static/css/*.css`, `.next/static/media/*.woff2`) para confirmar
+tecnicamente — não apenas aceitar a alegação do ADR-012 — que o self-host de
+fonte é real e não depende de requisição de rede em runtime.
+
+## 71. `static-security-analysis` — Lote RD0
+
+| Verificação | Comando/método | Resultado |
+|---|---|---|
+| Nenhuma dependência nova via `Icon`/`BrandCrest` | `git diff 5c7bad0^ efaf297 -- package.json package-lock.json` | ✅ diff vazio — confirmado de forma independente, não apenas a alegação do Frontend de "SVG inline, sem lib nova" |
+| `vercel.json`/CSP intocado | `git diff 40a6400 HEAD -- vercel.json` + leitura direta do arquivo | ✅ diff vazio; `Content-Security-Policy` atual confirma `font-src 'self'`, sem `fonts.googleapis.com`/`fonts.gstatic.com` em nenhuma diretiva (`font-src`, `style-src`, `connect-src`) — ADR-012/Seção 1.1-R satisfeitos |
+| Nenhum `<link>`/`@import` para domínio de fonte do Google no código-fonte | `grep -rn "fonts.googleapis.com\|fonts.gstatic.com" app src vercel.json` | ✅ únicas 2 ocorrências são comentários explicativos em `app/layout.tsx` documentando a ausência — nenhum uso real |
+| Self-host de fonte é real em runtime, não só alegação do ADR-012 | Inspeção direta de `.next/static/css/*.css` (build de produção já gerado localmente) — todas as declarações `@font-face` das 3 fontes (`__Public_Sans_*`, `__Bebas_Neue_*`, `__JetBrains_Mono_*`) | ✅ **11 arquivos `.woff2` self-hospedados** em `.next/static/media/`, todo `src: url(...)` de `@font-face` aponta para `/_next/static/media/<hash>.woff2` (origem própria) — **zero** referência a domínio externo em qualquer `@font-face` gerado. Confirma tecnicamente, por evidência de artefato de build, que a integração `next/font/google` é 100% build-time; nenhuma requisição de rede a domínio de terceiro ocorre no navegador em produção |
+| Bebas Neue realmente só tem peso 400 no pacote instalado | Confirmação independente das 2 declarações `@font-face` de `__Bebas_Neue_*` no CSS gerado (ambas `font-weight:400`) | ✅ bate com a checagem do Frontend/QA no manifesto do `next/font/google` (Seção 1.1-R) |
+| Isolamento estrutural dos 2 commits (Guardrail 38) | `git show --stat 5c7bad0` / `git show --stat efaf297` (reexecutado, não aceito do relato) | ✅ commit 1: só `app/layout.tsx` (fontes) + `src/design-system/tokens.css` — nenhum arquivo de tela/composição; commit 2: só `Icon`/`BrandCrest`/integração pontual em `AppNav` (2 linhas de JSX + CSS) + vitrine interna `app/dev/design-system/page.tsx` — nenhum consumidor de tela de produto |
+| Nenhum mecanismo de theming/feature-flag de paleta (Guardrail 31/37) | Leitura completa de `tokens.css` | ✅ um único bloco `:root`; nenhum `[data-theme]`/`prefers-color-scheme` aplicado à paleta de marca; nenhum arquivo de token paralelo |
+| `npm audit` — dependências de terceiros | `npm audit --omit=dev` reexecutado nesta data | Reconfirma **`DEBT-04`** (herdado, inalterado): 2 advisories de severidade alta em `next@14.2.35`/`postcss` transitivo (SSRF/cache poisoning/DoS em Next.js, XSS/path traversal em PostCSS), correção exige upgrade major (`next@16`) já sinalizado como roadmap ao CTO em auditorias anteriores (Seção 69). **Não é um achado novo de `RD0`** — `package.json`/`package-lock.json` não foram tocados por nenhum dos 2 commits deste lote (verificado acima), então a superfície de dependências é idêntica à já avaliada e aceita nas auditorias de L2-L5 |
+| Varredura de segredo/credencial hardcoded nos arquivos novos | Leitura de `Icon.tsx`, `BrandCrest.tsx`, `tokens.css`, `app/layout.tsx` (nenhum destes arquivos tem qualquer motivo estrutural para conter segredo — são tokens visuais/SVG/config de fonte) | ✅ nenhuma ocorrência |
+
+**Conclusão desta seção**: nenhum achado de segurança novo introduzido pelo
+código deste lote. `DEBT-04` (dependências) reconfirmado sem mudança de
+severidade/escopo — não atribuível a `RD0`.
+
+## 72. `security-requirement-validation` — Lote RD0
+
+`SDD.md` Seção 7 não define requisito específico para design
+system/tokens/fontes (autenticação, autorização, criptografia e superfície
+de exposição pública — 7.1 a 7.5 — não são tocados por este lote: nenhuma
+rota de API, nenhuma tabela, nenhum fluxo de sessão foi alterado). Auditoria
+desta seção, portanto, confirma **ausência de violação**, contra
+`GUARDRAILS.md` Seção 10 (as regras efetivamente aplicáveis a este tipo de
+mudança):
+
+- **Guardrail 37/1.2-R (evento atômico, sem coexistência de tema)**:
+  satisfeito — verificado por leitura direta de `tokens.css` (Seção 71), um
+  único `:root`, sem tema paralelo. O tema escuro presente no CSS do mockup
+  real (`UX-SPEC.md` Seção 2.0) não foi portado — confirmado por ausência de
+  qualquer seletor `[data-theme]`/`prefers-color-scheme` no arquivo.
+- **Guardrail 38/1.2-R (commit isolado, sem mistura de composição de tela)**:
+  satisfeito — verificado por `git show --stat` reexecutado de forma
+  independente (Seção 71), não apenas aceito da mensagem de commit.
+- **Guardrail 39/1.2-R (`accessibility-review` completo pré-merge, gate
+  duro)**: satisfeito — o QA já recalculou de forma independente os 13
+  pares de contraste WCAG citados em `tokens.css` (`QA-REPORT.md` 18.1.3),
+  incluindo as duas proibições de contraste da Seção 1.5-R (dourado como
+  texto sobre claro: 1,96:1, reprova; verde padrão sobre navy: 2,45:1,
+  reprova). Este agente reconfirma que essas duas proibições são
+  **estruturalmente reforçadas no próprio componente**, não apenas
+  documentadas: `Icon` usa `stroke="currentColor"` (nunca fixa cor própria,
+  Seção 71/leitura de `Icon.tsx`) e nenhum componente usa hex hardcoded fora
+  de `tokens.css` (achado do QA, não recalculado por este agente por não ser
+  achado de segurança primário, mas consistente com a leitura própria de
+  `Icon.tsx`/`BrandCrest.tsx`, ambos 100% `var(--color-...)`). Nenhuma
+  violação bloqueante de acessibilidade tem, neste caso, um componente de
+  segurança real além do já coberto pelo QA — WCAG 1.4.11/1.4.3 são
+  requisitos de usabilidade/inclusão, não de confidencialidade/integridade;
+  citados aqui apenas para confirmar que o gate duro da Guardrail 39 foi de
+  fato executado antes do merge, condição de execução do próprio Gate 2 do
+  CTO desta iniciativa.
+- **Guardrail 40 (reestimativa formal quando fundação já consumida por
+  tarefa fechada)**: não aplicável neste sentido de auditoria de segurança —
+  é um guardrail de processo do Tech Lead (`TASK.md` Seção 3.2 já registra a
+  reestimativa linha a linha de `FE-00`-`FE-12`, confirmada presente por
+  leitura da própria tabela). Nenhuma implicação de segurança.
+- **1.1-R (fontes/CSP)**: satisfeito, verificado tecnicamente (Seção 71), não
+  apenas por alegação.
+- **1.6-R (asset de marca, bloqueio de merge do asset real)**: satisfeito —
+  ver Seção 73 (tratado com o mesmo rigor de uma checagem de superfície de
+  dado, já que a preocupação de fundo é direito de uso de terceiro, adjacente
+  a compliance).
+- **API-CONTRACT.yaml**: não aplicável — nenhuma tarefa de `RD0` cria/altera
+  endpoint ou payload de API (confirmado por ausência total de arquivo em
+  `app/api/**` no diff dos 2 commits, Seção 71).
+
+**Conclusão desta seção**: nenhum requisito de arquitetura de segurança
+violado; nenhum requisito da Seção 7 do `SDD.md` é sequer tocado por este
+lote (confirmação negativa, esperada para uma mudança de fundação puramente
+visual).
+
+## 73. `sensitive-data-exposure-check` — conclusão dedicada (Lote RD0)
+
+Este lote é, por natureza (tokens de design/tipografia/2 componentes
+puramente visuais), o de menor superfície possível para este checklist —
+confirmado, não apenas presumido:
+
+- **Nenhum campo de dado de usuário/atleta é lido, exibido ou logado** por
+  `tokens.css`, `Icon.tsx`, `BrandCrest.tsx`, `app/layout.tsx` ou pela
+  integração em `AppNav.tsx` — todos os 5 arquivos/pontos de mudança operam
+  exclusivamente sobre valores estáticos (hex, SVG path, string de marca fixa
+  `"Grupo Rola Futebol"`, que já não é dado sensível, é o próprio nome
+  público do grupo).
+- **Asset de marca real (`logo.jpg`)**: confirmado por `grep -rn "logo\.jpg"`
+  em `app`/`src` que as únicas 4 ocorrências são comentários explicativos
+  (`BrandCrest.tsx` ×3, `app/dev/design-system/page.tsx` ×1) — **nenhum
+  `import`/`<Image src=...>`/referência de código executável** ao arquivo
+  real. `BrandCrest.tsx` renderiza exclusivamente um `<svg>` geométrico
+  autoral (`fill="var(--color-brand-navy)"`), reconfirmado por leitura direta
+  do componente inteiro (não apenas grep). `public/brand/` não existe ainda
+  no repositório (`ls public/brand` vazio) — nenhum asset foi migrado,
+  consistente com a pendência de confirmação de direito de uso ainda em
+  aberto (Seção 1.6-R/Seção 4.3 do `TASK.md`). **O bloqueio de merge da
+  Seção 1.6-R não foi violado**: nada que dependa dessa confirmação foi
+  mesclado em `main`.
+- **`console.*`/logs**: zero ocorrências nos 5 arquivos/pontos de mudança
+  deste lote (nenhum motivo estrutural para logging em componentes puramente
+  de apresentação).
+- **`app/dev/design-system/page.tsx`**: observação de escopo, não achado
+  deste lote — esta rota é **pré-existente de `FE-00`** (não criada por
+  `RD0`; `RD0` apenas acrescentou 2 seções de vitrine para `Icon`/`BrandCrest`
+  ao arquivo já existente) e não expõe dado de usuário real (é uma vitrine de
+  componentes com dados de exemplo hardcoded — `presenca`, `gols` como
+  `useState` local, nunca uma chamada de API real). Não fazia parte do
+  escopo de nenhuma auditoria de DevSecOps anterior (busca em todo o
+  histórico deste documento não encontra menção prévia a esta rota). Sem
+  autenticação/gate de ambiente aparente, ela seria acessível publicamente
+  se o deploy de produção servir literalmente a árvore `app/` sem exclusão
+  desta rota — **registrado como requisito operacional ao DevOps na Seção
+  75** (não bloqueante: nenhum dado sensível trafega por ela, é exposição de
+  informação de baixo valor — estrutura interna do design system — não de
+  dado pessoal ou segredo).
+
+**Conclusão desta seção**: nenhum achado de exposição de dado sensível de
+severidade alta/crítica ou média neste lote. Um item operacional de baixo
+risco registrado ao DevOps (rota de vitrine interna sem gate de ambiente
+confirmado).
+
+## 74. `compliance-validation` — LGPD (nível de implementação, escopo Lote RD0)
+
+Não aplicável de forma substantiva — este lote não trata dado pessoal em
+nenhum grau (nenhuma tabela, nenhum campo de atleta, nenhuma base legal
+envolvida). Confirmação negativa, pelo mesmo motivo já registrado na Seção
+72 para `SDD.md` Seção 7: `tokens.css`/`Icon`/`BrandCrest`/fontes não
+processam, armazenam nem exibem dado de titular algum.
+
+O único ponto adjacente a compliance neste lote é a **governança de direito
+de uso de imagem/marca** (`logo.jpg`, Seção 1.6-R) — não é LGPD (não é dado
+pessoal de titular, é ativo de marca do grupo), mas tratado com o mesmo
+rigor por analogia de "compliance obrigatório não vira débito": confirmado
+na Seção 73 que nenhuma referência de código ao asset real foi mesclada,
+logo **não há violação a resolver nem débito a registrar** — a pendência em
+si (confirmação de PM+stakeholder) já está corretamente registrada como
+bloqueio de **merge futuro** em `TASK.md` Seção 1.6-R/4.3, não uma questão
+de código deste lote.
+
+**Conclusão desta seção**: nenhum achado de compliance obrigatório em aberto
+no escopo do Lote RD0.
+
+## 75. Requisitos de segurança operacional para o DevOps (Lote RD0)
+
+- Nenhuma dependência nova, nenhuma rota de API nova, nenhuma variável de
+  ambiente nova introduzida por este lote — nenhuma ação de secrets/rede
+  específica de `RD0`.
+- **Novo item, baixo risco, não bloqueante**: confirmar se a rota
+  `/dev/design-system` (vitrine interna do design system, pré-existente de
+  `FE-00`, estendida por `RD0`) está de fato acessível no domínio de
+  produção real hoje e, se estiver, avaliar se deve ser removida do build de
+  produção (ex.: guardada atrás de `NODE_ENV !== "production"` ou excluída
+  via `next.config`) antes do lançamento público mais amplo do redesenho
+  (`RD1`-`RD4`). Não é uma exposição de dado sensível (Seção 73) — é uma
+  boa prática de minimização de superfície (não publicar ferramentas
+  internas de QA/dev em produção), sem prazo formal por não ser achado de
+  severidade média/alta.
+- Reforço, herdado e inalterado por este lote: `DEBT-04` (advisories de
+  `next@14.2.35`/`postcss`, Seção 71) continua com o mesmo prazo/dono já
+  registrado (roadmap de migração `next@15`/`16`, CTO) — nenhuma mudança de
+  urgência atribuível a `RD0`.
+
+## 76. Checklist de "Pronto" do Lote RD0 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seção 71-73).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido — nenhum
+      achado desta classe identificado (Seção 74); governança de asset de
+      marca (não-LGPD, mas tratada com o mesmo rigor) sem violação (Seção 73).
+- [x] Todo achado de baixa/média severidade registrado como débito, com
+      prazo de correção — nenhum achado de **segurança** novo neste lote;
+      `BUG-QA-RD0-01`/`BUG-QA-RD0-02` (QA, ambos de comentário/documentação)
+      reconfirmados **sem componente de segurança real** (Seção 73/74,
+      confirmação direta: nenhum dos dois altera controle de acesso,
+      exposição de dado ou criptografia); item operacional de baixo risco
+      novo registrado ao DevOps, sem prazo formal (Seção 75); `DEBT-01`/`02`/
+      `04` (herdados) reconfirmados sem mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps — Seção 75.
+- [x] Achado de relevância estratégica sinalizado ao CTO — **nenhum achado
+      técnico deste lote exige decisão de negócio nova**. A única pendência
+      adjacente a estratégia (confirmação de direito de uso de `logo.jpg`,
+      Seção 1.6-R) já é de conhecimento do CTO/PM desde o Gate 2/3 desta
+      iniciativa (`CTO-REVIEW.md`) — esta auditoria apenas **reconfirma**,
+      como registro paralelo, que o código mesclado respeita esse bloqueio
+      de merge; não é uma escalação nova.
+
+## 77. Veredito
+
+## **Lote RD0 (FE-R00, FE-R12): APROVADO**
+
+Nenhum achado de severidade alta/crítica. Nenhum achado de compliance
+obrigatório em aberto. Nenhuma dependência nova (`package.json`/
+`package-lock.json` intocados). `vercel.json`/CSP intocado, verificado por
+diff direto, não por alegação — Seção 1.1-R/ADR-012 satisfeitos. Self-host
+de fonte confirmado tecnicamente real via inspeção do build de produção já
+gerado (todo `@font-face` aponta para origem própria, `.next/static/media/`)
+— não apenas a alegação do ADR-012. Isolamento estrutural dos 2 commits
+(Guardrail 38) e ausência de mecanismo de theming (Guardrail 37)
+reconfirmados por `git show`/`git diff` diretos. Nenhuma referência de
+código ao asset real de marca (`logo.jpg`) foi mesclada — bloqueio de merge
+da Seção 1.6-R respeitado; `BrandCrest` usa exclusivamente placeholder SVG
+autoral. Os dois débitos de baixa severidade do QA
+(`BUG-QA-RD0-01`/`BUG-QA-RD0-02`) foram reavaliados de forma independente
+por este agente e **confirmados sem nenhum componente de segurança real**
+— são, respectivamente, uma imprecisão de comentário matemático em token não
+alterado por este lote e uma citação de seção incorreta em nota de
+conclusão de processo; nenhum dos dois afeta controle de acesso, exposição
+de dado ou criptografia.
+
+**Único item novo registrado por este agente** (baixo risco, não
+bloqueante, sem prazo formal): confirmar/restringir o acesso em produção da
+rota de vitrine interna `/dev/design-system` (Seção 75) — pré-existente de
+`FE-00`, não introduzida por `RD0`, mas primeira vez auditada por
+DevSecOps por este agente ter tocado seus arquivos nesta sessão.
+
+**Débito de dependências herdado (`DEBT-04`) reconfirmado sem mudança** —
+não atribuível a este lote (nenhum arquivo de dependência tocado pelos 2
+commits de `RD0`).
+
+**Nenhum achado de relevância estratégica novo para o CTO.** A pendência de
+governança do asset real de marca (Seção 1.6-R) já é de conhecimento do
+CTO/PM desde o Gate 2/3 da iniciativa — reconfirmada respeitada nesta
+auditoria, não escalada de novo.
+
+**Encaminhamento**: por `TASK.md` Seção 3.0/4.1, esta aprovação libera, do
+lado da segurança, o **gate de merge** dos lotes `RD1`-`RD4` (condicionado
+também ao veredito de Tech Lead sobre este mesmo lote, ainda pendente
+abaixo). Nenhuma entrada nova em `BLOCKERS.md` — nenhum achado deste lote
+exige retorno ao time de implementação.
+
+---
+
+## 78. Resolução de `BLOCKER-008` — gate mecânico do CI vs. débito de segurança já aceito (2026-09-05)
+
+**Gatilho**: `BLOCKERS.md`, `BLOCKER-008` (origem DevOps) — o job
+`security-scan` do `CI` real (`npm audit --audit-level=high`) falha em
+qualquer push a `main` com 14 vulnerabilidades (1 crítica, 9 altas, 4
+moderadas), a mesma classe já rastreada como `DEBT-01`/`DEBT-02`/`DEBT-04`
+neste relatório — mas o comando bruto não reconhece débito aceito, trata
+tudo como falha dura.
+
+### 78.1 Investigação independente (não aceito o rótulo herdado sem reconferir)
+
+- **Comandos executados diretamente nesta data**: `npm audit --json`
+  (íntegro), `npm audit --audit-level=high` (reproduz exatamente os 14
+  achados descritos no bloqueio), `npm audit fix --dry-run` (para confirmar
+  se havia correção sem breaking change disponível e não aplicada), `npm
+  view next versions --json` (para confirmar se existe patch 14.2.x mais
+  recente que `14.2.35`, ou stable 15.x, antes de descartar upgrade como
+  "breaking change" por suposição).
+- **Os 14 achados foram lidos individualmente** (não só a contagem
+  agregada), com o GHSA id de cada advisory extraído do JSON bruto — ver
+  tabela abaixo.
+- **A 1 vulnerabilidade crítica**: `GHSA-5xrq-8626-4rwp` (`vitest`, "When
+  Vitest UI server is listening, arbitrary file can be read and
+  executed"). **Confirmado: não é achado novo.** É exatamente o mesmo GHSA
+  id já registrado como `DEBT-01` desde 2026-09-03 (`BLOCKER-006`,
+  confirmação DevSecOps) e reconfirmado em toda auditoria de lote desde
+  então (Seções 9.1, 19, 35/45/55/65, 69) — nenhuma mudança de fato desde a
+  última análise. Confirmado novamente nesta data que a exploração exige
+  `vitest --ui` escutando localmente (`package.json`: `test` roda `vitest
+  run`, `test:watch` roda `vitest` sem `--ui`; `.github/workflows/ci.yml`
+  não referencia `--ui` em nenhum job) — **sem exposição em produção**, dado
+  que `next build`/`next start` (o que é de fato deployado) nunca inicia o
+  Vitest. Não há elevação de severidade a fazer.
+- **`npm audit fix --dry-run`**: reexecutado para não aceitar de forma
+  preguiçosa a alegação de "só resolve com `--force`" sem testar. O
+  dry-run confirma que, apesar de `minimatch`/`@typescript-eslint/*`
+  reportarem `fixAvailable: true` (sem marcação de major), a resolução real
+  do `npm` não muda nenhuma versão efetiva desse subgrafo (aninhado sob
+  `node_modules/@typescript-eslint/typescript-estree/node_modules/`) — os
+  14 achados permanecem idênticos antes e depois do dry-run. Não há
+  correção parcial "de graça" disponível hoje.
+- **`npm view next versions`**: confirmado que `14.2.35` já é o último
+  patch estável da série 14.2.x (não existe `14.2.36`+; a série `14.3.x`
+  só tem pré-lançamentos `canary`) e que **não existe nenhuma versão
+  estável `15.x` publicada** — a próxima versão estável depois de `14.2.35`
+  é `16.3.4` (a mesma reportada por `fixAvailable` do `npm audit`, salto de
+  dois majors). Não descartei a Opção (a) por suposição: não há upgrade
+  seguro de `next` disponível hoje que elimine os achados sem ser um major
+  bump de duas versões inteiras — consistente com o que `DEBT-04` já
+  registrava, agora reverificado, não apenas herdado.
+
+**Tabela dos 14 nós de dependência / 16 advisories individuais (GHSA id) de
+severidade alta/crítica**, todas já cobertas por débito existente, nenhuma
+nova desde a última reconfirmação (2026-09-03/09-05, Seções 9.1/19/35-65/71):
+
+| GHSA id | Pacote | Severidade | Débito |
+|---|---|---|---|
+| `GHSA-5xrq-8626-4rwp` | vitest | Crítica | `DEBT-01` |
+| `GHSA-fx2h-pf6j-xcff` | vite | Alta | `DEBT-01` |
+| `GHSA-5j98-mcp5-4vw2` | glob | Alta | `DEBT-02` |
+| `GHSA-3ppc-4f35-3m26` | minimatch | Alta | `DEBT-02` |
+| `GHSA-7r86-cg39-jmmj` | minimatch | Alta | `DEBT-02` |
+| `GHSA-23c5-xmqv-rm74` | minimatch | Alta | `DEBT-02` |
+| `GHSA-h25m-26qc-wcjf` | next | Alta | `DEBT-04` |
+| `GHSA-q4gf-8mx6-v5v3` | next | Alta | `DEBT-04` |
+| `GHSA-8h8q-6873-q5fj` | next | Alta | `DEBT-04` |
+| `GHSA-c4j6-fc7j-m34r` | next | Alta | `DEBT-04` |
+| `GHSA-36qx-fr4f-26g5` | next | Alta | `DEBT-04` |
+| `GHSA-m99w-x7hq-7vfj` | next | Alta | `DEBT-04` |
+| `GHSA-89xv-2m56-2m9x` | next | Alta | `DEBT-04` |
+| `GHSA-p9j2-gv94-2wf4` | next | Alta | `DEBT-04` |
+| `GHSA-6g55-p6wh-862q` | postcss | Alta | `DEBT-04` |
+| `GHSA-r28c-9q8g-f849` | postcss | Alta | `DEBT-04` |
+
+Os demais 4 achados moderados (`esbuild`, `@vitejs/plugin-react`,
+`@vitest/mocker`, `vite-node`) ficam abaixo do limiar `--audit-level=high`
+e continuam fora do escopo do gate, como já era antes deste bloqueio.
+
+**Reconfirmação de aplicabilidade de `DEBT-04` (produção, não dev-only)**:
+reverificado por `Grep`/leitura direta nesta data, não apenas herdado:
+sem diretório `pages/` nem `i18n` em `next.config.mjs` (→
+`GHSA-36qx-fr4f-26g5` inaplicável), sem `"use server"` em `src`/`app` (→
+`GHSA-m99w-x7hq-7vfj`/`GHSA-89xv-2m56-2m9x` inaplicáveis), sem `rewrites`
+em `next.config.mjs` (→ `GHSA-p9j2-gv94-2wf4` inaplicável), sem servidor
+HTTP customizado/`server.js` (→ `GHSA-c4j6-fc7j-m34r` inaplicável). Nenhuma
+das 16 advisories é da classe CWE-285/863 (bypass de autorização, a mesma
+de `CRIT-01`/já fechado) — todas são DoS/cache/leitura de arquivo em
+cenário de build-time (PostCSS `sourceMappingURL` só processa CSS do
+próprio codebase, nunca input de usuário em runtime). **Classificação
+mantida**: Média para `DEBT-04`, Baixa para `DEBT-01`/`DEBT-02` — sem
+mudança desde a última auditoria.
+
+**Fecha, de passagem, a pendência processual registrada na Seção 69
+("prazo de `DEBT-04` — antes do primeiro deploy de produção — ultrapassado
+sem reverificação dedicada")**: esta é a reverificação dedicada que estava
+pendente. Reconfirmada nesta data (2026-09-05), com produção já ativa
+(`DEPLOY.md`) — nenhuma advisory nova, nenhuma elevação de severidade.
+
+### 78.2 Decisão
+
+**Opção (a) descartada, não por preferência, mas por inviabilidade
+confirmada nesta data**: não existe patch da série 14.2.x além de
+`14.2.35`, nem stable `15.x`; a única correção completa via upgrade
+(`next@16.3.4`) é um salto de dois majors do App Router (mesmo raciocínio
+já vale para `vitest@5`/`eslint-config-next@16`, majors de toolchain) —
+migração real de arquitetura/roadmap, não algo a executar dentro da
+resolução de um gate de CI. Forçá-la aqui replicaria o erro já identificado
+em `BLOCKER-006`/`DEBT-01` (não impor major bump fora de uma janela de
+manutenção planejada, decisão de Tech Lead, não deste agente sozinho).
+
+**Opção (b) adotada**: o gate mecânico do CI passa a reconhecer débito de
+segurança formalmente aceito, por advisory específica (GHSA id), com prazo
+de revisão — sem enfraquecer a postura fail-closed para achado não
+avaliado/novo:
+
+- **`security/npm-audit-allowlist.json`** (novo): lista as 16 advisories
+  acima, cada uma com `debt` (referência a esta Seção 3), `motivo`
+  (resumo da análise de aplicabilidade/dev-only já documentada), `revisado_em`
+  (2026-09-05) e `revisar_ate` (2026-12-05 — ~90 dias, alinhado ao próximo
+  ciclo natural de reavaliação de débito de dependência deste projeto).
+  **A allowlist é por GHSA id específico, nunca por nome de pacote** — uma
+  advisory nova em `next`/`vitest`/`glob`/etc. que ainda não conste aqui
+  continua falhando o gate, mesmo que outras advisories do mesmo pacote já
+  estejam aceitas.
+- **`scripts/security-audit-gate.mjs`** (novo): roda `npm audit --json`,
+  extrai cada advisory alta/crítica individual e falha o processo (`exit
+  1`) se: (a) o GHSA id não constar da allowlist (achado novo/não avaliado
+  — fail-closed), ou (b) constar, mas `revisar_ate` já tiver vencido
+  (débito expirado — força reavaliação periódica, em vez de aceitação
+  permanente e silenciosa). Testado manualmente nesta data com 3 cenários:
+  allowlist real (0 achados bloqueantes, `exit 0`), allowlist vazia (16
+  achados bloqueantes, `exit 1`, mensagem de ação para o DevSecOps) e
+  entrada expirada (`exit 1`, mensagem específica "débito expirado").
+- **`.github/workflows/ci.yml`**, job `security-scan`, passo "Auditoria de
+  dependências": `npm audit --audit-level=high` substituído por `node
+  scripts/security-audit-gate.mjs` (mantém `npm ci` antes, inalterado).
+- **Por que não usar uma ferramenta de terceiros (`audit-ci` etc.)**: evita
+  introduzir uma nova dependência externa (superfície de supply-chain
+  adicional, ironicamente, para um script que audita supply-chain) só para
+  uma lógica de ~100 linhas sem estado; mesma filosofia de custo zero/baixa
+  superfície já aplicada ao `gitleaks` (ferramenta madura, sim, mas
+  `security-scan` já paga esse custo só onde uma ferramenta pronta agrega
+  valor real de detecção, não onde uma allowlist simples resolve).
+
+**Por que a decisão não precisa de aprovação prévia do CTO**: mudar o
+mecanismo do gate para operacionalizar débito já aceito (não para relaxar
+critério de severidade, nem para aceitar um achado novo sem triagem) é
+correção técnica de processo dentro da autoridade de classificação/decisão
+deste agente — o próprio `CTO-REVIEW.md`/histórico deste relatório já trata
+`DEBT-01`/`DEBT-02`/`DEBT-04` como puramente técnicos, sem componente de
+decisão de negócio. Não há relaxamento de postura: achado novo ou de
+classe CWE-285/863 continua bloqueando por padrão, com o mesmo rigor de
+antes.
+
+**Sinalização ao CTO (paralela, registro — não pré-requisito desta
+resolução)**: dois pontos levados ao radar do CTO nesta mesma data, sem
+bloquear a liberação do gate: (1) confirmado que a rota de upgrade completo
+de `next` pula de `14.2.x` direto para `16.x` (não existe `15.x` estável)
+— o roadmap de migração major já sinalizado desde `DEBT-04` original é
+uma mudança maior do que uma migração incremental 14→15→16 teria sido,
+vale reforçar prioridade de planejamento; (2) reforço do padrão recorrente
+de gap de governança já registrado na Seção 69 (reavaliação de débito
+"antes de produção" não disparando automaticamente) — a allowlist com
+`revisar_ate` agora fornece o gatilho automático que faltava (o próprio CI
+falha sozinho quando o prazo vence, em vez de depender de descoberta
+manual), mas o CTO/Tech Lead devem tratar o dia 2026-12-05 como um item de
+calendário real, não apenas um campo em um JSON.
+
+### 78.3 Verificação de que o gate volta a passar
+
+`node scripts/security-audit-gate.mjs` executado nesta data contra o
+estado real do repositório: `exit 0`, as 16 advisories listadas como
+"aceitas como débito de segurança já triado". `npm run lint` e `npm run
+format:check` confirmam que os 2 arquivos novos (`scripts/
+security-audit-gate.mjs`, `security/npm-audit-allowlist.json`) não
+introduzem nenhum problema de lint/formatação. Nenhum arquivo `.ts`/`.tsx`
+foi tocado — `npm run typecheck`/`npm test` não são afetados por esta
+mudança (confirmado por `tsconfig.json`, que só inclui `**/*.ts`/`**/*.tsx`;
+o novo script é `.mjs`, fora do escopo do compilador).
+
+### 78.4 Checklist de "Pronto" desta resolução pontual
+
+- [x] Nenhum achado de severidade alta/crítica **novo** — confirmado, os 16
+      GHSA ids já eram conhecidos e aceitos antes deste bloqueio.
+- [x] Nenhum achado de compliance obrigatório envolvido — todos os 16
+      achados são de disponibilidade (DoS)/leitura de arquivo em cenário
+      de build, nenhum toca dado pessoal, autenticação ou autorização.
+- [x] Achados de baixa/média severidade permanecem registrados como débito
+      com prazo — `revisar_ate: 2026-12-05` em cada entrada da allowlist,
+      espelhando os prazos já vigentes em `DEBT-01`/`DEBT-02`/`DEBT-04`.
+- [x] Requisito de segurança operacional para o DevOps atualizado — Seção 4
+      item 2 (recomendação original) agora implementada; nenhuma ação nova
+      pendente do DevOps além de manter `npm ci` no job (inalterado).
+- [x] Sinalização ao CTO registrada (Seção 78.2 acima).
+
+### 78.5 Veredito
+
+**`BLOCKER-008`: Resolvido.** O gate `security-scan` volta a passar sem
+mascarar achado novo — `npm audit`/CI local confirmados verdes para este
+job especificamente (o job `build-and-test` segue com a falha independente
+de `BLOCKER-007`, formatação de `login.timing.test.ts`, não relacionada a
+este bloqueio e já registrada com dono próprio). Nenhum dos 16 achados
+exigiu reclassificação para bloqueante — a investigação desta data
+confirma, de forma independente e não apenas herdada, que a vulnerabilidade
+crítica relatada é `GHSA-5xrq-8626-4rwp`, a mesma de `DEBT-01`, dev-only,
+sem exposição em produção.
+
+---

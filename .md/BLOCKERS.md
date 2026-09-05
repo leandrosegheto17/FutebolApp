@@ -425,9 +425,41 @@ aplicável (ex.: UX-SPEC.md).
   com prazo (ex.: lista de exceções por advisory, ou rebaixar para
   `--audit-level=critical` combinado com revisão manual dos achados altos) —
   sem enfraquecer a postura de "fail-closed" para achados não avaliados.
-- **Status**: Aberto
+- **Status**: Resolvido
 - **Prazo**: bloqueante — antes do próximo deploy de staging ou produção
   (qualquer lote).
+- **Resolução (2026-09-05, devsecops)**: investigação independente
+  confirmou os 14 achados individualmente (não só a contagem agregada) —
+  a 1 vulnerabilidade crítica é `GHSA-5xrq-8626-4rwp` (`vitest`), **a mesma
+  já rastreada como `DEBT-01`** desde `BLOCKER-006` (2026-09-03), dev-only
+  (exige `vitest --ui` escutando localmente, nenhum script do projeto usa
+  essa flag), sem exposição em produção — não é achado novo. Os outros 15
+  achados de severidade alta são, igualmente, os mesmos GHSA ids já
+  cobertos por `DEBT-02` (glob/minimatch/`@typescript-eslint`, toolchain de
+  lint dev/CI-only) e `DEBT-04` (next/postcss, DoS/leitura de arquivo em
+  build-time, sem classe CWE-285/863). Confirmado via `npm view next
+  versions` que não existe upgrade seguro disponível — `14.2.35` já é o
+  último patch estável da série 14.2.x e não existe `15.x` estável (salto
+  direto para `16.3.4`, dois majors) — Opção (a) do bloqueio (atualizar
+  dependências) descartada por inviabilidade real, não por suposição.
+  Adotada Opção (b): novo mecanismo de gate (`scripts/
+  security-audit-gate.mjs` + `security/npm-audit-allowlist.json`)
+  substituindo `npm audit --audit-level=high` puro no job `security-scan`
+  (`.github/workflows/ci.yml`) — reconhece as 16 advisories já triadas por
+  GHSA id específico (nunca por nome de pacote) com prazo de revisão
+  (`revisar_ate: 2026-12-05`), permanecendo fail-closed para qualquer
+  advisory nova ou débito expirado. Decisão tomada sem necessidade de
+  aprovação prévia do CTO (correção técnica de processo, não relaxamento de
+  critério nem decisão de negócio) — sinalizado ao CTO em paralelo, como
+  registro, sobre (1) a rota de upgrade de `next` pular de 14.2.x direto
+  para 16.x e (2) o padrão recorrente de prazo de débito não disparando
+  automaticamente (agora mitigado pelo próprio gate, que falha sozinho
+  quando `revisar_ate` vence). Detalhe completo, tabela das 16 advisories e
+  verificação de que o gate volta a passar (`node scripts/
+  security-audit-gate.mjs`, `exit 0`) em `SECURITY-REVIEW.md` Seção 78.
+  **Nota**: o job `build-and-test` do mesmo CI segue falhando por
+  `BLOCKER-007` (formatação de `login.timing.test.ts`), independente deste
+  bloqueio — não resolvido por esta ação, dono próprio (Backend/DevOps).
 
 ---
 
@@ -461,9 +493,63 @@ aplicável (ex.: UX-SPEC.md).
   (b) aceitar formalmente que staging fique restrito a "CI efêmero apenas" (sem
   ambiente navegável) até decisão de investimento, registrando essa aceitação
   em `CTO-REVIEW.md`.
-- **Status**: Aberto
+- **Atualização (2026-09-05, devops — autorização explícita do
+  usuário/organizador recebida para a opção (a), verificação de custo
+  executada antes de criar)**: `npx supabase projects list` reconfirmado
+  nesta sessão — mesmo estado: apenas `futebol-ranking` (produção, ADR-002) e
+  `mymoney` (não relacionado), ambos com `status: ACTIVE_HEALTHY`, na única
+  organização da conta (`leandrosegheto17`, `lmjzszccfzkyacywphgc`). Verificado
+  externamente (não presumido) o limite do tier gratuito do Supabase: **2
+  projetos ativos em tier gratuito por organização** — limite confirmado de
+  forma consistente por múltiplas fontes independentes atualizadas em 2026
+  (ver Fontes). Como a organização **já tem os 2 projetos gratuitos ativos
+  permitidos** ocupados por `futebol-ranking` e `mymoney`, criar um 3º projeto
+  (`futebol-ranking-comary-staging` ou equivalente) **não é possível sem
+  custo** nas condições atuais — exigiria uma de duas ações fora do escopo
+  desta autorização: (i) upgrade da organização para o plano pago (Pro, a
+  partir de US$25/mês) para liberar mais projetos ativos; ou (ii) pausar ou
+  excluir o projeto `mymoney`, que é um projeto de terceiro não relacionado a
+  este sistema — decisão que não cabe a este agente tomar unilateralmente
+  sobre um recurso alheio, mesmo pausar temporariamente. Uma tentativa real de
+  `supabase projects create` (com nome de teste, sem `--yes`, apenas para
+  obter a mensagem de erro/custo real da API antes de decidir) foi bloqueada
+  preventivamente pelo próprio classificador de segurança do ambiente de
+  execução deste agente — reforça, por um mecanismo independente, que esta é
+  uma ação com efeito financeiro real que não deve ser tentada sem nova
+  confirmação explícita e específica sobre o custo. **Nenhum projeto foi
+  criado. Nenhum recurso de `mymoney` foi alterado.** Conforme instrução
+  explícita recebida junto com a autorização ("se o tier gratuito não
+  comportar um 3º projeto sem custo, pare e reporte — não crie um projeto
+  pago sem nova confirmação explícita"), este agente parou aqui e devolve a
+  decisão ao usuário/organizador: (a) autorizar explicitamente o upgrade pago
+  da organização (Pro) só para viabilizar staging; (b) autorizar
+  explicitamente pausar/excluir `mymoney` para liberar a vaga gratuita, se
+  esse projeto não estiver mais em uso; ou (c) aceitar formalmente a opção
+  (b) original — staging como "CI efêmero apenas", sem ambiente navegável,
+  registrando essa aceitação em `CTO-REVIEW.md`. Passos 3–5 desta tarefa
+  (rodar migrations no projeto novo, configurar secrets, redisparar
+  `deploy-staging.yml`) não puderam ser executados — dependem de um projeto
+  Supabase de staging existir, e nenhum foi criado. Também confirmado nesta
+  sessão: `BLOCKER-007`/`BLOCKER-008` (gates de CI) seguem `Aberto` — mesmo
+  que a decisão de custo acima fosse resolvida agora, `deploy-staging.yml`
+  para o Lote RD0 (`efaf297`) continuaria bloqueado no gate de CI antes de
+  chegar ao gate de secrets de staging.
+  - Fontes da verificação de limite (2026): UI Bakery
+    (`https://uibakery.io/blog/supabase-pricing`), JetAdmin
+    (`https://www.jetadmin.io/blog/supabase-pricing-2026-guide-to-plans-limits-and-real-world-costs/`),
+    Automation Atlas (`https://automationatlas.io/answers/supabase-free-tier-limits-2026/`),
+    DesignRevision (`https://designrevision.com/blog/supabase-pricing`),
+    CostBench (`https://costbench.com/software/database-as-service/supabase/free-plan/`) —
+    todas convergem em "2 projetos ativos gratuitos por organização"
+    (projetos pausados por inatividade não contam contra o limite, mas
+    pausar `mymoney` ativamente para abrir vaga é a ação (ii) acima, não
+    decidida unilateralmente).
+- **Status**: Aberto (impedimento de custo real confirmado — não é mais uma
+  suposição teórica; decisão de próximo passo devolvida ao
+  usuário/organizador)
 - **Prazo**: sem prazo formal — mas bloqueia todo deploy de staging real desde
-  2026-09-03, agora confirmado por uma tentativa real, não apenas teórica.
+  2026-09-03, agora confirmado por uma tentativa real, não apenas teórica, e
+  agora também por um impedimento de custo real confirmado (2026-09-05).
 
 ---
 
@@ -534,6 +620,73 @@ aplicável (ex.: UX-SPEC.md).
   seu próprio critério de aceite no `TASK.md`); bloqueia apenas um eventual
   sign-off (RF-D02) de T03 contra a Seção 2.3 do `UX-SPEC.md` como está
   escrita hoje, se o organizador insistir na paridade visual literal com T02.
+
+---
+
+## BLOCKER-011
+
+- **Data**: 2026-09-05
+- **Origem**: qa
+- **Escalado para**: tech-lead
+- **Artefato afetado**: `TASK.md` Parte II (diretrizes de implementação/
+  Definição de Pronto de tarefa) — achado concreto em `BE-R01`, `FE-R02`,
+  `FE-R03` (Lote RD1); `QA-REPORT.md` Seções 2/3 (Parte I, achados
+  anteriores da mesma classe) e Seção 19 (Lote RD1, onde este achado foi
+  originado).
+- **Descrição**: durante o fechamento do Lote RD1 (`QA-REPORT.md` Seção
+  19), o QA reexecutou `npm run format:check` (`prettier --check .`) de
+  forma independente e encontrou **7 arquivos de propriedade das 3
+  tarefas deste lote** fora do padrão Prettier: `RankingList.tsx`,
+  `format.test.ts`, `matrix.test.ts`, `PublicHomeShell.test.tsx`,
+  `rankingRecentesApi.test.ts` (todos `src/features/ranking-publico/`,
+  `FE-R02`); `src/features/presenca-mensal/PresencaMensal.test.tsx`
+  (`FE-R03`); `src/lib/supabase/__tests__/ranking-publico-recentes.integration.test.ts`
+  (`BE-R01`). Nenhuma das 3 notas de conclusão destas tarefas em
+  `TASK.md` menciona `npm run format:check` entre os comandos
+  verificados antes de marcar `Concluída` — ao contrário de praticamente
+  toda tarefa da Parte I, cujas notas de conclusão citam explicitamente
+  `npm run lint`/`npm run typecheck`/`npm run format:check`/`npm test`/
+  `npm run build` como o conjunto padrão verificado antes do fechamento
+  (dezenas de ocorrências literais no próprio `TASK.md`). Esta é a
+  **terceira ocorrência consecutiva do mesmo tipo de achado no
+  Frontend** (após `BUG-QA-BE01-02` e `BUG-QA-FE00-01`, `QA-REPORT.md`
+  Seções 2/3) — cruzando o limiar que o próprio QA já havia anunciado
+  antecipadamente na Seção 3 do `QA-REPORT.md`: *"o QA vai escalar ao
+  Tech Lead via BLOCKERS.md se o mesmo tipo de achado reaparecer numa
+  terceira tarefa do Frontend"*. Desta vez o padrão também atinge o
+  Backend (`BE-R01`), ampliando o escopo para além de um único time.
+  Causa raiz técnica confirmada pelo QA: não existe hook de pre-commit
+  (`.husky` ou equivalente) neste repositório que rode `prettier
+  --write`/`format:check` automaticamente antes de um commit — a única
+  salvaguarda mecânica hoje é o passo "Format check" do job
+  `build-and-test` (`.github/workflows/ci.yml`), que só roda depois do
+  push, quando já é tarde para o hábito individual de cada agente
+  compensar.
+- **Impacto se não resolvido**: cada uma das 3 tarefas deste lote, se
+  pusheada como está, reprovaria o gate "Format check" do `CI` real —
+  mesmo mecanismo já documentado e confirmado em `BLOCKER-007`, que
+  bloqueou `build-and-test`/`deploy-staging` para **qualquer** push em
+  `main` até ser corrigido. Sem uma correção estrutural (hook automático
+  ou regra explícita na diretriz de implementação), é razoável esperar
+  uma quarta e quinta ocorrência nos lotes `RD2`/`RD3`/`RD4` restantes
+  desta mesma iniciativa.
+- **Sugestão**: (1) ação imediata, de responsabilidade de Frontend
+  (`FE-R02`/`FE-R03`) e Backend (`BE-R01`) — rodar `prettier --write`
+  nos 7 arquivos listados acima e subir um commit isolado, mesmo padrão
+  de resolução já usado em `BLOCKER-007` (commit dedicado, revisado por
+  QA/DevSecOps, sem misturar com outro trabalho em progresso), antes do
+  próximo push que dispare o `CI` compartilhado; (2) ação estrutural, de
+  responsabilidade do Tech Lead — adicionar `npm run format:check` como
+  item explícito e nomeado da checklist de "Definição de Pronto" nas
+  diretrizes de implementação do `TASK.md` (hoje seguido apenas por
+  hábito repetido, não por uma regra escrita), e avaliar com o Software
+  Architect/DevOps a viabilidade de um hook de pre-commit (`.husky` +
+  `lint-staged`) para tornar a salvaguarda automática em vez de depender
+  da memória de cada agente.
+- **Status**: Aberto
+- **Prazo**: item (1) bloqueante — antes do próximo push que dispare o
+  `CI` compartilhado de qualquer lote; item (2) sem prazo formal,
+  recomendado antes do início de `RD2` para evitar uma quarta ocorrência.
 
 ---
 
