@@ -55,7 +55,11 @@ function buildConfirmarTimesRequest(rodadaId: string, body: unknown): Request {
   });
 }
 
-function buildCorrigirRequest(rodadaId: string, atletaId: string, body: unknown): Request {
+function buildCorrigirRequest(
+  rodadaId: string,
+  atletaId: string,
+  body: unknown,
+): Request {
   return new Request(
     `http://localhost:3000/api/rodadas/${rodadaId}/participacoes/${atletaId}`,
     {
@@ -240,9 +244,17 @@ describe.skipIf(!podeRodar)("BE-16 — GET /api/rodadas", () => {
         const b1 = await criarAtleta("confronto-b1");
 
         const rodadaId = await lancarRodadaDireta(rodadaData(10), [
-          { atleta_id: a1, status: "presente", eventos: [{ tipo: "gol", quantidade: 2 }] },
+          {
+            atleta_id: a1,
+            status: "presente",
+            eventos: [{ tipo: "gol", quantidade: 2 }],
+          },
           { atleta_id: a2, status: "presente" },
-          { atleta_id: b1, status: "presente", eventos: [{ tipo: "gol", quantidade: 1 }] },
+          {
+            atleta_id: b1,
+            status: "presente",
+            eventos: [{ tipo: "gol", quantidade: 1 }],
+          },
         ]);
 
         const respostaTimes = await confirmarTimes(
@@ -278,28 +290,25 @@ describe.skipIf(!podeRodar)("BE-16 — GET /api/rodadas", () => {
       },
     );
 
-    it(
-      "confronto 0x0 é um placar legítimo (nenhum gol registrado na rodada), não null",
-      async () => {
-        const a1 = await criarAtleta("zerozero-a1");
-        const b1 = await criarAtleta("zerozero-b1");
-        const rodadaId = await lancarRodadaDireta(rodadaData(12), [
-          { atleta_id: a1, status: "presente" },
-          { atleta_id: b1, status: "presente" },
-        ]);
+    it("confronto 0x0 é um placar legítimo (nenhum gol registrado na rodada), não null", async () => {
+      const a1 = await criarAtleta("zerozero-a1");
+      const b1 = await criarAtleta("zerozero-b1");
+      const rodadaId = await lancarRodadaDireta(rodadaData(12), [
+        { atleta_id: a1, status: "presente" },
+        { atleta_id: b1, status: "presente" },
+      ]);
 
-        const respostaTimes = await confirmarTimes(
-          buildConfirmarTimesRequest(rodadaId, {
-            times: [{ atletas_ids: [a1] }, { atletas_ids: [b1] }],
-          }),
-          { params: { id: rodadaId } },
-        );
-        expect(respostaTimes.status).toBe(200);
+      const respostaTimes = await confirmarTimes(
+        buildConfirmarTimesRequest(rodadaId, {
+          times: [{ atletas_ids: [a1] }, { atletas_ids: [b1] }],
+        }),
+        { params: { id: rodadaId } },
+      );
+      expect(respostaTimes.status).toBe(200);
 
-        const rodada = await buscarRodadaNaListagem(rodadaId);
-        expect(rodada.confronto).toEqual({ colete: 0, sem_colete: 0 });
-      },
-    );
+      const rodada = await buscarRodadaNaListagem(rodadaId);
+      expect(rodada.confronto).toEqual({ colete: 0, sem_colete: 0 });
+    });
 
     it(
       "status_correcao é 'encerrada' até a rodada sofrer uma correção (RF-04.2) — depois " +

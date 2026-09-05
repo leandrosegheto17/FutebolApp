@@ -55,6 +55,46 @@ const EMPTY_MESSAGE = "Nenhuma substituição registrada nesta rodada";
  * precisar de uma rota própria nem de um novo endpoint de leitura (decisão
  * de detalhe documentada, não escalada — ver nota completa em
  * `TimesResultado.tsx`).
+ *
+ * **Auditoria de redesenho (`FE-R11`, reestimativa "leve" — `TASK.md` Parte
+ * II Seção 3.2)**: confirmado que nenhuma mudança de código era necessária
+ * aqui. `SubstituicoesModal.module.css` só referencia custom properties
+ * (`var(--color-...)`/`var(--spacing-...)`/`var(--font-...)`), nenhum hex
+ * hardcoded — a substituição atômica de tokens já aplicada por `FE-R00` em
+ * `tokens.css` (`--color-primary`, tipografia `Public Sans`/`Bebas Neue`/
+ * `JetBrains Mono` via `next/font/google`, etc.) já se propaga
+ * automaticamente para esta tela, mesmo padrão de "repintura sem esforço"
+ * já registrado por `FE-R03`. `Modal`/`Select`/`Button`/`AlertBanner`/
+ * `EmptyState`/`Skeleton`/`SkeletonGroup` (todos usados aqui) já passaram
+ * pelo `accessibility-review` obrigatório de `FE-R00` (Seção 1.2-R) contra
+ * os novos tokens — nenhum deles expõe cor própria fora de `tokens.css`.
+ * `TopNav`/`BottomTabBar` (repintura para `--color-brand-navy`, `UX-SPEC.md`
+ * Seção 6.2-R) ainda não foi implementada por nenhuma tarefa `FE-R0x` até
+ * esta data (mesma constatação já registrada pela nota de fechamento de
+ * `FE-R12`) — quando isso acontecer, esta tela herdará o chrome novo sem
+ * mudança própria, por não compor `TopNav`/`BottomTabBar` diretamente (só o
+ * `Modal` do design system). Nenhum emoji é usado neste componente (fora do
+ * escopo de substituição por `Icon` da Seção 1.4-R) e nenhum texto cita
+ * "Time A"/"Time B" hardcoded — `timeAtual.label`/`labelDoTime(times, ...)`
+ * já eram genéricos antes desta tarefa (confirmado pela nota de fechamento
+ * de `FE-R09`), continuam corretos com os rótulos reais "Colete"/"Sem
+ * Colete" persistidos a partir daquela tarefa.
+ *
+ * **Decisão de composição em aberto, resolvida (não escalada)**: avaliado
+ * reaproveitar `PlayerChip` (design system, introduzido por `FE-R09`) no
+ * lugar dos `Select` de "Sai"/"Entra" — descartado. `PlayerChip` modela um
+ * jogador posicionado dentro do `PitchBackground` (pin+nome+posição,
+ * `aria-label` de "trocar"), não uma lista de opções selecionáveis por
+ * teclado/rótulo nativo de formulário; adaptá-lo aqui exigiria uma
+ * composição de lista de seleção própria (roving tabindex, estado
+ * selecionado/geral, teste de acessibilidade dedicado) — exatamente o tipo
+ * de "composição própria adicional" que a própria linha de `FE-R11` no
+ * `TASK.md` explicitamente exclui do escopo ("aplicação leve... nenhuma
+ * composição própria adicional"). O `Select` nativo já cobre o critério de
+ * aceite literal (bloqueio acessível de "mesmo atleta em sai/entra") sem
+ * essa composição nova, então foi mantido — mudança de composição fica em
+ * aberto para uma iniciativa futura caso o organizador queira reabrir esse
+ * escopo.
  */
 export function SubstituicoesModal({
   open,

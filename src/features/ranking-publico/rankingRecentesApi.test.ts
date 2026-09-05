@@ -46,9 +46,7 @@ describe("fetchRankingPublicoRecentes", () => {
       {
         atleta_id: "1",
         nome_exibicao: "João Pedro",
-        rodadas_recentes: [
-          { rodada_id: "r1", data: "2026-09-05", status: "presente" },
-        ],
+        rodadas_recentes: [{ rodada_id: "r1", data: "2026-09-05", status: "presente" }],
         rodadas_jogadas: 21,
         media_presenca: 78.3,
       },

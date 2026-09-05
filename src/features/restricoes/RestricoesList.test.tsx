@@ -82,16 +82,19 @@ const RESTRICAO_DESATIVADA: Restricao = {
 };
 
 /**
- * `<p>` do par ("Nome A ⚡ Nome B") é composto por vários nós de texto/`span`
- * (o ícone precisa ficar isolado num `<span aria-hidden>` próprio, WCAG
- * 1.1.1) — `getByText`/`findByText` não casam texto que atravessa fronteira
+ * `<p>` do par ("Nome A [Icon zap] Nome B") é composto por vários nós de
+ * texto e o `<svg>` decorativo de `Icon name="zap"` (TASK.md Seção 3.2-R,
+ * FE-R10) — `getByText`/`findByText` não casam texto que atravessa fronteira
  * de elemento por padrão, então usamos um matcher de função que confere o
- * `textContent` completo do próprio `<p>`.
+ * `textContent` completo do próprio `<p>`. O `<svg>` não contribui texto
+ * algum ao `textContent` (era o emoji `⚡` antes de FE-R10), por isso os
+ * espaços ao redor dele são normalizados antes da comparação.
  */
 function pairMatcher(nomeA: string, nomeB: string) {
-  const esperado = `${nomeA} ⚡ ${nomeB}`;
+  const esperado = `${nomeA} ${nomeB}`;
   return (_: string, element: Element | null) =>
-    element?.tagName.toLowerCase() === "p" && element.textContent === esperado;
+    element?.tagName.toLowerCase() === "p" &&
+    element.textContent?.replace(/\s+/g, " ").trim() === esperado;
 }
 
 function renderList() {
@@ -152,6 +155,19 @@ describe("RestricoesList (T10, FE-10)", () => {
     expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reativar" })).toBeInTheDocument();
+  });
+
+  it("par usa o componente Icon (glifo 'zap', decorativo) em vez do emoji ⚡ (TASK.md Seção 3.2-R, FE-R10)", async () => {
+    vi.mocked(listarRestricoes).mockResolvedValue([RESTRICAO_ATIVA]);
+    vi.mocked(fetchAtletas).mockResolvedValue(ATLETAS);
+    const { container } = renderList();
+
+    const par = await screen.findByText(pairMatcher("João Pedro", "Carlinhos"));
+    expect(par.textContent).not.toContain("⚡");
+
+    const icon = container.querySelector("svg[aria-hidden='true']");
+    expect(icon).toBeInTheDocument();
+    expect(icon).not.toHaveAttribute("aria-label");
   });
 
   it("'+ Nova restrição' abre a modal em modo criação", async () => {

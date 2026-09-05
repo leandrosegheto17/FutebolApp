@@ -134,13 +134,17 @@ export function RankingList() {
         <div className={styles.scrollArea}>
           <table role="table" aria-label="Ranking de atletas" className={styles.table}>
             <caption className="sr-only">
-              Matriz de presença (P), ausência (A) e lesão (L) nas últimas
-              rodadas, por atleta, seguida da pontuação total. Os 3 primeiros
-              colocados são indicados por uma medalha.
+              Matriz de presença (P), ausência (A) e lesão (L) nas últimas rodadas, por
+              atleta, seguida da pontuação total. Os 3 primeiros colocados são indicados
+              por uma medalha.
             </caption>
             <thead>
               <tr role="row">
-                <th role="columnheader" scope="col" className={cn(styles.cell, styles.headerCell, styles.nameCell)}>
+                <th
+                  role="columnheader"
+                  scope="col"
+                  className={cn(styles.cell, styles.headerCell, styles.nameCell)}
+                >
                   Atleta
                 </th>
                 {columns.map((column, index) => (
@@ -158,7 +162,11 @@ export function RankingList() {
                     {formatColunaData(column.data)}
                   </th>
                 ))}
-                <th role="columnheader" scope="col" className={cn(styles.cell, styles.headerCell, styles.pointsCell)}>
+                <th
+                  role="columnheader"
+                  scope="col"
+                  className={cn(styles.cell, styles.headerCell, styles.pointsCell)}
+                >
                   Pts
                 </th>
               </tr>
@@ -174,7 +182,9 @@ export function RankingList() {
                         {position <= 3 ? (
                           <MedalBadge position={position as 1 | 2 | 3} />
                         ) : (
-                          <span className={styles.ordinal}>{formatOrdinal(position)}</span>
+                          <span className={styles.ordinal}>
+                            {formatOrdinal(position)}
+                          </span>
                         )}
                       </span>
                       <span>{item.nome_exibicao}</span>

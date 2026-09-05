@@ -112,26 +112,29 @@ describe.skipIf(!podeRodar)(
       // `grupo_stats`), replicada aqui via consultas diretas às tabelas
       // base com a chave de serviço (contagem exata via JOIN embutido do
       // PostgREST, sem depender de arredondamento de `media_presenca`).
-      const [{ count: rodadasCount }, { count: atletasCount }, { count: presencasCount }] =
-        await Promise.all([
-          service
-            .from("rodada")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "lancada"),
-          service
-            .from("atleta")
-            .select("id", { count: "exact", head: true })
-            .eq("ativo", true),
-          service
-            .from("participacao_rodada")
-            .select(
-              "id, rodada:rodada_id!inner(status), atleta:atleta_id!inner(ativo)",
-              { count: "exact", head: true },
-            )
-            .eq("status", "presente")
-            .eq("rodada.status", "lancada")
-            .eq("atleta.ativo", true),
-        ]);
+      const [
+        { count: rodadasCount },
+        { count: atletasCount },
+        { count: presencasCount },
+      ] = await Promise.all([
+        service
+          .from("rodada")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "lancada"),
+        service
+          .from("atleta")
+          .select("id", { count: "exact", head: true })
+          .eq("ativo", true),
+        service
+          .from("participacao_rodada")
+          .select("id, rodada:rodada_id!inner(status), atleta:atleta_id!inner(ativo)", {
+            count: "exact",
+            head: true,
+          })
+          .eq("status", "presente")
+          .eq("rodada.status", "lancada")
+          .eq("atleta.ativo", true),
+      ]);
       rodadasLancadasAntes = rodadasCount ?? 0;
       atletasAtivosAntes = atletasCount ?? 0;
       presencasGrupoAntes = presencasCount ?? 0;
@@ -195,9 +198,7 @@ describe.skipIf(!podeRodar)(
       rodadaIdsLancadas = datasRodadasLancadas.map(
         (data) => rodadas!.find((r: any) => r.data === data)!.id,
       );
-      rodadaExcluidaId = rodadas!.find(
-        (r: any) => r.data === rodadaExcluidaData,
-      )!.id;
+      rodadaExcluidaId = rodadas!.find((r: any) => r.data === rodadaExcluidaData)!.id;
 
       // Atleta principal: presente nas 5 rodadas (índices 1,2,4,5,7),
       // ausente em 2 (índices 0 e 6) e lesionado em 1 (índice 3) — 5
@@ -205,16 +206,56 @@ describe.skipIf(!podeRodar)(
       // (não deve contar em nada). Atleta anonimizado também presente na
       // mais recente (nunca deve contar, mesmo estando "presente").
       const participacoesPayload = [
-        { rodada_id: rodadaIdsLancadas[0], atleta_id: atletaComOitoRodadasId, status: "ausente" },
-        { rodada_id: rodadaIdsLancadas[1], atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaIdsLancadas[2], atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaIdsLancadas[3], atleta_id: atletaComOitoRodadasId, status: "lesionado" },
-        { rodada_id: rodadaIdsLancadas[4], atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaIdsLancadas[5], atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaIdsLancadas[6], atleta_id: atletaComOitoRodadasId, status: "ausente" },
-        { rodada_id: rodadaIdsLancadas[7], atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaExcluidaId, atleta_id: atletaComOitoRodadasId, status: "presente" },
-        { rodada_id: rodadaIdsLancadas[7], atleta_id: atletaAnonimizadoId, status: "presente" },
+        {
+          rodada_id: rodadaIdsLancadas[0],
+          atleta_id: atletaComOitoRodadasId,
+          status: "ausente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[1],
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[2],
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[3],
+          atleta_id: atletaComOitoRodadasId,
+          status: "lesionado",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[4],
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[5],
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[6],
+          atleta_id: atletaComOitoRodadasId,
+          status: "ausente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[7],
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaExcluidaId,
+          atleta_id: atletaComOitoRodadasId,
+          status: "presente",
+        },
+        {
+          rodada_id: rodadaIdsLancadas[7],
+          atleta_id: atletaAnonimizadoId,
+          status: "presente",
+        },
       ];
       const { error: participacoesError } = await service
         .from("participacao_rodada")
@@ -233,9 +274,7 @@ describe.skipIf(!podeRodar)(
     });
 
     it("nunca retorna contato/data_nascimento, mesmo com select *", async () => {
-      const { data, error } = await anon
-        .from("ranking_publico_recentes")
-        .select("*");
+      const { data, error } = await anon.from("ranking_publico_recentes").select("*");
       expect(error).toBeNull();
       expect(data).not.toBeNull();
       expect(data!.length).toBeGreaterThan(0);
@@ -311,9 +350,8 @@ describe.skipIf(!podeRodar)(
         const atletasEsperado = atletasAtivosAntes + 2; // zeta + beta (alfa é ativo=false)
         const presencasEsperado = presencasGrupoAntes + 5; // 5 presenças do zeta
         const mediaEsperada =
-          Math.round(
-            (presencasEsperado / (atletasEsperado * rodadasEsperado)) * 1000,
-          ) / 10;
+          Math.round((presencasEsperado / (atletasEsperado * rodadasEsperado)) * 1000) /
+          10;
 
         // Mesmo valor em toda linha (estatística de grupo, não por atleta).
         const valoresDistintos = new Set(data!.map((r: any) => r.rodadas_jogadas));

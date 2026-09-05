@@ -52,6 +52,31 @@ function ordenarDecrescente(items: LogAuditoriaItem[]): LogAuditoriaItem[] {
  * `enrichment.ts`) é melhor esforço e nunca bloqueia a lista principal —
  * pulado inteiramente quando não há nenhuma entrada (`items.length === 0`),
  * evitando duas chamadas de rede sem necessidade nesse caso.
+ *
+ * **Auditoria de redesenho (`FE-R08`, reestimativa "leve" — `TASK.md` Parte
+ * II Seção 3.2)**: confirmado que nenhuma mudança de código era necessária
+ * aqui. `LogAuditoriaList.module.css`/`LogAuditoriaEntry.module.css` só
+ * referenciam custom properties (`var(--color-...)`/`var(--spacing-...)`/
+ * `var(--font-...)`), nenhum hex hardcoded (o único `#` encontrado no
+ * diretório é o exemplo de ID anonimizado em `entryPresenter.ts`, comentário,
+ * não cor) — a substituição atômica de tokens já aplicada por `FE-R00` em
+ * `tokens.css` se propaga automaticamente para esta tela, mesmo padrão de
+ * "repintura sem esforço" já registrado por `FE-R03`/`FE-R11`. `Card`,
+ * `DiffViewer` (reaproveitado de `FE-07` para T07/T08, `UX-SPEC.md` Seção
+ * 3.2), `AlertBanner`, `EmptyState`, `Skeleton`/`SkeletonGroup` e `Button`
+ * (todos usados nesta tela) já passaram pelo `accessibility-review`
+ * obrigatório de `FE-R00` (Seção 1.2-R) contra os novos tokens — nenhum
+ * expõe cor própria fora de `tokens.css`. `TopNav`/`BottomTabBar` (repintura
+ * para `--color-brand-navy`) ainda não foi implementada por nenhuma tarefa
+ * `FE-R0x` até esta data (mesma constatação já registrada pelas notas de
+ * fechamento de `FE-R12`/`FE-R11`) — quando isso acontecer, esta tela
+ * herdará o chrome novo sem mudança própria, por não compor
+ * `TopNav`/`BottomTabBar` diretamente. Nenhum emoji é usado neste componente
+ * (fora do escopo de substituição por `Icon` da Seção 1.4-R). O modo de
+ * falha fechado de anonimização de `entryPresenter.ts`/`DiffViewer` (já
+ * coberto por `entryPresenter.test.ts`/`LogAuditoriaEntry.test.tsx`,
+ * incluindo o teste de acessibilidade via `axe`) permanece intocado e
+ * passando após esta confirmação.
  */
 export function LogAuditoriaList() {
   const [state, setState] = useState<LoadState>({ status: "loading" });

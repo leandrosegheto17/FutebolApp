@@ -45,6 +45,31 @@ describe("LoginForm", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it(
+    "FE-R01: hero navy com título real 'Acesso interno' (h1, não o wordmark) e " +
+      "`BrandCrest` decorativo (subtítulo adjacente já identifica a marca por extenso)",
+    () => {
+      const { container } = render(<LoginForm />);
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Acesso interno" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Organização · Turma do Rola")).toBeInTheDocument();
+
+      // Não repete o wordmark completo "Turma do Rola" como título grande
+      // dentro do cartão (UX-SPEC.md Parte II Seção 2.1, correção da
+      // revisão 2 — esse wordmark fica reservado para T02/T03/`TopNav`).
+      expect(
+        screen.queryByRole("heading", { name: /^turma do rola$/i }),
+      ).not.toBeInTheDocument();
+
+      // `BrandCrest` grande é decorativo aqui (o subtítulo já identifica a
+      // marca por extenso) — nenhum `role="img"` duplicado no cartão.
+      expect(container.querySelector('[role="img"]')).not.toBeInTheDocument();
+      expect(container.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
+    },
+  );
+
   it("toggle de mostrar/ocultar senha é acessível (aria-pressed + rótulo textual, não só ícone)", async () => {
     render(<LoginForm />);
     const toggle = screen.getByRole("button", { name: "Mostrar senha" });

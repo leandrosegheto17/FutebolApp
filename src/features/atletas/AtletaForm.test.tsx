@@ -103,6 +103,17 @@ describe("AtletaForm — criação (núcleo)", () => {
     expect(screen.queryByText("Zona de risco")).not.toBeInTheDocument();
   });
 
+  it("aviso de privacidade usa o componente Icon (glifo 'lock', decorativo) em vez do emoji 🔒 (TASK.md Seção 1.4-R, FE-R04)", () => {
+    const { container } = renderForm();
+    const aviso = screen.getByText(/Aviso de privacidade/).closest("div");
+    expect(aviso).not.toBeNull();
+    expect(aviso?.textContent).not.toContain("🔒");
+
+    const icon = container.querySelector("svg[aria-hidden='true']");
+    expect(icon).toBeInTheDocument();
+    expect(icon).not.toHaveAttribute("aria-label");
+  });
+
   it("bloco de consentimento aparece quando a idade calculada é < 18 (RF-01.3) e some se a data mudar para adulto", async () => {
     const user = userEvent.setup();
     renderForm();

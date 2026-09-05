@@ -37,6 +37,8 @@ describe("historicoApi", () => {
           status: "lancada",
           criado_em: "2026-09-19T20:00:00.000Z",
           presentes: 18,
+          confronto: { colete: 62, sem_colete: 59 },
+          status_correcao: "encerrada",
         },
         {
           id: "rodada-2",
@@ -44,6 +46,8 @@ describe("historicoApi", () => {
           status: "excluida",
           criado_em: "2026-09-12T20:00:00.000Z",
           presentes: 15,
+          confronto: null,
+          status_correcao: "corrigida",
         },
       ];
       vi.mocked(fetch).mockResolvedValue(jsonResponse(200, items));

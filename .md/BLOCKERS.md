@@ -693,6 +693,137 @@ aplicável (ex.: UX-SPEC.md).
   `CI` compartilhado de qualquer lote; item (2) sem prazo formal,
   recomendado antes do início de `RD2` para evitar uma quarta ocorrência.
 
+**Atualização (2026-09-05, validador — chapéu QA, fechamento do Lote
+RD3)**: previsão confirmada — quarta ocorrência do mesmo padrão, desta
+vez em `BE-R02`/`FE-R09` (`QA-REPORT.md` Seção 20.8, `BUG-QA-RD3-01`),
+8 novos arquivos fora do padrão Prettier (`src/modules/rodadas/
+confronto.ts`/`listar.ts`/`repository.ts`,
+`app/api/rodadas/__tests__/listar.integration.test.ts` de `BE-R02`;
+`src/features/times/times.test.ts`/`TimesResultado.test.tsx`/
+`TimesResultado.tsx`, `app/dev/design-system/page.tsx` — parcial — de
+`FE-R09`). Mesma causa raiz já registrada acima (ausência de hook de
+pre-commit); nenhuma ação nova necessária neste registro além de deixar
+o padrão documentado — correção mecânica roteada para uma tarefa
+`Refatoração Lote-RD3` (mesmo modelo de `Refatoração Lote-RD1`/
+`REF-RD1-01`, sinalizado ao `coordenador`), não uma nova entrada de
+`BLOCKERS.md`. Item (2) desta entrada (hook de pre-commit) segue como a
+correção estrutural que evitaria uma quinta ocorrência em `RD2`/`RD4`.
+
+**Atualização (2026-09-05, coordenador — checagem estrutural do Lote
+Refatoração RD1)**: item (1) confirmado **resolvido** para os 7 arquivos de
+RD1 — `REF-RD1-01` `Concluída` (`TASK.md` Seção 3.3), aprovado sem ressalva
+pelo QA (`QA-REPORT.md` Seção 21) e sem débito pelo DevSecOps
+(`SECURITY-REVIEW.md` Seção 93); lote fechado como `Validado (sem
+ressalvas)` (`EXECUTION-LOG.md`, entrada "Lote Refatoração RD1"). `TASK.md`
+Seção 3.3 também já mostra `REF-RD3-01` (os 8 arquivos de `BE-R02`/`FE-R09`
+citados na atualização acima) como `Concluída` pelo Executor — se
+confirmado por essa nota de conclusão, item (1) está tecnicamente resolvido
+para os 15 arquivos originalmente listados por este bloqueio (7+8, conjuntos
+disjuntos). Ressalva: a validação formal (QA + DevSecOps) do lote
+`Refatoração Lote-RD3` está em andamento em sessão paralela no momento
+desta atualização — não confirmada aqui, fora do escopo desta checagem
+pontual sobre RD1. Esta atualização também não executou
+`npm run format:check` diretamente (ferramenta de shell indisponível nesta
+sessão do Coordenador); apoia-se na reexecução independente já documentada
+por QA/DevSecOps nas seções citadas. **Item (2) (ação estrutural — `npm run
+format:check` explícito na Definição de Pronto do `TASK.md` + avaliação de
+hook de pre-commit `.husky`/`lint-staged`, dono Tech Lead) permanece em
+aberto, não endereçado por esta checagem** — decisão de quem tem essa
+competência (chapéu Tech Lead/Software Architect do Coordenador), não
+decidida unilateralmente aqui. `BLOCKER-011` permanece **Aberto** até o
+item (2) ser endereçado; não é marcado `Resolvido` nesta atualização.
+
+**Atualização (2026-09-05, coordenador — checagem estrutural do Lote
+Refatoração RD3)**: item (1) agora confirmado **resolvido** também para os 8
+arquivos de RD3 — `REF-RD3-01` `Concluída` (`TASK.md` Seção 3.3), aprovado
+sem ressalva pelo QA (`QA-REPORT.md` Seção 22, incluindo reexecução de
+`npm run format:check` no repositório inteiro em 22.2: "All matched files
+use Prettier code style!") e sem débito pelo DevSecOps (`SECURITY-REVIEW.md`
+Seção 94); lote fechado como `Validado (sem ressalvas)` (`EXECUTION-LOG.md`,
+entrada "Lote Refatoração RD3"). Com isso, **item (1) está 100% resolvido**
+para os 15 arquivos originalmente cobertos por este bloqueio (7 de
+`REF-RD1-01` + 8 de `REF-RD3-01`, conjuntos disjuntos) — confirmado por
+reexecução real e independente de `npm run format:check` sobre o
+repositório inteiro (QA, Seção 22.2, mesma data), não apenas por inspeção
+arquivo a arquivo; esta sessão do Coordenador também não teve acesso direto
+a uma ferramenta de shell para repetir o comando, mesma limitação já
+registrada na atualização anterior, e se apoia na mesma reexecução
+documentada. Nota registrada em ambas as seções (`QA-REPORT.md` 22.1,
+`SECURITY-REVIEW.md` 94, tabela): o `prettier --write` de `REF-RD3-01`
+também reformatou, por granularidade de arquivo inteiro (não é possível
+restringir Prettier a um trecho), os parágrafos vizinhos de `FE-R02`
+(`MedalBadge`/`PresenceDot`) em `app/dev/design-system/page.tsx`, além do
+parágrafo de `FE-R09` que era o escopo nominal — sem efeito de conteúdo
+renderizado, não bloqueante, não gera achado novo nem reabre `FE-R02`.
+**Item (2) (ação estrutural — `npm run format:check` explícito na Definição
+de Pronto do `TASK.md` + avaliação de hook de pre-commit `.husky`/
+`lint-staged`, dono Tech Lead) permanece em aberto, não endereçado por esta
+checagem** — mesma competência já apontada na atualização anterior, não
+decidida unilateralmente aqui. `BLOCKER-011` permanece **Aberto** até o
+item (2) ser endereçado; não é marcado `Resolvido` nesta atualização.
+
+---
+
+## BLOCKER-012
+
+- **Data**: 2026-09-05
+- **Origem**: frontend
+- **Escalado para**: coordenador (ux-ui)
+- **Artefato afetado**: `UX-SPEC.md` Parte II Seção 2.4 (T05 — Lançamento de
+  Rodada, delta) — e, por extensão, `TASK.md` Parte II Seção 3.2, linha
+  `FE-R05`.
+- **Descrição**: `UX-SPEC.md` Parte II Seção 2.4 afirma, citando uma nota do
+  próprio mockup real, que "os eventos só ficam visíveis/habilitados quando o
+  atleta está marcado 'Presente'" e trata essa generalização como confirmação
+  literal de RF-02.6 ("Gols e cartões só aparecem quando o atleta está marcado
+  presente"). Isso está inconsistente com os requisitos funcionais já
+  aprovados e implementados: RF-02.3 (`PRD-TECNICO.md`) exige explicitamente
+  que um atleta "Lesionado" seja tratado como presente para efeito de
+  pontuação **"permitindo ainda registrar eventos ocorridos até o momento da
+  lesão"**, e RF-02.4/RF-02.5 autorizam gol/cartão para atleta "presente **ou
+  lesionado**" — só RF-02.6 (exclusiva de "Ausente") bloqueia eventos. O
+  wireframe ASCII da própria Seção 2.4 também só demonstra o exemplo de um
+  atleta ausente ("Thiago C. ... ausente/lesionado: sem linha de evento"),
+  sem necessariamente refletir uma decisão deliberada de remover a capacidade
+  já aprovada de lançar gol/cartão para lesionado — parece ser o mesmo padrão
+  de "nota do mockup generalizada além do que o dado de exemplo sustenta" já
+  visto em `BLOCKER-010`.
+- **Impacto se não resolvido**: se a leitura literal da Seção 2.4 for a
+  intencional, hoje há uma redução de capacidade de produto (organizador
+  deixaria de conseguir registrar o gol/cartão de um atleta lesionado até o
+  momento da lesão), o que exigiria reabrir RF-02.3/RF-02.4/RF-02.5
+  formalmente (mudança de requisito, não de composição visual) — fora da
+  autoridade de UX/UI (RF-D04) e fora do escopo desta reestimativa (`FE-R05`,
+  "reescrita do padrão de interação", não "mudança de regra de negócio",
+  RN-D06).
+- **Decisão tomada nesta tarefa (não silenciosa)**: `FE-R05`
+  (`AtletaParticipacaoRow.tsx`) preserva o comportamento de negócio já
+  testado/aprovado — eventos (gol/cartão) permanecem visíveis e habilitados
+  para "Presente" **e** "Lesionado", bloqueados (com texto explicativo, nunca
+  escondidos) só para "Ausente" — em vez de seguir a generalização literal do
+  texto do mockup citado na Seção 2.4. Isso está alinhado com a instrução
+  explícita desta própria tarefa (`TASK.md`/mensagem de execução, RN-D06:
+  "zero mudança de lógica de negócio... bloqueio de evento para atleta
+  ausente RF-02.6" — sem menção a lesionado) e evita uma regressão de
+  capacidade não confirmada formalmente pelo organizador. Documentado em
+  comentário de topo de `AtletaParticipacaoRow.tsx`.
+- **Sugestão**: `coordenador`/`ux-ui` confirmar qual das duas leituras é a
+  correta — (1) a nota do mockup na Seção 2.4 é imprecisa/generalizou demais
+  a partir de um único exemplo sem lesionado, e deve ser corrigida para
+  "eventos aparecem para Presente e Lesionado, bloqueados só para Ausente"
+  (nesse caso, `FE-R05` já está correto como está); ou (2) a intenção real é
+  remover a capacidade de lançar evento para lesionado, caso em que isso
+  precisa ser tratado como mudança de requisito (RF-02.3/RF-02.4/RF-02.5),
+  não uma reestimativa de composição visual, com todo o rito formal que isso
+  implica (PM/BA, não só UX/UI).
+- **Status**: Aberto
+- **Prazo**: sem prazo formal — não bloqueia o fechamento do Lote RD2 (mesmo
+  padrão de precedente de `BLOCKER-005`/`BLOCKER-010`: a tela implementada e
+  correta contra o requisito funcional já aprovado, divergência é só contra
+  uma nota de mockup de uma seção do `UX-SPEC.md`); bloqueia apenas um
+  eventual sign-off (RF-D02) de T05 contra a leitura literal da Seção 2.4
+  como está escrita hoje, se o organizador confirmar a leitura (2).
+
 ---
 
 ## Notas

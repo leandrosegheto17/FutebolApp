@@ -5,6 +5,7 @@ import {
   AlertBanner,
   Button,
   EmptyState,
+  Icon,
   Skeleton,
   SkeletonGroup,
   useToast,
@@ -211,9 +212,14 @@ export function RestricoesList() {
         <ul className={styles.list}>
           {state.restricoes.map((restricao) => (
             <li key={restricao.id} className={styles.item}>
+              {/* Glifo ⚡ substituído por `Icon name="zap"` (TASK.md Seção
+                  3.2-R, FE-R10) — decorativo (`aria-hidden` por padrão, sem
+                  `aria-label`), o texto adjacente logo abaixo ("não podem
+                  ficar no mesmo time") já comunica o motivo do conflito por
+                  extenso (WCAG 1.1.1/1.4.1), mesma convenção já usada por
+                  `Icon name="lock"` em `AtletaForm.tsx` (FE-R04). */}
               <p className={styles.pairNames}>
-                {restricao.atleta_a_nome} <span aria-hidden="true">⚡</span>{" "}
-                {restricao.atleta_b_nome}
+                {restricao.atleta_a_nome} <Icon name="zap" /> {restricao.atleta_b_nome}
               </p>
               <p className={styles.pairExplicacao}>{PAIR_EXPLICACAO_TEXTO}</p>
               <div className={styles.statusRow}>

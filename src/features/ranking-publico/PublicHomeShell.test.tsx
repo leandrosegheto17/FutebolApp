@@ -43,9 +43,10 @@ describe("PublicHomeShell", () => {
   it("mostra o hero (BrandCrest + marca) e a aba Ranking selecionada por padrão", async () => {
     render(<PublicHomeShell />);
 
-    expect(
-      screen.getByRole("link", { name: /Turma do Rola — Comary/ }),
-    ).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /Turma do Rola — Comary/ })).toHaveAttribute(
+      "href",
+      "/",
+    );
     expect(screen.getByRole("tab", { name: "Ranking" })).toHaveAttribute(
       "aria-selected",
       "true",

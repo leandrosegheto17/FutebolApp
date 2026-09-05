@@ -18,6 +18,8 @@ const RODADA: RodadaHistoricoItem = {
   status: "lancada",
   criado_em: "2026-09-05T20:00:00.000Z",
   presentes: 18,
+  confronto: { colete: 62, sem_colete: 59 },
+  status_correcao: "encerrada",
 };
 
 function renderItem(
@@ -48,6 +50,29 @@ describe("RodadaListItem", () => {
     expect(screen.getByText("05/09/2026")).toBeInTheDocument();
     expect(screen.getByText("18 presentes")).toBeInTheDocument();
     expect(screen.queryByText("Excluída")).not.toBeInTheDocument();
+  });
+
+  it("mostra 'Confronto' (FE-R06/BE-R02) no formato 'Colete X × Y Sem Colete'", () => {
+    renderItem();
+    expect(screen.getByText("Colete 62 × 59 Sem Colete")).toBeInTheDocument();
+  });
+
+  it("'Confronto' null (rodada legada ou times ainda não confirmados via T09): placeholder textual '—', nunca célula vazia (WCAG 1.4.1)", () => {
+    renderItem(vi.fn(), vi.fn(), { ...RODADA, confronto: null });
+    expect(
+      screen.getByRole("img", { name: "Confronto não disponível para esta rodada" }),
+    ).toHaveTextContent("—");
+  });
+
+  it("'Status' encerrada: pill textual 'Encerrada' (variant success/--pitch)", () => {
+    renderItem();
+    expect(screen.getByText("Encerrada")).toBeInTheDocument();
+  });
+
+  it("'Status' corrigida: pill textual 'Corrigida' (variant warning/--warn)", () => {
+    renderItem(vi.fn(), vi.fn(), { ...RODADA, status_correcao: "corrigida" });
+    expect(screen.getByText("Corrigida")).toBeInTheDocument();
+    expect(screen.queryByText("Encerrada")).not.toBeInTheDocument();
   });
 
   it("rodada excluída: exibe badge 'Excluída' (nunca escondida, nunca só cor)", () => {
@@ -104,6 +129,11 @@ describe("RodadaListItem", () => {
 
   it("sem violação de acessibilidade (axe)", async () => {
     const { container } = renderItem();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("sem violação de acessibilidade (axe) com 'Confronto' null (placeholder '—')", async () => {
+    const { container } = renderItem(vi.fn(), vi.fn(), { ...RODADA, confronto: null });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

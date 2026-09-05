@@ -106,7 +106,8 @@ export function calcularConfronto(
 
   const somarPontosDoTime = (time: TimeComAtletas): number =>
     time.atletaIds.reduce(
-      (total, atletaId) => total + (golsPorAtletaId?.get(atletaId) ?? 0) * valorPontosPorGol,
+      (total, atletaId) =>
+        total + (golsPorAtletaId?.get(atletaId) ?? 0) * valorPontosPorGol,
       0,
     );
 

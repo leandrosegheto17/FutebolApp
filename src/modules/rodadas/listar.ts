@@ -50,12 +50,13 @@ export async function listarRodadas(
   }
 
   const rodadaIds = rodadas.map((rodada) => rodada.id);
-  const [timesPorRodada, golsPorRodada, configuracaoGol, rodadaIdsComLog] = await Promise.all([
-    listarTimesComAtletasPorRodadas(client, rodadaIds),
-    somarGolsPorAtletaERodada(client, rodadaIds),
-    listarConfiguracaoPontosPorEvento(client, "gol"),
-    listarRodadaIdsComLogAuditoria(client, rodadaIds),
-  ]);
+  const [timesPorRodada, golsPorRodada, configuracaoGol, rodadaIdsComLog] =
+    await Promise.all([
+      listarTimesComAtletasPorRodadas(client, rodadaIds),
+      somarGolsPorAtletaERodada(client, rodadaIds),
+      listarConfiguracaoPontosPorEvento(client, "gol"),
+      listarRodadaIdsComLogAuditoria(client, rodadaIds),
+    ]);
 
   return rodadas.map((rodada) => {
     const valorPontosPorGol = valorPontosVigente(configuracaoGol, rodada.data);

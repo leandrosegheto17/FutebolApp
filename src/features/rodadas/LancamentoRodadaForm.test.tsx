@@ -69,19 +69,12 @@ function renderForm() {
   );
 }
 
-/** Preenche a data e avança para a Etapa 2 (Eventos). */
-async function goToEventosStep(user: ReturnType<typeof userEvent.setup>) {
-  await screen.findByText("Etapa 1/3: Presença");
+/** Preenche a data e abre o modal de confirmação final. */
+async function abrirConfirmacao(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByText("Registro de presença");
   await user.type(screen.getByLabelText(/Data da rodada/), "2026-09-05");
-  await user.click(screen.getByRole("button", { name: "Continuar →" }));
-  await screen.findByText("Etapa 2/3: Eventos");
-}
-
-/** Preenche a data, avança até a Etapa 3 (Revisão e Confirmação). */
-async function goToRevisaoStep(user: ReturnType<typeof userEvent.setup>) {
-  await goToEventosStep(user);
-  await user.click(screen.getByRole("button", { name: "Continuar →" }));
-  await screen.findByText("Etapa 3/3: Revisão e Confirmação");
+  await user.click(screen.getByRole("button", { name: "Salvar rodada" }));
+  return screen.findByRole("dialog", { name: "Confirmar lançamento da rodada" });
 }
 
 describe("LancamentoRodadaForm", () => {
@@ -92,7 +85,7 @@ describe("LancamentoRodadaForm", () => {
     replaceMock.mockReset();
   });
 
-  it("mostra skeleton de carregamento e depois a Etapa 1 com os atletas ativos", async () => {
+  it("mostra skeleton de carregamento e depois a lista contínua com os atletas ativos", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
     renderForm();
 
@@ -100,7 +93,7 @@ describe("LancamentoRodadaForm", () => {
       screen.getByRole("status", { name: "Carregando atletas" }),
     ).toBeInTheDocument();
 
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
     expect(screen.getByText("Carlinhos")).toBeInTheDocument();
     expect(screen.getByText("João Pedro")).toBeInTheDocument();
   });
@@ -117,7 +110,7 @@ describe("LancamentoRodadaForm", () => {
     ]);
     renderForm();
 
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
     expect(screen.queryByText("Inativo")).not.toBeInTheDocument();
   });
 
@@ -134,7 +127,7 @@ describe("LancamentoRodadaForm", () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
   });
 
   it("401 ao carregar atletas aciona o redirecionamento de sessão expirada (FE-12)", async () => {
@@ -157,52 +150,57 @@ describe("LancamentoRodadaForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("Etapa 1: Continuar fica bloqueado sem data preenchida e mostra erro do campo", async () => {
+  it("Salvar rodada sem data preenchida mostra erro do campo e não abre o modal de confirmação", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
     const user = userEvent.setup();
     renderForm();
 
-    await screen.findByText("Etapa 1/3: Presença");
-    expect(screen.getByRole("button", { name: "Continuar →" })).toBeDisabled();
+    await screen.findByText("Registro de presença");
+    await user.click(screen.getByRole("button", { name: "Salvar rodada" }));
+
+    expect(screen.getByText("Informe a data da rodada.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("navega Etapa 1 -> Etapa 2 -> Etapa 3 e volta com o botão Voltar", async () => {
-    vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
-    const user = userEvent.setup();
-    renderForm();
-
-    await goToRevisaoStep(user);
-    expect(screen.getByRole("button", { name: "← Voltar" })).toBeEnabled();
-
-    await user.click(screen.getByRole("button", { name: "← Voltar" }));
-    await screen.findByText("Etapa 2/3: Eventos");
-
-    await user.click(screen.getByRole("button", { name: "← Voltar" }));
-    await screen.findByText("Etapa 1/3: Presença");
-    expect(screen.getByRole("button", { name: "← Voltar" })).toBeDisabled();
-  });
-
-  it("Etapa 2: controles de evento de atleta ausente ficam desabilitados (não escondidos) com texto explicativo (RF-02.6)", async () => {
+  it("stat-tiles refletem a presença ao vivo conforme o SegmentedControl muda (UX-SPEC.md Parte II Seção 2.4)", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
     const user = userEvent.setup();
     renderForm();
 
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
+    const resumo = screen.getByRole("group", { name: "Resumo da rodada" });
+    const tilesIniciais = within(resumo)
+      .getAllByText(/^\d+$/)
+      .map((el) => el.textContent);
+    expect(tilesIniciais).toEqual(["2", "0", "0", "2"]); // Presentes/Lesionados/Ausentes/Total
+
     const joaoGroup = screen.getByRole("radiogroup", { name: "Presença de João Pedro" });
     await user.click(within(joaoGroup).getByRole("radio", { name: "Ausente" }));
 
-    await goToEventosStep(user);
+    // Agora 1 presente, 1 ausente.
+    const tiles = within(resumo)
+      .getAllByText(/^\d+$/)
+      .map((el) => el.textContent);
+    expect(tiles).toEqual(["1", "0", "1", "2"]); // Presentes/Lesionados/Ausentes/Total
+  });
 
-    // Continua visível, com texto explicativo — nunca escondido.
+  it("eventos de atleta ausente ficam desabilitados (não escondidos) com texto explicativo (RF-02.6)", async () => {
+    vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
+    const user = userEvent.setup();
+    renderForm();
+
+    await screen.findByText("Registro de presença");
+    const joaoGroup = screen.getByRole("radiogroup", { name: "Presença de João Pedro" });
+    await user.click(within(joaoGroup).getByRole("radio", { name: "Ausente" }));
+
+    // Nunca escondido: texto explicativo aparece, controles de evento somem
+    // (mockup real: "ausente... sem linha de evento").
     expect(
       screen.getByText("Eventos bloqueados — atleta ausente (RF-02.6)"),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("spinbutton", { name: "Gols de João Pedro" }),
-    ).toHaveAttribute("aria-disabled", "true");
-    expect(
-      screen.getByRole("button", { name: "Aumentar Gols de João Pedro" }),
-    ).toBeDisabled();
+      screen.queryByRole("spinbutton", { name: "Gols de João Pedro" }),
+    ).not.toBeInTheDocument();
 
     // Atleta presente permanece com controles habilitados.
     expect(
@@ -213,34 +211,64 @@ describe("LancamentoRodadaForm", () => {
     ).toBeEnabled();
   });
 
-  it("Etapa 3: resumo agrega presença/eventos marcados nas etapas anteriores", async () => {
+  it("atleta lesionado mantém eventos habilitados — RF-02.3/RF-02.4/RF-02.5 exigem registro de gol/cartão até o momento da lesão (divergência do texto do mockup sinalizada em BLOCKERS.md, não reproduzida)", async () => {
+    vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
+    const user = userEvent.setup();
+    renderForm();
+
+    await screen.findByText("Registro de presença");
+    const group = screen.getByRole("radiogroup", { name: "Presença de Carlinhos" });
+    await user.click(within(group).getByRole("radio", { name: "Lesionado" }));
+
+    expect(
+      screen.queryByText("Eventos bloqueados — atleta ausente (RF-02.6)"),
+    ).not.toBeInTheDocument();
+    const golButton = screen.getByRole("button", { name: "Aumentar Gols de Carlinhos" });
+    expect(golButton).toBeEnabled();
+    await user.click(golButton);
+    expect(screen.getByRole("spinbutton", { name: "Gols de Carlinhos" })).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
+  });
+
+  it("Salvar rodada abre o modal de confirmação com o resumo agregado (preserva a intenção de RNF-10)", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
     const user = userEvent.setup();
     renderForm();
 
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
     const joaoGroup = screen.getByRole("radiogroup", { name: "Presença de João Pedro" });
     await user.click(within(joaoGroup).getByRole("radio", { name: "Ausente" }));
-
-    await goToEventosStep(user);
     await user.click(screen.getByRole("button", { name: "Aumentar Gols de Carlinhos" }));
     await user.click(
       screen.getByRole("button", { name: "Aumentar Cartões amarelos de Carlinhos" }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Continuar →" }));
-    await screen.findByText("Etapa 3/3: Revisão e Confirmação");
+    const dialog = await abrirConfirmacao(user);
 
-    expect(screen.getByText("Resumo da rodada 05/09/2026")).toBeInTheDocument();
+    expect(within(dialog).getByText("Resumo da rodada 05/09/2026")).toBeInTheDocument();
     expect(
-      screen.getByText("1 presentes · 1 ausentes · 0 lesionados"),
+      within(dialog).getByText("1 presentes · 1 ausentes · 0 lesionados"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("1 gols · 1 cartões amarelos · 0 cartões vermelhos"),
+      within(dialog).getByText("1 gols · 1 cartões amarelos · 0 cartões vermelhos"),
     ).toBeInTheDocument();
   });
 
-  it("Etapa 3: confirmar dispara uma única transação atômica (um único POST) com loading explícito", async () => {
+  it("cancelar o modal de confirmação fecha sem enviar nada", async () => {
+    vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
+    const user = userEvent.setup();
+    renderForm();
+
+    const dialog = await abrirConfirmacao(user);
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(lancarRodada).not.toHaveBeenCalled();
+  });
+
+  it("confirmar dentro do modal dispara uma única transação atômica (um único POST) com loading explícito, bloqueando Cancelar durante o envio", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
     let resolveLancar: (value: RodadaResponse) => void = () => {};
     vi.mocked(lancarRodada).mockReturnValue(
@@ -251,15 +279,18 @@ describe("LancamentoRodadaForm", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await goToRevisaoStep(user);
-    await user.click(screen.getByRole("button", { name: "Confirmar Lançamento" }));
-
-    expect(screen.getByRole("button", { name: "Confirmar Lançamento" })).toHaveAttribute(
-      "aria-busy",
-      "true",
+    const dialog = await abrirConfirmacao(user);
+    await user.click(
+      within(dialog).getByRole("button", { name: "Confirmar lançamento" }),
     );
-    // Etapas anteriores bloqueadas para edição durante o envio (UX-SPEC.md Seção 4, T05).
-    expect(screen.queryByRole("button", { name: "← Voltar" })).not.toBeInTheDocument();
+
+    expect(
+      within(dialog).getByRole("button", { name: "Confirmar lançamento" }),
+    ).toHaveAttribute("aria-busy", "true");
+    // Equivalente ao antigo "etapas anteriores bloqueadas para edição
+    // durante o envio" do Stepper: sem etapas, o modal bloqueia a edição
+    // por trás e "Cancelar" fica desabilitado.
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toBeDisabled();
 
     resolveLancar({
       id: "rodada-1",
@@ -293,7 +324,7 @@ describe("LancamentoRodadaForm", () => {
     expect(pushMock).toHaveBeenCalledWith("/historico");
   });
 
-  it("falha na transação: mensagem nunca sugere salvamento parcial (RNF-10)", async () => {
+  it("falha na transação: mensagem nunca sugere salvamento parcial (RNF-10) e o modal permanece aberto para nova tentativa", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
     vi.mocked(lancarRodada).mockRejectedValue(
       new RodadaValidationError("Requisição inválida."),
@@ -301,15 +332,21 @@ describe("LancamentoRodadaForm", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await goToRevisaoStep(user);
-    await user.click(screen.getByRole("button", { name: "Confirmar Lançamento" }));
+    const dialog = await abrirConfirmacao(user);
+    await user.click(
+      within(dialog).getByRole("button", { name: "Confirmar lançamento" }),
+    );
 
     expect(await screen.findByText(RODADA_SUBMIT_ERROR_MESSAGE)).toBeInTheDocument();
     expect(RODADA_SUBMIT_ERROR_MESSAGE).toContain("Nada foi salvo");
     expect(pushMock).not.toHaveBeenCalled();
+    // Nada foi perdido: o modal continua aberto, pronto para nova tentativa.
+    expect(
+      screen.getByRole("dialog", { name: "Confirmar lançamento da rodada" }),
+    ).toBeInTheDocument();
   });
 
-  it("duplicidade (409): abre modal de confirmação, foco inicial em Cancelar, e reenvia com confirmar_duplicidade ao confirmar (RF-02.8)", async () => {
+  it("duplicidade (409): substitui o modal de confirmação pelo modal de duplicidade, foco inicial em Cancelar, e reenvia com confirmar_duplicidade ao confirmar (RF-02.8)", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS]);
     vi.mocked(lancarRodada).mockRejectedValueOnce(
       new RodadaDuplicidadeError([
@@ -326,9 +363,14 @@ describe("LancamentoRodadaForm", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await goToRevisaoStep(user);
-    await user.click(screen.getByRole("button", { name: "Confirmar Lançamento" }));
+    const confirmDialog = await abrirConfirmacao(user);
+    await user.click(
+      within(confirmDialog).getByRole("button", { name: "Confirmar lançamento" }),
+    );
 
+    expect(
+      screen.queryByRole("dialog", { name: "Confirmar lançamento da rodada" }),
+    ).not.toBeInTheDocument();
     const dialog = await screen.findByRole("dialog", {
       name: "Já existe rodada nesta data",
     });
@@ -356,8 +398,10 @@ describe("LancamentoRodadaForm", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await goToRevisaoStep(user);
-    await user.click(screen.getByRole("button", { name: "Confirmar Lançamento" }));
+    const confirmDialog = await abrirConfirmacao(user);
+    await user.click(
+      within(confirmDialog).getByRole("button", { name: "Confirmar lançamento" }),
+    );
 
     const dialog = await screen.findByRole("dialog", {
       name: "Já existe rodada nesta data",
@@ -374,25 +418,34 @@ describe("LancamentoRodadaForm", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await goToRevisaoStep(user);
-    await user.click(screen.getByRole("button", { name: "Confirmar Lançamento" }));
+    const dialog = await abrirConfirmacao(user);
+    await user.click(
+      within(dialog).getByRole("button", { name: "Confirmar lançamento" }),
+    );
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalled());
   });
 
-  it("sem violação de acessibilidade (axe) em cada etapa", async () => {
+  it("sem violação de acessibilidade (axe) na lista contínua e nos dois modais", async () => {
     vi.mocked(fetchAtletas).mockResolvedValue([CARLINHOS, JOAO_PEDRO]);
+    vi.mocked(lancarRodada).mockRejectedValueOnce(
+      new RodadaDuplicidadeError([
+        { id: "rodada-existente", data: "2026-09-05", status: "lancada" },
+      ]),
+    );
     const user = userEvent.setup();
     const { container } = renderForm();
 
-    await screen.findByText("Etapa 1/3: Presença");
+    await screen.findByText("Registro de presença");
     expect(await axe(container)).toHaveNoViolations();
 
-    await goToEventosStep(user);
+    const confirmDialog = await abrirConfirmacao(user);
     expect(await axe(container)).toHaveNoViolations();
 
-    await user.click(screen.getByRole("button", { name: "Continuar →" }));
-    await screen.findByText("Etapa 3/3: Revisão e Confirmação");
+    await user.click(
+      within(confirmDialog).getByRole("button", { name: "Confirmar lançamento" }),
+    );
+    await screen.findByRole("dialog", { name: "Já existe rodada nesta data" });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

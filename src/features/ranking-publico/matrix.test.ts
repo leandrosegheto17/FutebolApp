@@ -92,14 +92,14 @@ describe("firstMobileVisibleColumnIndex", () => {
 describe("statusForColumn", () => {
   it("retorna o status quando o atleta tem registro na rodada da coluna", () => {
     const a = item("a", [["r1", "2026-09-05", "lesionado"]]);
-    expect(statusForColumn(a, { rodadaId: "r1", data: "2026-09-05" })).toBe(
-      "lesionado",
-    );
+    expect(statusForColumn(a, { rodadaId: "r1", data: "2026-09-05" })).toBe("lesionado");
   });
 
   it("retorna undefined quando o atleta não tem registro (nunca inventa um status)", () => {
     const a = item("a", [["r1", "2026-09-05", "presente"]]);
     expect(statusForColumn(a, { rodadaId: "r2", data: "2026-08-29" })).toBeUndefined();
-    expect(statusForColumn(undefined, { rodadaId: "r1", data: "2026-09-05" })).toBeUndefined();
+    expect(
+      statusForColumn(undefined, { rodadaId: "r1", data: "2026-09-05" }),
+    ).toBeUndefined();
   });
 });

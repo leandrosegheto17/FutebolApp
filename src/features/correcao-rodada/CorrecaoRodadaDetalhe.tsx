@@ -68,6 +68,31 @@ export interface CorrecaoRodadaDetalheProps {
  * `ParticipacaoCorrecaoRow`) em vez de deixar o organizador iniciar uma
  * correção que o Backend garantidamente vai recusar — e some com a "Zona de
  * risco" (nada a excluir de novo).
+ *
+ * **Constatação de auditoria (`FE-R07`, 2026-09-05, mesmo padrão "repintura
+ * sem esforço" já registrado por `FE-R03`/`FE-R11`)**: `CorrecaoRodadaDetalhe
+ * .module.css`/`ParticipacaoCorrecaoRow.module.css`/`DiffViewer.module.css`
+ * (design system) só referenciam custom properties (`var(--color-...)`/
+ * `var(--spacing-...)`/`var(--font-...)`), nenhum hex hardcoded — confirmado
+ * por busca isolada nos 3 arquivos — então a substituição atômica de tokens
+ * já aplicada por `FE-R00` em `tokens.css` propaga-se automaticamente para
+ * esta tela e para o `DiffViewer` usado no preview inline abaixo; nenhuma
+ * mudança de composição foi necessária no `DiffViewer` em si (conforme a
+ * própria premissa da reestimativa desta linha). **Ícone "⋮"/menu**: esta
+ * tela (T07) não possui hoje nenhuma ação secundária representada por um
+ * ícone de menu/"⋮" — a única ação secundária real de T07 é o botão de texto
+ * completo "Excluir rodada" na "Zona de risco" abaixo (`<Button
+ * variant="danger">`, nunca ícone isolado). O menu contextual "⋮"
+ * (`RodadaActionMenu`, `src/features/historico/RodadaActionMenu.tsx`) existe
+ * hoje em T06 (lista de histórico), não em T07 — `UX-SPEC.md` Parte II Seção
+ * 2.5 registra que esse menu "pode ser mantido" como ação secundária dentro
+ * do detalhe (T07) em vez da lista, mas isso é uma opção de relocação
+ * arquitetural de um componente de outra tela/tarefa (`FE-R06`, já
+ * `Concluída`), não uma mudança pedida pelo critério de aceite desta linha
+ * (que só cita `Icon name="more-vertical"` "se ação secundária mantida") —
+ * fora do escopo estrito desta tarefa (arquivos de `src/features/historico/`
+ * não tocados), não decidido unilateralmente. Nenhum `Icon` novo introduzido
+ * nesta tarefa.
  */
 export function CorrecaoRodadaDetalhe({ rodadaId }: CorrecaoRodadaDetalheProps) {
   const router = useRouter();

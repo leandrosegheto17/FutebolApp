@@ -63,7 +63,9 @@ describe("formatColunaData", () => {
 describe("formatAtualizadoResumo", () => {
   it("formata hora + contagem de atletas com concordância singular/plural (UX-SPEC.md Seção 2.2)", () => {
     const date = new Date(2026, 8, 5, 21, 40);
-    expect(formatAtualizadoResumo(date, 24)).toBe("Atualizado hoje às 21:40 · 24 atletas");
+    expect(formatAtualizadoResumo(date, 24)).toBe(
+      "Atualizado hoje às 21:40 · 24 atletas",
+    );
     expect(formatAtualizadoResumo(date, 1)).toBe("Atualizado hoje às 21:40 · 1 atleta");
   });
 });

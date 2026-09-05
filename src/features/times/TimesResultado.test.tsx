@@ -128,7 +128,9 @@ describe("TimesResultado", () => {
     const user = userEvent.setup();
     renderComponent();
 
-    await user.click(screen.getByRole("button", { name: "Trocar João, nível técnico 6" }));
+    await user.click(
+      screen.getByRole("button", { name: "Trocar João, nível técnico 6" }),
+    );
 
     const dialog = screen.getByRole("dialog", { name: "Trocar João com quem?" });
     expect(dialog).toBeInTheDocument();
@@ -143,7 +145,9 @@ describe("TimesResultado", () => {
     const user = userEvent.setup();
     const { onSwap } = renderComponent();
 
-    await user.click(screen.getByRole("button", { name: "Trocar João, nível técnico 6" }));
+    await user.click(
+      screen.getByRole("button", { name: "Trocar João, nível técnico 6" }),
+    );
     const dialog = screen.getByRole("dialog", { name: "Trocar João com quem?" });
     await user.click(within(dialog).getByRole("button", { name: /Rafa/ }));
 

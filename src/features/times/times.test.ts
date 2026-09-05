@@ -180,9 +180,9 @@ describe("buildConfirmarTimesInput", () => {
 
 describe("sumNivelTecnico", () => {
   it("soma (não a média) o nível técnico dos atletas do time", () => {
-    expect(sumNivelTecnico([atleta({ nivel_tecnico: 6 }), atleta({ nivel_tecnico: 4 })])).toBe(
-      10,
-    );
+    expect(
+      sumNivelTecnico([atleta({ nivel_tecnico: 6 }), atleta({ nivel_tecnico: 4 })]),
+    ).toBe(10);
   });
 
   it("exclui nivel_tecnico `null` do cálculo, nunca trata como 0", () => {
@@ -225,7 +225,12 @@ describe("formatDiferenca", () => {
 describe("formatTitulares", () => {
   it("formata a contagem de atletas de cada time como 'N×N'", () => {
     const times: TimeMontado[] = [
-      { indice: 0, atletas: [atleta(), atleta()], nivel_tecnico_medio: 5, idade_media: 20 },
+      {
+        indice: 0,
+        atletas: [atleta(), atleta()],
+        nivel_tecnico_medio: 5,
+        idade_media: 20,
+      },
       { indice: 1, atletas: [atleta()], nivel_tecnico_medio: 5, idade_media: 20 },
     ];
     expect(formatTitulares(times)).toBe("2×1");
@@ -241,8 +246,18 @@ describe("posicaoDecorativa", () => {
 
 describe("restricoesRespeitadas", () => {
   const times: TimeMontado[] = [
-    { indice: 0, atletas: [atleta({ atleta_id: "1" })], nivel_tecnico_medio: 5, idade_media: 20 },
-    { indice: 1, atletas: [atleta({ atleta_id: "2" })], nivel_tecnico_medio: 5, idade_media: 20 },
+    {
+      indice: 0,
+      atletas: [atleta({ atleta_id: "1" })],
+      nivel_tecnico_medio: 5,
+      idade_media: 20,
+    },
+    {
+      indice: 1,
+      atletas: [atleta({ atleta_id: "2" })],
+      nivel_tecnico_medio: 5,
+      idade_media: 20,
+    },
   ];
 
   it("restrição ativa com os dois atletas em times diferentes é 'respeitada'", () => {

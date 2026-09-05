@@ -86,9 +86,7 @@ describe("PresencaMensal", () => {
     expect(screen.getByText("Presentes: 18")).toBeInTheDocument();
     expect(screen.getByText("João Pedro")).toBeInTheDocument();
     expect(screen.getByText("Carlinhos")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /05\/09/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /05\/09/ })).not.toBeInTheDocument();
 
     // Rodada com zero presentes: seção trata explicitamente, não fica vazia.
     expect(screen.getByText("12/09")).toBeInTheDocument();

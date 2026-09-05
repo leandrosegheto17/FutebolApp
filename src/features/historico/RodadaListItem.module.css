@@ -23,6 +23,34 @@
   flex-shrink: 0;
 }
 
+/* "Confronto"/"Status" (FE-R06/BE-R02, UX-SPEC.md Parte II Seção 2.5) — pts
+   em --font-family-mono, mesmo racional já usado por TimesResultado.module.css
+   (.balanceValue)/RankingList.module.css para valores numéricos. */
+.confrontoRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.confronto {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+/* Placeholder textual "—" (nunca célula vazia sem explicação, WCAG 1.4.1)
+   para rodada sem os dois times confirmados (SPK-02: 100% do legado + times
+   ainda não confirmados via T09). */
+.confrontoIndisponivel {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.statusBadge {
+  flex-shrink: 0;
+}
+
 .presentes {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

@@ -27,6 +27,8 @@ const RODADA_1: RodadaHistoricoItem = {
   status: "lancada",
   criado_em: "2026-09-19T20:00:00.000Z",
   presentes: 18,
+  confronto: { colete: 62, sem_colete: 59 },
+  status_correcao: "encerrada",
 };
 const RODADA_2: RodadaHistoricoItem = {
   id: "rodada-2",
@@ -34,6 +36,8 @@ const RODADA_2: RodadaHistoricoItem = {
   status: "lancada",
   criado_em: "2026-09-12T20:00:00.000Z",
   presentes: 15,
+  confronto: null,
+  status_correcao: "encerrada",
 };
 const RODADA_EXCLUIDA: RodadaHistoricoItem = {
   id: "rodada-3",
@@ -41,6 +45,8 @@ const RODADA_EXCLUIDA: RodadaHistoricoItem = {
   status: "excluida",
   criado_em: "2026-09-05T20:00:00.000Z",
   presentes: 20,
+  confronto: { colete: 49, sem_colete: 63 },
+  status_correcao: "corrigida",
 };
 
 function renderList() {
@@ -119,6 +125,20 @@ describe("HistoricoRodadasList", () => {
     await screen.findByText("19/09/2026");
     expect(screen.getByText("05/09/2026")).toBeInTheDocument();
     expect(screen.getByText("Excluída")).toBeInTheDocument();
+  });
+
+  it("colunas 'Confronto'/'Status' (FE-R06/BE-R02): confronto formatado, placeholder '—' quando null, pill refletindo status_correcao", async () => {
+    vi.mocked(listarRodadas).mockResolvedValue([RODADA_1, RODADA_2, RODADA_EXCLUIDA]);
+    renderList();
+
+    await screen.findByText("19/09/2026");
+    expect(screen.getByText("Colete 62 × 59 Sem Colete")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Confronto não disponível para esta rodada" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Colete 49 × 63 Sem Colete")).toBeInTheDocument();
+    expect(screen.getAllByText("Encerrada")).toHaveLength(2);
+    expect(screen.getByText("Corrigida")).toBeInTheDocument();
   });
 
   it("estado de erro genérico: mensagem + botão de tentar novamente refaz a busca", async () => {

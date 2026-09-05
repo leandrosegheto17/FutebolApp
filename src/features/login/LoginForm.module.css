@@ -1,9 +1,34 @@
+/*
+ * Hero navy full-bleed (UX-SPEC.md Parte II Seção 2.1: "fundo full-bleed
+ * navy, radial gradient com leve tingimento verde-campo (--pitch 25%) no
+ * topo — não é navy sólido puro"). Decisão de detalhe (documentada, não
+ * escalada): o tingimento é implementado como uma camada `radial-gradient`
+ * adicional em `rgba` derivado de `--color-primary` (#1c6e46 -> 28,110,70),
+ * já que `color-mix()` não é usado em nenhum outro lugar do projeto — mesma
+ * abordagem de camadas em `linear-gradient`/`::after` já usada em
+ * `PublicHomeShell.module.css` (.hero) para o gradiente navy→verde de T02.
+ */
 .page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-5);
   padding: var(--spacing-4);
+  background:
+    radial-gradient(
+      ellipse 140% 60% at 50% -20%,
+      rgba(28, 110, 70, 0.28),
+      transparent 60%
+    ),
+    var(--color-brand-navy);
+  /* Superfície navy fixa (hero de T01) — anel de foco dourado, nunca o verde
+     padrão (UX-SPEC.md Parte II Seção 1.5-R/5.3 regra 2; 2,45:1 reprova
+     1.4.11). Aplica-se ao link de retorno, que fica diretamente sobre este
+     fundo. O cartão branco abaixo restaura o token padrão para seu próprio
+     conteúdo — mesmo padrão de `PublicHomeShell.module.css` (.hero). */
+  --color-focus-ring: var(--color-focus-ring-on-dark);
 }
 
 .card {
@@ -12,31 +37,46 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--elevation-3);
+  /* Superfície clara aninhada dentro do hero navy — a regra de contraste da
+     Seção 1.5-R exige o anel dourado apenas em elementos diretamente sobre o
+     navy (o link de retorno, fora deste cartão); dentro do cartão claro, o
+     anel verde padrão já passa normalmente contra o fundo branco. */
+  --color-focus-ring: var(--color-primary);
 }
 
 .brandBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+  gap: var(--spacing-1);
 }
 
-.brand {
+.crest {
+  margin-bottom: var(--spacing-2);
+}
+
+/* Título real do cartão — "Acesso interno" (Bebas Neue), NÃO o wordmark
+   "Turma do Rola" (UX-SPEC.md Parte II Seção 2.1, correção da revisão 2: o
+   wordmark grande fica reservado para T02/T03/`TopNav`). */
+.heading {
   margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-2xl);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text);
 }
 
 .brandSecondary {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-.heading {
-  margin: var(--spacing-2) 0 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  text-align: center;
 }
 
 .form {
@@ -48,14 +88,24 @@
 /* Link de retorno ao ranking público — sempre visível, em qualquer estado da
    tela (inicial, carregando, erro), nunca escondido atrás do formulário
    (UX-SPEC.md Seção 2, wireframe T01: "RF-07.2, a consulta pública nunca
-   depende de login"). */
+   depende de login"). A partir de FE-R01, fica fora do cartão branco,
+   diretamente sobre o hero navy (UX-SPEC.md Parte II Seção 2.1) — cor clara
+   (branco, 15,29:1) sublinhada, nunca dourado/verde isolado (Seção 2.1: "não
+   dourado nem verde"; Seção 5.4: contraste calculado, WCAG 1.4.1 exige
+   reforço além de cor). `--font-family-mono`/maiúsculas conforme wireframe. */
 .backLink {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
-  align-self: center;
-  color: var(--color-text-muted);
+  color: #ffffff;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   text-decoration: underline;
   min-height: var(--tap-target-min);
+}
+
+.backLink:hover {
+  color: var(--color-brand-gold);
 }

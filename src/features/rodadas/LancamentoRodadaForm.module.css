@@ -1,7 +1,21 @@
+/* T05 — Lançamento de Rodada (`UX-SPEC.md` Parte II Seção 2.4; TASK.md
+   FE-R05). Lista contínua única (sem paginação de `Stepper`): stat-tiles no
+   topo + um cartão por atleta, fechada por um único botão "Salvar rodada"
+   que abre o modal de confirmação (`RevisaoStep`, reaproveitado). */
+
 .page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
   max-width: 640px;
   margin: 0 auto;
   padding: var(--spacing-4);
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
 }
 
 .errorWrapper {
@@ -13,10 +27,46 @@
   padding: var(--spacing-4);
 }
 
+/* Corpo do modal de confirmação (`RevisaoStep`, reaproveitado sem alteração
+   de composição — Guardrail 31). */
 .stepBody {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+}
+
+/* Stat-tiles (`RodadaStatTiles`) — "4 stat-tiles: Presentes/Lesionados/
+   Ausentes/Total do grupo" (UX-SPEC.md Parte II Seção 2.4). */
+.statTiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-2);
+  margin: 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.statValue {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.statLabel {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .atletaList {
@@ -28,13 +78,21 @@
   gap: var(--spacing-3);
 }
 
-.atletaRow {
+/* Cartão por atleta (`AtletaParticipacaoRow`) — presença + eventos
+   revelados progressivamente na mesma lista contínua, sem etapa própria. */
+.atletaCard {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.atletaHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
 
 .atletaNome {
@@ -42,24 +100,15 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* T05/T09 são densas (UX-SPEC.md Seção 6.2) — em `lg`, presença e eventos
-   podem ganhar mais respiro horizontal sem deixar de funcionar 100% em
-   mobile (o wireframe permanece uma coluna, só o espaçamento muda). */
+/* T05/T09 são densas (UX-SPEC.md Seção 6.2) — em `lg`, o `SegmentedControl`
+   fica na mesma linha do nome, mais próximo do "dk-p-row" do mockup real,
+   sem deixar de funcionar 100% em mobile (empilhado). */
 @media (min-width: 1024px) {
-  .atletaRow {
+  .atletaHeaderRow {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
-}
-
-.eventosRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .bloqueioTexto {
@@ -68,10 +117,32 @@
   font-size: var(--font-size-sm);
 }
 
-.contadores {
+/* Linha de eventos — só renderizada quando o atleta não está "Ausente"
+   (RF-02.6); "Lesionado" permanece habilitado (RF-02.3/RF-02.4/RF-02.5). */
+.eventosRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
+}
+
+/* Chip neutro (borda cinza, texto muted) — UX-SPEC.md Parte II Seção 2.4:
+   "não um Badge colorido... deixando o emoji carregar o significado
+   visual". Emoji real (⚽/🟨/🟥) sempre com rótulo textual adjacente
+   (nunca só emoji), `aria-hidden` no emoji porque o `StepperCounter`/texto
+   adjacente já descrevem o campo por extenso. */
+.eventoChip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.eventoLabel {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
 }
 
 .resumoTitulo {

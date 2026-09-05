@@ -3,7 +3,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertBanner, Button, PasswordInput } from "@/components/ui";
+import { AlertBanner, BrandCrest, Button, PasswordInput } from "@/components/ui";
 import { ROUTES } from "@/lib/routes";
 import { login, LoginError } from "./loginApi";
 import { LOGIN_TECHNICAL_ERROR_MESSAGE } from "./constants";
@@ -11,8 +11,25 @@ import { getSafeRedirectTarget } from "./redirectTarget";
 import styles from "./LoginForm.module.css";
 
 /**
- * T01 — Login (senha única) — UX-SPEC.md Seção 2 (wireframe)/4 (estados)/
- * 5.2 (acessibilidade); TASK.md FE-01.
+ * T01 — Login (senha única) — UX-SPEC.md Parte II Seção 2.1 (delta visual,
+ * "corrigido na revisão 2")/5.3-5.4 (contraste); TASK.md FE-R01 (reestimativa
+ * de FE-01).
+ *
+ * **Redesenho desta tarefa (FE-R01, puramente visual)**: hero navy
+ * full-bleed (radial gradient com leve tingimento `--color-primary` no topo,
+ * UX-SPEC.md Seção 2.1) + cartão branco central com `BrandCrest` grande +
+ * título real "Acesso interno" (não o wordmark "Turma do Rola" — essa
+ * correção da revisão 2 do UX-SPEC.md já estava refletida no texto anterior,
+ * só a composição visual muda agora) + link de retorno fora do cartão, sobre
+ * o navy, com contraste corrigido (branco sublinhado, 15,29:1 — UX-SPEC.md
+ * Seção 5.4 — nunca dourado nem verde, Seção 2.1). Nenhuma mudança de lógica
+ * de formulário/erro/redirect nesta tarefa.
+ *
+ * `BrandCrest` usa `decorative` porque o texto adjacente "Organização · Turma
+ * do Rola" já identifica a marca por extenso — mesmo padrão já estabelecido
+ * em `AppNav`/`PublicHomeShell` (FE-R00/FE-R02), evita duplicar/discordar do
+ * `aria-label` default do componente ("Grupo Rola Futebol", nome da entidade
+ * jurídica, diferente do nome de produto "Turma do Rola" usado nesta tela).
  *
  * Componente cliente único da tela: sem barra de navegação da área interna
  * (ainda não autenticado, Seção 2), único campo (senha, RN-12/ADR-004), sem
@@ -63,9 +80,9 @@ export function LoginForm() {
     <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brandBlock}>
-          <p className={styles.brand}>Turma do Rola</p>
-          <p className={styles.brandSecondary}>Comary</p>
+          <BrandCrest size="large" decorative className={styles.crest} />
           <h1 className={styles.heading}>Acesso interno</h1>
+          <p className={styles.brandSecondary}>Organização · Turma do Rola</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -88,13 +105,16 @@ export function LoginForm() {
             Entrar
           </Button>
         </form>
-
-        {/* Link de retorno ao ranking público — sempre visível, em todo
-            estado da tela (RF-07.2, Seção 2 do UX-SPEC.md). */}
-        <Link href={ROUTES.rankingPublico} className={styles.backLink}>
-          ← Voltar ao ranking público
-        </Link>
       </div>
+
+      {/* Link de retorno ao ranking público — sempre visível, em todo estado
+          da tela (RF-07.2, Seção 2 do UX-SPEC.md), agora fora do cartão
+          branco e diretamente sobre o hero navy (UX-SPEC.md Parte II Seção
+          2.1) — cor clara (branco) sublinhada, nunca dourado/verde isolado
+          (Seção 2.1/5.4, contraste corrigido desta tarefa). */}
+      <Link href={ROUTES.rankingPublico} className={styles.backLink}>
+        ← Voltar ao ranking público
+      </Link>
     </main>
   );
 }

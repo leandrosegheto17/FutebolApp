@@ -517,3 +517,114 @@ não o histórico completo de dispatches/fix-loops (esse fica em
   validação; pendência de governança não técnica do asset real de marca
   (`logo.jpg`, `TASK.md` Seção 1.6-R/4.3) segue em aberto, bloqueando apenas
   o merge futuro do asset real, não este lote.
+
+## Lote Refatoração RD1 — Correção de Formatação (`REF-RD1-01`, achado `BUG-QA-RD1-01`/`BLOCKER-011` item 1 sobre o Lote RD1)
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `REF-RD1-01` (único item do lote, `TASK.md` Seção
+  3.3, Parte II) — `npx prettier --write` restrito exatamente aos 7 arquivos
+  de propriedade de `BE-R01`/`FE-R02`/`FE-R03` reprovados por
+  `npm run format:check` no fechamento do Lote RD1 (`BUG-QA-RD1-01`).
+  Refatoração pura, sem reabrir nenhuma das 3 tarefas de origem (todas
+  seguem `Concluída`).
+- **Veredito de QA**: Aprovado (sem ressalva) — `QA-REPORT.md` Seção 21.
+  `git diff` linha a linha dos 7 arquivos confirmou 100% reflow de
+  linha/indentação, zero mudança de string/token/lógica/valor de asserção
+  (Seção 21.1); suíte relevante reexecutada e verde (57/57 testes
+  unitários de `ranking-publico`/`presenca-mensal`, 5/5 testes de
+  integração de `ranking-publico-recentes`, Seção 21.2); `npx prettier
+  --check` nos 7 arquivos e `npm run format:check` (repositório inteiro)
+  confirmados sem pendência nesses 7 arquivos.
+- **Veredito de DevSecOps**: Aprovado (sem débito) — `SECURITY-REVIEW.md`
+  Seção 93, auditoria enxuta proporcional ao risco (nenhum arquivo de
+  dependência/infraestrutura tocado, nenhuma mudança de string/token/
+  controle de acesso/dado sensível). Concordância integral com o QA de que
+  o achado original nunca teve componente de segurança real.
+- **Checagem estrutural do Coordenador**: **Validado (sem ressalvas)** —
+  primeiro lote de refatoração desta iniciativa a fechar sem nenhum achado
+  novo (diferente de `RD1`/`RD3`, que fecharam "com ressalvas" por causa do
+  próprio achado que originou este lote de refatoração). Confirmado:
+  `REF-RD1-01` está `Concluída` em `TASK.md` Seção 3.3; a tarefa não tem
+  dependência real (`Depende de: —`), consistente com a natureza do lote
+  (corrige achado pontual, não reabre `BE-R01`/`FE-R02`/`FE-R03`); nenhuma
+  tarefa do lote em `Bloqueada`. Nenhuma tarefa nova criada em
+  `Refatoração Lote-RD1` (não há achado adicional a corrigir). Limitação
+  registrada por transparência: esta checagem não executou
+  `npm run format:check` diretamente (ferramenta de shell indisponível
+  nesta sessão do Coordenador) — o veredito se apoia na reexecução
+  independente já documentada e datada do mesmo dia por QA (Seção 21.2) e
+  DevSecOps (Seção 93), ambos confirmando zero pendência Prettier nos 7
+  arquivos deste lote.
+- **Bloqueio durante a execução**: nenhum novo. `BLOCKER-011` (origem deste
+  lote) permanece **Aberto** — o item (1) (correção imediata dos arquivos)
+  está resolvido para os 7 arquivos de RD1 por este lote, e `TASK.md`
+  Seção 3.3 já registra `REF-RD3-01` (8 arquivos de `BE-R02`/`FE-R09`) como
+  `Concluída` também, mas a validação formal (QA/DevSecOps) desse segundo
+  lote de refatoração (`Refatoração Lote-RD3`) está em andamento em sessão
+  paralela e não é escopo desta checagem. O item (2) de `BLOCKER-011`
+  (ação estrutural — `npm run format:check` explícito na Definição de
+  Pronto + avaliação de hook de pre-commit, dono Tech Lead) segue **sem
+  endereçar**; esta checagem não decide por conta própria fechar o
+  bloqueio inteiro.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `BLOCKER-011` item (2), sem prazo formal definido além de "recomendado
+  antes do início de RD2" (já ultrapassado); demais débitos herdados
+  (`DEBT-01`/`DEBT-02`/`DEBT-04`) inalterados, fora do escopo deste lote.
+
+## Lote Refatoração RD3 — Correção de Formatação (`REF-RD3-01`, achado `BUG-QA-RD3-01`/`BLOCKER-011` item 1 sobre o Lote RD3)
+
+- **Fechado em (QA)**: 2026-09-05
+- **Tarefas incluídas**: `REF-RD3-01` (único item do lote, `TASK.md` Seção
+  3.3, Parte II) — `npx prettier --write` restrito exatamente aos 8 arquivos
+  de propriedade de `BE-R02`/`FE-R09` reprovados por `npm run format:check`
+  no fechamento do Lote RD3 (`BUG-QA-RD3-01`). Refatoração pura, sem reabrir
+  nenhuma das 2 tarefas de origem (ambas seguem `Concluída`).
+- **Veredito de QA**: Aprovado (sem ressalva) — `QA-REPORT.md` Seção 22.
+  `git diff` linha a linha dos 8 arquivos confirmou 100% reflow de
+  linha/indentação, zero mudança de string/token/lógica/valor de asserção
+  (Seção 22.1); suíte relevante reexecutada e verde (160/160 testes
+  unitários de `src/modules/rodadas`/`src/features/times`, 52/52 testes de
+  integração de `app/api/rodadas` incluindo `listar.integration.test.ts`,
+  Seção 22.2); `npm run format:check` reexecutado sobre o **repositório
+  inteiro** e confirmado limpo ("All matched files use Prettier code
+  style!") — último achado de formatação em aberto desta iniciativa
+  resolvido (`BUG-QA-RD1-01` e `BUG-QA-RD3-01` ambos). Observação de
+  precisão registrada em 22.1, sem efeito de conteúdo e não bloqueante: o
+  `prettier --write` também reformatou, por granularidade de arquivo
+  inteiro, os parágrafos vizinhos de `FE-R02` (`MedalBadge`/`PresenceDot`)
+  em `app/dev/design-system/page.tsx`, além do parágrafo de `FE-R09` que
+  era o escopo nominal — mesmo conteúdo textual/renderizado, sem reabrir
+  `FE-R02`.
+- **Veredito de DevSecOps**: Aprovado (sem débito) — `SECURITY-REVIEW.md`
+  Seção 94, auditoria enxuta proporcional ao risco (nenhum arquivo de
+  dependência/infraestrutura tocado, nenhuma mudança de string/token/
+  controle de acesso/dado sensível/superfície de ataque). Concordância
+  integral com o QA, inclusive sobre o reflow adicional nos parágrafos de
+  `MedalBadge`/`PresenceDot` (sem componente de segurança).
+- **Checagem estrutural do Coordenador**: **Validado (sem ressalvas)** —
+  confirmado: `REF-RD3-01` está `Concluída` em `TASK.md` Seção 3.3; a tarefa
+  não tem dependência real (`Depende de: —`), consistente com a natureza do
+  lote (corrige achado pontual, não reabre `BE-R02`/`FE-R09`); nenhuma
+  dependência órfã/inconsistente na Seção 3.0/4 do `TASK.md`; nenhuma tarefa
+  do lote em `Bloqueada`. Nenhuma tarefa nova criada em
+  `Refatoração Lote-RD3` (não há achado adicional a corrigir). Esta checagem
+  não executou `npm run format:check` diretamente (ferramenta de shell
+  indisponível nesta sessão do Coordenador, mesma limitação já registrada na
+  checagem estrutural do Lote Refatoração RD1) — o veredito se apoia na
+  reexecução independente já documentada e datada do mesmo dia por QA
+  (Seção 22.2, repositório inteiro) e DevSecOps (Seção 94).
+- **Bloqueio durante a execução**: nenhum novo. `BLOCKER-011` (origem deste
+  lote, junto com `Refatoração Lote-RD1`) tem agora o item (1) **100%
+  resolvido** — os 15 arquivos originalmente listados (7 de `REF-RD1-01` + 8
+  de `REF-RD3-01`, conjuntos disjuntos) confirmados reformatados, com
+  `npm run format:check` limpo no repositório inteiro (`QA-REPORT.md` Seção
+  22.2). `BLOCKER-011` **permanece Aberto**, no entanto — o item (2) (ação
+  estrutural: `npm run format:check` explícito na Definição de Pronto do
+  `TASK.md` + avaliação de hook de pre-commit `.husky`/`lint-staged`, dono
+  Tech Lead) segue **sem endereçar**; esta checagem não decide por conta
+  própria fechar o bloqueio inteiro nem assume esse item por conta própria.
+- **Débitos/pendências que seguem carregados** (nenhum bloqueante):
+  `BLOCKER-011` item (2), sem prazo formal definido além de "recomendado
+  antes do início de RD2" (já ultrapassado, agora cobrindo também o período
+  RD3); demais débitos herdados (`DEBT-01`/`DEBT-02`/`DEBT-04`) inalterados,
+  fora do escopo deste lote.

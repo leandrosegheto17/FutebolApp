@@ -236,7 +236,11 @@ export function TimesResultado({
         <Button loading={confirmando} onClick={onConfirmar}>
           Confirmar Times
         </Button>
-        <Button variant="secondary" loading={novoSorteioCarregando} onClick={onNovoSorteio}>
+        <Button
+          variant="secondary"
+          loading={novoSorteioCarregando}
+          onClick={onNovoSorteio}
+        >
           <span aria-hidden="true">🔄 </span>
           Novo sorteio
         </Button>

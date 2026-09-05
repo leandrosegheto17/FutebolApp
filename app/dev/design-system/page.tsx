@@ -327,9 +327,8 @@ export default function StyleGuidePage() {
           <h2>MedalBadge (FE-R02)</h2>
           <p>
             Conteúdo visual é o próprio emoji de medalha do mockup real (🥇🥈🥉), com
-            correção de acessibilidade obrigatória: texto ordinal equivalente
-            (`sr-only`) para os 3 primeiros colocados (UX-SPEC.md Parte II Seção
-            2.2/5.4).
+            correção de acessibilidade obrigatória: texto ordinal equivalente (`sr-only`)
+            para os 3 primeiros colocados (UX-SPEC.md Parte II Seção 2.2/5.4).
           </p>
           <div className={styles.row} style={{ alignItems: "center" }}>
             <MedalBadge position={1} />
@@ -341,9 +340,9 @@ export default function StyleGuidePage() {
         <section className={styles.section}>
           <h2>PresenceDot (FE-R02)</h2>
           <p>
-            Dot de status (P/A/L) da matriz de últimas rodadas de T02 — letra visível
-            + `aria-label` por extenso (nunca uma letra solta por voz). Reutilizado
-            por `FE-R03` (T03) quando implementada.
+            Dot de status (P/A/L) da matriz de últimas rodadas de T02 — letra visível +
+            `aria-label` por extenso (nunca uma letra solta por voz). Reutilizado por
+            `FE-R03` (T03) quando implementada.
           </p>
           <div className={styles.row} style={{ alignItems: "center" }}>
             <PresenceDot status="presente" />
@@ -355,11 +354,10 @@ export default function StyleGuidePage() {
         <section className={styles.section}>
           <h2>PitchBackground / PlayerChip (FE-R09)</h2>
           <p>
-            Simulador tático de T09 (Montagem de Times) — composição via CSS Grid/
-            Flexbox sobre `PlayerChip`s reais e focáveis, sem biblioteca de
-            renderização gráfica nova (`ADR-014`). Rótulos de posição/formação são
-            decorativos (confirmado pelo organizador, UX-SPEC.md Parte II Seção 7.2
-            item 8).
+            Simulador tático de T09 (Montagem de Times) — composição via CSS Grid/ Flexbox
+            sobre `PlayerChip`s reais e focáveis, sem biblioteca de renderização gráfica
+            nova (`ADR-014`). Rótulos de posição/formação são decorativos (confirmado pelo
+            organizador, UX-SPEC.md Parte II Seção 7.2 item 8).
           </p>
           <PitchBackground
             formacao="4-3-3"

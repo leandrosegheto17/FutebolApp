@@ -3208,3 +3208,669 @@ crítica relatada é `GHSA-5xrq-8626-4rwp`, a mesma de `DEBT-01`, dev-only,
 sem exposição em produção.
 
 ---
+
+## 79. Contexto e Método — Lote RD1 (Telas Públicas Redesenhadas: Ranking e Presença, Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+**Gatilho**: `QA-REPORT.md` Seção 19 — Lote RD1 (`BE-R01` + `FE-R02` +
+`FE-R03`) aprovado com ressalvas em 2026-09-05 (débito de baixa severidade,
+formatação pura, `BUG-QA-RD1-01`/`BLOCKER-011`, reclassificado pelo próprio
+QA como achado **Simples** na reconfirmação de 19.10), com o encaminhamento
+explícito de que o lote está "elegível para seguir à auditoria do
+DevSecOps". Esta é a **primeira auditoria de DevSecOps sobre este lote** —
+nenhuma seção anterior deste relatório o cobre.
+
+**Referências de arquitetura/governança usadas como contra-o-quê-auditar**:
+`SDD.md` Seção 7.5 (camada de exposição pública — views/RLS, mesmo mecanismo
+de `ADR-005` já usado por `BE-03`/`ranking_publico`/`presenca_mensal_publica`,
+Lote L2, Seção 30-38 deste relatório); `TASK.md` Parte II Seção 6.2-R item 1
+("mecanismo de exposição... usando o mecanismo de RLS+views já aprovado
+(`ADR-005`) — nenhum novo ADR necessário, é a mesma classe de decisão que
+`BE-03` já usou"); `GUARDRAILS.md` regras 5/6/9 (RLS `deny-by-default`,
+`anon` nunca escreve, nenhuma linha de `atleta` excluída fisicamente) e
+31/32/37 (reuso de componente único do design system, lacuna de detalhe vs.
+estrutural, substituição atômica de tokens); `API-CONTRACT.yaml`
+(`RankingPublicoRecentesItem`/`RodadaRecenteStatus`, `GET
+/ranking_publico_recentes`, changelog `0.13.0`). `CTO-REVIEW.md` consultado
+(Gate 2/Gate 3 da iniciativa) — nenhuma condição de execução pendente
+relacionada a segurança além das já incorporadas nas regras citadas.
+
+**Método**: mesmo rigor de `RD0` (Seção 70) e do precedente direto mais
+próximo em natureza — `BE-03`/L2 (Seção 30-38), primeira vez que este
+projeto expôs uma view pública curada. Nenhuma alegação do Backend/
+Frontend/QA aceita sem verificação direta. Reexecutados/conferidos nesta
+auditoria: leitura linha a linha da migration `20260904090000_create_
+ranking_publico_recentes_view.sql` (mecanismo `ROW_NUMBER()`, `GRANT`/
+`REVOKE`, ausência de `security_invoker`, comparado byte a byte contra o
+padrão já aprovado de `20260902101300_create_public_views.sql`); leitura de
+`rankingRecentesApi.ts`/`presencaMensalApi.ts` (allowlist de colunas
+explícita, nunca `select("*")`); leitura de `RankingList.tsx`,
+`PublicHomeShell.tsx`, `PresencaMensal.tsx`, `matrix.ts`, `MedalBadge.tsx`,
+`PresenceDot.tsx` (varredura de `console.*`/`dangerouslySetInnerHTML` —
+nenhuma ocorrência); `git diff` de `package.json`/`package-lock.json`/
+`vercel.json` desde antes do commit `d81fc99` (que introduziu as 3 tarefas)
+— confirmado diff vazio nos três, não apenas aceito o relato de "nenhuma
+dependência nova"; reprodução independente do diff Prettier dos 7 arquivos
+citados em `BUG-QA-RD1-01`/`BLOCKER-011` (não apenas aceita a classificação
+"formatação pura" do QA — reexecutado `prettier` sobre o conteúdo real de
+cada um dos 7 arquivos e comparado linha a linha); `npm audit --json`
+reexecutado para reconfirmar `DEBT-01`/`DEBT-02`/`DEBT-04` sem mudança.
+
+## 80. `static-security-analysis` — Lote RD1
+
+| Verificação | Comando/método | Resultado |
+|---|---|---|
+| Nenhuma dependência nova introduzida por `BE-R01`/`FE-R02`/`FE-R03` | `git diff 8925bfb d81fc99 -- package.json package-lock.json` (`vercel.json` incluído) | ✅ diff vazio nos três arquivos — confirmado de forma independente, não apenas a nota de conclusão das 3 tarefas |
+| `GRANT`/`REVOKE` da nova view idênticos ao padrão já aprovado | Leitura da migration `20260904090000_...sql` comparada linha a linha contra `20260902101300_create_public_views.sql` | ✅ `revoke all ... from public` explícito antes do `grant`; `grant select` apenas para `anon`/`service_role`; nenhuma tabela base recebe `GRANT` novo; nenhuma das duas views usa `security_invoker = true` — mesma decisão de design já auditada e aceita em `BE-03`/L2 (a checagem de permissão roda como o dono da view, comportamento intencional documentado no precedente, reaproveitado aqui sem alteração) |
+| Mecanismo `ROW_NUMBER() OVER (PARTITION BY atleta_id ...)` corresponde exatamente ao especificado, sem lógica adicional oculta | Leitura completa da migration (74-164) | ✅ CTE `participacoes_numeradas` → `recentes_por_atleta` (corte em `posicao <= 7`) → `grupo_stats` (3 subqueries agregadas) → `select` final com `cross join`/`left join`; nenhum `select *`, nenhuma coluna fora do especificado |
+| `console.*`/`dangerouslySetInnerHTML` nos 8 arquivos de produto do lote | `grep -rn "console\.\|dangerouslySetInnerHTML"` em `src/features/ranking-publico`, `src/features/presenca-mensal`, `src/components/ui/MedalBadge`, `src/components/ui/PresenceDot`, e na migration | ✅ zero ocorrências |
+| Alocação de tipo/`enum` de `RodadaRecenteStatus.status` sem injeção de valor fora do domínio | Leitura de `API-CONTRACT.yaml` (linha 224-227) + `PresenceDot.tsx` (`Record<PresenceStatus, ...>` exaustivo, TypeScript recusa valor fora de `"presente" \| "ausente" \| "lesionado"` em tempo de compilação) | ✅ nenhuma superfície de valor arbitrário renderizado sem mapeamento |
+| Achado de `BUG-QA-RD1-01`/`BLOCKER-011` (`npm run format:check`, 7 arquivos) não esconde mudança de comportamento/segurança | Reexecução independente: `diff` de cada um dos 7 arquivos reais contra a saída de `npx prettier <arquivo>` (não aceita a leitura do QA sem reconferir) | ✅ confirmado, arquivo a arquivo — toda diferença é quebra de linha/indentação (`RankingList.tsx`: só JSX reflow de atributos longos; `format.test.ts`/`matrix.test.ts`/`PublicHomeShell.test.tsx`/`rankingRecentesApi.test.ts`/`PresencaMensal.test.tsx`: só reflow de `expect(...)`/objeto literal; `ranking-publico-recentes.integration.test.ts`: só reflow de array/objeto de payload de teste). **Nenhuma string, token, valor de asserção, nome de coluna ou lógica muda entre o conteúdo real e a versão formatada** — confirma, do ponto de vista de segurança, que o achado é puramente cosmético, sem relevância para esta auditoria além do já registrado pelo QA |
+| `npm audit` — dependências de terceiros | `npm audit --json` reexecutado nesta data | Reconfirma `DEBT-01` (crítico, dev-only, `vitest`), `DEBT-02` (baixa, toolchain de lint) e `DEBT-04` (média, `next@14.2.35`) **sem mudança de severidade/escopo** — total 1 crítica/9 altas/4 moderadas, idêntico ao já registrado; não atribuível a `RD1` (nenhum arquivo de dependência tocado pelo commit `d81fc99`, confirmado acima) |
+| Varredura de segredo/credencial hardcoded nos arquivos novos | Leitura completa de `rankingRecentesApi.ts`, `presencaMensalApi.ts`, `matrix.ts`, `MedalBadge.tsx`, `PresenceDot.tsx` | ✅ nenhuma ocorrência — nenhum destes arquivos tem motivo estrutural para conter segredo (fetch usa `getAnonClient()`, já auditado em L2) |
+
+**Conclusão desta seção**: nenhum achado de segurança novo introduzido pelo
+código deste lote. `DEBT-01`/`DEBT-02`/`DEBT-04` reconfirmados sem mudança —
+não atribuíveis a `RD1`. O único achado do QA sobre este lote
+(`BUG-QA-RD1-01`/`BLOCKER-011`) é reconfirmado, de forma independente, como
+puramente cosmético — sem componente de segurança.
+
+## 81. `security-requirement-validation` — Lote RD1
+
+Requisito aplicável: `SDD.md` Seção 7.5 (camada de exposição pública) +
+`TASK.md` Parte II Seção 6.2-R item 1 (mecanismo de `ADR-005` reaproveitado
+sem novo ADR) + `GUARDRAILS.md` regras 5/6/9.
+
+- **Guardrail 5 (RLS `deny-by-default` em toda tabela nova)**: não aplicável
+  no sentido literal — `BE-R01` não cria tabela nova, só uma view sobre
+  tabelas já existentes (`app.atleta`, `app.participacao_rodada`,
+  `app.rodada`), cujo RLS já foi auditado e aprovado em L2 (Seção 30-38
+  deste relatório) e permanece inalterado (nenhuma migration deste lote
+  toca `alter table ... enable row level security` em nenhuma tabela base).
+  Confirmado por leitura completa da migration: **nenhum `alter table`
+  aparece nela**, só `create view`/`revoke`/`grant`.
+- **Guardrail 6 (`anon` nunca escreve)**: satisfeito — a migration só
+  concede `grant select` (nunca `insert`/`update`/`delete`) à role `anon`
+  na view nova, mesmo padrão de `ranking_publico`/`presenca_mensal_publica`.
+- **Guardrail 9 (nenhuma linha de `atleta` excluída fisicamente)**: não
+  tocado por este lote (nenhuma migration de `DELETE`/`DROP` sobre
+  `app.atleta`) — a view filtra por `a.ativo = true`, que é o mecanismo já
+  aprovado de exclusão lógica (`ADR-011`), não uma exclusão física nova.
+- **RN-01/ADR-005 (nunca expor `contato`/`data_nascimento`)**: satisfeito —
+  confirmado em 3 camadas independentes: (1) a `select` final da view
+  (linhas 120-137 da migration) não referencia `contato` nem
+  `data_nascimento` em nenhum ponto; (2) `RANKING_PUBLICO_RECENTES_COLUMNS`
+  em `rankingRecentesApi.ts` é uma allowlist explícita de 5 colunas, nunca
+  `select("*")`; (3) o teste de integração de `BE-R01`
+  (`ranking-publico-recentes.integration.test.ts`) reexecutado por este
+  agente exercita `select("*")` contra a chave `anon` real e afirma a
+  ausência das duas colunas — a garantia real está no banco (RLS de
+  `app.atleta`/GRANT restrito à view), a allowlist do Frontend é defesa em
+  profundidade, não a única barreira.
+- **Exclusão de atleta anonimizado/inativo (`ADR-011`) e rodada `excluida`**:
+  satisfeito — a view filtra `where a.ativo = true` na `select` final e
+  `where r.status = 'lancada'` na CTE de origem (exclui `excluida`
+  implicitamente, por omissão do valor do enum); reconfirmado pelo teste de
+  integração real (`atletaAnonimizadoId` ativo=false ausente da view,
+  rodada com `status='excluida'` fora de `rodadas_recentes`), não apenas
+  pela leitura estática do SQL.
+- **`API-CONTRACT.yaml` incrementado, changelog registrado**: satisfeito —
+  `RankingPublicoRecentesItem`/`RodadaRecenteStatus` presentes (linhas
+  211-243), `GET /ranking_publico_recentes` documentado (linha 1828),
+  entrada de changelog em `0.13.0` (linha 3370-3375) confirma o escopo
+  exato ("Não altera nem [`ranking_publico`]" — reconfirmado por leitura,
+  não truncado).
+- **Reuso de componente único do design system (Guardrail 31)**:
+  `PresenceDot` implementado uma única vez (`src/components/ui/PresenceDot/`)
+  e reutilizado por `FE-R02`/`FE-R03` sem duplicação de markup/CSS —
+  relevante à superfície de auditoria porque duplicação de componente que
+  renderiza dado de usuário (ainda que aqui seja só status agregado) é o
+  tipo de padrão que historicamente introduz divergência de tratamento de
+  a11y/dado entre cópias; não é o caso aqui.
+
+**Conclusão desta seção**: nenhum requisito de arquitetura de segurança
+violado. `RN-01`/`ADR-005` (a garantia central deste lote do ponto de vista
+de segurança) satisfeito em 3 camadas, verificado contra Supabase local
+real, não apenas leitura estática.
+
+## 82. `compliance-validation` — LGPD (nível de implementação, escopo Lote RD1)
+
+- **Minimização de dado (LGPD Art. 6, III)**: satisfeito — a view nova
+  seleciona exatamente as colunas necessárias à finalidade (matriz de
+  presença + 2 estatísticas de grupo), nenhuma coluna adicional de
+  `app.atleta`/`app.participacao_rodada`/`app.rodada` além do estritamente
+  necessário (`id`, `apelido_exibicao`, `ativo` como filtro — não exposto
+  como coluna de saída —, `data`, `status`). Nenhuma coluna de identificação
+  civil (`contato`, `data_nascimento`) trafega em nenhum ponto da cadeia
+  banco→API→Frontend, confirmado na Seção 81.
+- **Direito ao esquecimento/anonimização (LGPD Art. 18, `ADR-011`)**:
+  satisfeito — a view respeita o mecanismo já aprovado (`a.ativo = true`),
+  nenhum novo caminho de exposição de atleta anonimizado foi criado;
+  reconfirmado pelo teste de integração real (Seção 81).
+- **Nenhuma nova base legal/finalidade de tratamento introduzida**: este
+  lote não coleta dado novo de titular — é uma reorganização de
+  apresentação (matriz em vez de contagem agregada) sobre dado já coletado
+  e já autorizado para exibição pública (Parte I, `BE-03`/`ranking_publico`
+  já aprovado). `rodadas_jogadas`/`media_presenca` são estatísticas
+  agregadas de grupo, sem vínculo com titular individual identificável.
+
+**Conclusão desta seção**: nenhum achado de compliance obrigatório em
+aberto no escopo do Lote RD1.
+
+## 83. `sensitive-data-exposure-check` — conclusão dedicada (Lote RD1)
+
+- **Camada de banco**: `select` final da view (migration, linhas 120-137)
+  não referencia `contato`/`data_nascimento` — confirmado por leitura
+  completa, não apenas checagem por nome de coluna isolada (também
+  confirmado que nenhuma das 3 CTEs intermediárias as seleciona, o que
+  eliminaria a possibilidade de vazamento indireto via `jsonb_build_object`
+  com campo adicional).
+- **Camada de fetch (Frontend)**: `rankingRecentesApi.ts`/
+  `presencaMensalApi.ts` usam allowlist explícita de colunas
+  (`RANKING_PUBLICO_RECENTES_COLUMNS`/`PRESENCA_MENSAL_COLUMNS`), nunca
+  `select("*")` — mesmo padrão defensivo de `rankingApi.ts` (L2).
+- **Camada de mensagem de erro**: `RankingList.tsx`/`PresencaMensal.tsx`
+  capturam qualquer erro de `Promise.all`/`fetch` e emitem sempre a mesma
+  mensagem genérica (`ERROR_MESSAGE`), nunca `error.message` bruto
+  renderizado ao usuário — confirmado por leitura direta do bloco
+  `.catch()` em ambos os arquivos; nenhum `console.error`/log de erro com
+  possível conteúdo de infraestrutura (string de conexão, stack trace)
+  presente em nenhum dos dois componentes.
+- **Camada de armazenamento local**: nenhum dos componentes deste lote grava
+  em `localStorage`/`sessionStorage`/cookie — estado é 100% `useState` em
+  memória, descartado ao navegar/recarregar (mesmo padrão já usado pela
+  Parte I para estas duas telas públicas, sem sessão a preservar).
+- **Payload de API público (`API-CONTRACT.yaml`)**: schema
+  `RankingPublicoRecentesItem`/`RodadaRecenteStatus` expõe apenas
+  `atleta_id` (UUID, não é PII por si só sem outro dado de titular
+  associado), `nome_exibicao` (apelido público, já exposto por
+  `ranking_publico`/BE-03 desde a Parte I, mesma decisão de threat model já
+  aceita), `rodadas_recentes`/`rodadas_jogadas`/`media_presenca` (dado
+  agregado/derivado, não identificação civil).
+
+**Conclusão desta seção**: nenhum achado de exposição de dado sensível de
+severidade alta/crítica ou média neste lote. Nenhum item novo de baixo
+risco identificado (diferente de `RD0`, que registrou a rota
+`/dev/design-system` — este lote não toca essa rota).
+
+## 84. Requisitos de segurança operacional para o DevOps (Lote RD1)
+
+- Nenhuma dependência nova, nenhuma variável de ambiente nova introduzida
+  por este lote (`package.json`/`package-lock.json`/`vercel.json`
+  intocados, confirmado por `git diff` direto na Seção 80) — nenhuma ação
+  de secrets/rede específica de `RD1`.
+- **Novo endpoint público** (`GET /ranking_publico_recentes`, via
+  PostgREST/Supabase, mesmo mecanismo de exposição já usado por
+  `ranking_publico`/`presenca_mensal_publica`): nenhuma configuração de
+  rede/firewall adicional necessária — é a mesma superfície de rede já
+  aprovada e já coberta pela CSP pendente (`DEBT-03`, herdado, ainda em
+  aberto com prazo "antes do primeiro deploy de produção" — este lote não
+  altera esse prazo nem essa lista de origens, já que usa o mesmo domínio
+  Supabase já contemplado no escopo original de `DEBT-03`).
+- Reforço, herdado e inalterado por este lote: `DEBT-01`/`DEBT-02`/`DEBT-04`
+  continuam com os mesmos prazos/donos já registrados — nenhuma mudança de
+  urgência atribuível a `RD1`.
+
+## 85. Checklist de "Pronto" do Lote RD1 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seção 80-81).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 82).
+- [x] Todo achado de baixa/média severidade registrado como débito, com
+      prazo — nenhum achado de **segurança** novo neste lote;
+      `BUG-QA-RD1-01`/`BLOCKER-011` (QA) reconfirmado **sem componente de
+      segurança real** (Seção 80, diff Prettier reexecutado linha a linha);
+      `DEBT-01`/`DEBT-02`/`DEBT-04` (herdados) reconfirmados sem mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 84.
+- [x] Achado de relevância estratégica sinalizado ao Gestor — **nenhum
+      achado técnico deste lote exige decisão de negócio nova**. `DEBT-03`
+      (CSP pendente) e `DEBT-04` (roadmap `next@15`/`16`) permanecem
+      conhecidos do CTO desde auditorias anteriores; esta auditoria apenas
+      reconfirma que `RD1` não altera esse quadro.
+
+## **Lote RD1 (BE-R01, FE-R02, FE-R03): APROVADO**
+
+Nenhum achado de severidade alta/crítica. Nenhum achado de compliance
+obrigatório em aberto. Nenhuma dependência nova (`package.json`/
+`package-lock.json`/`vercel.json` intocados, confirmado por `git diff`
+direto, não por alegação). A nova view pública `app.ranking_publico_recentes`
+segue exatamente o mesmo padrão de `GRANT`/`REVOKE`/ausência de
+`security_invoker` já aprovado para `ranking_publico`/
+`presenca_mensal_publica` (L2) — nenhuma tabela base recebe `GRANT` novo,
+`anon` só recebe `SELECT`. `RN-01`/`ADR-005` (nunca expor `contato`/
+`data_nascimento`) confirmado em 3 camadas independentes (banco, fetch do
+Frontend, teste de integração real contra Supabase local) — não apenas a
+alegação do Backend/QA. Exclusão de atleta anonimizado/inativo e de rodada
+`excluida` reconfirmada contra dado real inserido pelo próprio teste, não
+só leitura estática do SQL. Nenhuma ocorrência de `console.*`/
+`dangerouslySetInnerHTML` em nenhum dos 8 arquivos de produto deste lote.
+
+**Achado do QA (`BUG-QA-RD1-01`/`BLOCKER-011`) reavaliado de forma
+independente por este agente, não copiada a conclusão do QA**: reexecutado
+o diff Prettier dos 7 arquivos citados contra o conteúdo real — confirmado
+que **toda** diferença é quebra de linha/indentação, sem qualquer mudança
+de string, token, nome de coluna, valor de asserção ou lógica. **Não é um
+achado de segurança** — não altera controle de acesso, exposição de dado,
+criptografia ou superfície de ataque de nenhuma forma. Concordância integral
+com a classificação do QA ("Simples"); nenhuma elevação de severidade por
+parte deste agente.
+
+**Débitos de dependência herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`)
+reconfirmados sem mudança** — `npm audit --json` reexecutado nesta data
+retorna a mesma contagem (1 crítica/9 altas/4 moderadas) já registrada;
+não atribuíveis a este lote (nenhum arquivo de dependência tocado pelo
+commit `d81fc99`, confirmado por `git diff` direto).
+
+**Nenhum achado de relevância estratégica novo para o Gestor.** `DEBT-03`
+(CSP pendente, prazo "antes do primeiro deploy de produção") e `DEBT-04`
+(roadmap `next@15`/`16`) permanecem no radar do CTO desde auditorias
+anteriores — este lote não altera esse quadro nem introduz urgência nova.
+
+**Encaminhamento**: **nenhum achado bloqueante** — lote liberado para a
+dupla aprovação (QA + DevSecOps) exigida antes do deploy (`EXECUTION-FLOW.md`
+§5), condicionado apenas à checagem estrutural do Coordenador sobre a
+criação da tarefa `Refatoração Lote-RD1` (7 arquivos de formatação,
+sinalizada pelo QA em `QA-REPORT.md` 19.10, reconfirmada aqui como
+puramente cosmética). Nenhuma entrada nova em `BLOCKERS.md` originada por
+este agente — nenhum achado deste lote exige retorno ao time de
+implementação.
+
+---
+
+## 86. Contexto e Método — Lote RD3 (Histórico e Times Redesenhados, Iniciativa "Redesenho Visual", Parte II do `TASK.md`)
+
+**Gatilho**: `QA-REPORT.md` Seção 20 — Lote RD3 (`BE-R02` + `SPK-02` +
+`FE-R09` + `FE-R06` + `FE-R11`) aprovado com ressalvas em 2026-09-05 (débito
+de baixa severidade, formatação pura, `BUG-QA-RD3-01`, já classificado pelo
+próprio QA como achado **Simples** em 20.8), com o encaminhamento explícito
+de que o lote está "elegível para seguir à auditoria do DevSecOps". Esta é a
+**primeira auditoria de DevSecOps sobre este lote** — nenhuma seção anterior
+deste relatório o cobre. `FE-R09`/`FE-R11`/`BE-R02`/`SPK-02` chegam mesclados
+em `main` (commit `d81fc99`); `FE-R06` (a última a fechar o lote) ainda está
+só na árvore de trabalho, não commitada — auditada como está (diff contra
+`HEAD`), mesma ressalva operacional já registrada pelo QA (commit pendente
+antes de `/deploy`).
+
+**Referências de arquitetura/governança usadas como contra-o-quê-auditar**:
+`TASK.md` Parte II Seção 3.1 (critério de aceite literal de `BE-R02` —
+"cálculo por JOIN/subquery no próprio endpoint", "nenhuma tabela/coluna
+nova", "nenhuma função PL/pgSQL nova") e Seção 6.2-R (decisões de detalhe já
+avalizadas pelo Tech Lead: mapeamento posicional `colete`/`sem_colete`,
+fallback `null` para rodada legado); `UX-SPEC.md` Parte II Seção 2.6
+(renomeação real "Colete"/"Sem Colete", banner "✓ Restrição respeitada");
+`ADR-014` (renderização do simulador tático sem biblioteca gráfica nova,
+consequência de que cada `PlayerChip` continua sendo um elemento DOM real
+focável); `GUARDRAILS.md` regra 6 (`anon` nunca escreve/lê tabelas de
+`app.rodada`/`app.time`/`app.time_atleta` — toda leitura passa por `service
+role` atrás do middleware), regra 19/21 (LGPD — `contato`/`data_nascimento`
+nunca trafegam), regra 22 (heurística de montagem de times — verificado que
+o fallback client-side `buildRoundRobinTimes` já existia antes de `RD3`,
+inalterado por este lote, não uma introdução nova a avaliar aqui) e regra 31
+(reuso de componente único do design system). `API-CONTRACT.yaml` 0.14.0
+(`RodadaResumoItem.confronto`/`.status_correcao`, `RestricaoObrigatoriaResponse`,
+`TimeMontadoResponse`/`SugestaoTimesResultado`).
+
+**Método**: mesmo rigor de `RD0`/`RD1` (Seções 70/79). Nenhuma alegação do
+Backend/Frontend/QA aceita sem verificação direta. Reexecutados/conferidos
+nesta auditoria: leitura linha a linha de `confronto.ts`/`listar.ts`/
+`repository.ts` (módulo `src/modules/rodadas`) para confirmar ausência de
+consulta N+1 e isolamento correto por `rodada_id`; leitura de `presenter.ts`/
+`route.ts` para confirmar que `GET /api/rodadas` permanece atrás de
+`INTERNAL_READ_PROTECTED_PREFIXES` e que a resposta não introduz campo além
+de `confronto`/`status_correcao`; leitura linha a linha de `PlayerChip.tsx`/
+`PitchBackground.tsx`/`times.ts`/`TimesResultado.tsx`/`MontagemTimesShell.tsx`
+para a reconciliação cliente de restrições e a superfície de HTML5 DnD;
+varredura de `console.*`/`dangerouslySetInnerHTML` em todos os arquivos de
+produto das 5 tarefas; `git diff d81fc99~1 d81fc99 -- package.json
+package-lock.json vercel.json` (confirmado vazio nos três, não apenas aceita
+a nota de conclusão de "nenhuma dependência nova"); reprodução independente
+do diff Prettier dos 8 arquivos citados em `BUG-QA-RD3-01` (`npx prettier
+<arquivo> | diff`, não apenas aceita a classificação "formatação pura" do
+QA); leitura completa do `git diff` de `SubstituicoesModal.tsx` (`FE-R11`)
+para confirmar "zero mudança funcional"; `npm audit --json` reexecutado para
+reconfirmar `DEBT-01`/`DEBT-02`/`DEBT-04` sem mudança.
+
+## 87. `static-security-analysis` — Lote RD3
+
+| Verificação | Comando/método | Resultado |
+|---|---|---|
+| Nenhuma dependência nova introduzida por `BE-R02`/`SPK-02`/`FE-R09`/`FE-R06`/`FE-R11` | `git diff d81fc99~1 d81fc99 -- package.json package-lock.json vercel.json` | ✅ diff vazio nos três arquivos — confirmado de forma independente; `package.json`/`package-lock.json` também ausentes de `git status` na árvore de trabalho atual (onde `FE-R06` ainda não foi commitada) |
+| `BE-R02` não cria tabela/coluna/função PL/pgSQL nova (critério de aceite literal) | Leitura de `supabase/migrations/` desde `8925bfb` + leitura completa de `confronto.ts`/`listar.ts`/`repository.ts` | ✅ nenhuma migration nova associada a `BE-R02`; `confronto`/`status_correcao` são 100% calculados em memória a partir de 4 consultas em lote (`Promise.all`) sobre tabelas já existentes (`app.time`, `app.time_atleta`, `app.participacao_rodada`, `app.evento_jogo`, `app.log_auditoria`, `app.configuracao_pontuacao`) |
+| Ausência de consulta N+1 em `listarRodadas` | Leitura de `listar.ts` (linhas 43-72) + `repository.ts` (`listarTimesComAtletasPorRodadas`/`somarGolsPorAtletaERodada`/`listarConfiguracaoPontosPorEvento`/`listarRodadaIdsComLogAuditoria`) | ✅ exatamente 5 consultas totais por chamada de `GET /api/rodadas` (1 para a listagem + 4 auxiliares em `Promise.all`, cada uma usando `.in(rodadaIds)`/`.in(timeIds)`/`.in(participacaoIds)` sobre o lote inteiro), independente do número de rodadas retornadas — nenhum loop de query por rodada |
+| Isolamento entre rodadas/atletas no cálculo de `confronto` | Leitura de `listarTimesComAtletasPorRodadas`/`somarGolsPorAtletaERodada` (`repository.ts`) | ✅ ambas retornam `Map` chaveado por `rodada_id` (e, dentro dele, por `atleta_id`/`time_id`), nunca uma lista achatada — `listar.ts` só lê `timesPorRodada.get(rodada.id)`/`golsPorRodada.get(rodada.id)` por rodada individual antes de calcular; impossível um gol/atleta de uma rodada vazar para o `confronto` de outra |
+| `confronto`/`status_correcao` não expõem `contato`/`data_nascimento` nem qualquer outro campo de `app.atleta` | Leitura de `confronto.ts` (tipo `TimeComAtletas` só carrega `atletaIds: readonly string[]`, nunca nome/contato), `presenter.ts` (`RodadaResumoResponse` só inclui `confronto`/`status_correcao` além dos campos já existentes de `BE-16`) | ✅ nenhuma referência a `apelido_exibicao`, `contato` ou `data_nascimento` em todo o caminho `repository.ts → confronto.ts → listar.ts → presenter.ts → route.ts` deste cálculo — o único identificador que trafega é `atleta_id` (uuid), usado só como chave de agregação, nunca serializado como saída |
+| `GET /api/rodadas` permanece atrás do middleware de sessão | Leitura de `route.ts` (comentário de cabeçalho) + `middleware.ts` (`INTERNAL_READ_PROTECTED_PREFIXES`) | ✅ `/api/rodadas` já estava na lista desde `BE-13` (`GET .../substituicoes`) — nenhuma mudança de `middleware.ts` necessária ou feita por `BE-R02` |
+| `console.*`/`dangerouslySetInnerHTML` nos arquivos de produto das 5 tarefas | `grep -rn "console\.\|dangerouslySetInnerHTML"` em `src/modules/rodadas`, `app/api/rodadas`, `src/features/historico`, `src/features/times`, `src/components/ui/PitchBackground`, `src/components/ui/PlayerChip` | ✅ zero ocorrências |
+| Superfície de HTML5 DnD nativo (`PlayerChip`) | Leitura completa de `PlayerChip.tsx` (`handleDragStart`/`handleDragOver`/`handleDrop`) | ✅ `dataTransfer` carrega só `atleta_id` (uuid já validado pelo backend, nunca texto arbitrário de usuário) via `"text/plain"`; nenhum uso de `dataTransfer.setData("text/html", ...)`; o valor lido em `handleDrop` só é comparado (`!==`) e repassado a `onSwap`/`swapAtletas` (`times.ts`), nunca renderizado como HTML — não há caminho de XSS via `dataTransfer` |
+| Achado de `BUG-QA-RD3-01` (`npm run format:check`, 8 arquivos) não esconde mudança de comportamento/segurança | Reexecução independente: `npx prettier <arquivo> \| diff` nos 8 arquivos reais (`confronto.ts`, `listar.ts`, `repository.ts`, `listar.integration.test.ts`, `times.test.ts`, `TimesResultado.test.tsx`, `TimesResultado.tsx`, `page.tsx`) | ✅ confirmado, arquivo a arquivo — toda diferença é quebra de linha/indentação por `printWidth: 90` (reflow de `reduce`/`Promise.all`/template string/objeto literal/JSX). **Nenhuma string, token, valor de asserção, nome de coluna ou lógica muda** entre o conteúdo real e a versão formatada — confirma, do ponto de vista de segurança, que o achado é puramente cosmético |
+| `npm audit` — dependências de terceiros | `npm audit --json` reexecutado nesta data | Reconfirma `DEBT-01` (crítico, dev-only, `vitest`), `DEBT-02` (baixa, toolchain de lint) e `DEBT-04` (média, `next@14.2.35`) **sem mudança de severidade/escopo** — total 1 crítica/9 altas/4 moderadas, idêntico ao já registrado; não atribuível a `RD3` (nenhum arquivo de dependência tocado pelo commit `d81fc99`, confirmado acima) |
+| `FE-R11` (`SubstituicoesModal.tsx`) — "zero mudança funcional" | `git diff HEAD -- src/features/times/SubstituicoesModal.tsx` | ✅ confirmado por leitura completa do diff — a única mudança é um bloco de comentário de auditoria; nenhuma linha de código executável alterada, nenhuma superfície nova |
+
+**Conclusão desta seção**: nenhum achado de segurança novo introduzido pelo
+código deste lote. `DEBT-01`/`DEBT-02`/`DEBT-04` reconfirmados sem mudança —
+não atribuíveis a `RD3`. O único achado do QA sobre este lote
+(`BUG-QA-RD3-01`) é reconfirmado, de forma independente, como puramente
+cosmético — sem componente de segurança.
+
+## 88. `security-requirement-validation` — Lote RD3
+
+Requisito aplicável: `TASK.md` Parte II Seção 3.1/6.2-R (critério de aceite
+de `BE-R02`) + `GUARDRAILS.md` regras 6/19/21/22/31 + `ADR-014`.
+
+- **Guardrail 6 (`anon` nunca escreve/lê tabelas protegidas)**: satisfeito —
+  `repository.ts` usa exclusivamente `getServiceRoleClient()` (mesmo padrão
+  já auditado em `BE-08`/`BE-16`); nenhuma das 4 consultas auxiliares novas
+  de `BE-R02` passa pelo cliente `anon`. `GET /api/restricoes` (consumido por
+  `FE-R09` no cliente) é o endpoint já aprovado de `BE-12` — sem mudança de
+  autorização introduzida por este lote.
+- **Reconciliação de restrições no cliente (`FE-R09`) não é lógica de
+  autorização**: ponto de maior atenção desta auditoria. Confirmado por
+  leitura direta de `restricoesRespeitadas` (`times.ts`) e do wiring em
+  `TimesResultado.tsx`/`MontagemTimesShell.tsx`: a função só **decora** a UI
+  com um banner informativo ("✓ Restrição respeitada") — não bloqueia, não
+  habilita/desabilita o botão "Confirmar Times", não altera o corpo enviado
+  a `POST /api/rodadas/{id}/times` (`buildConfirmarTimesInput`, inalterado
+  pelo lote) e não influencia `buildRoundRobinTimes`/`swapAtletas`. A decisão
+  de permitir ou recusar uma divisão de times continua sendo tomada
+  inteiramente pelo Backend (`app.confirmar_times_rodada`/`BE-13`,
+  inalterado por este lote) — a única fonte de autorização real. Falha ao
+  buscar `GET /api/restricoes` degrada silenciosamente para `[]` (nenhum
+  erro bloqueia o fluxo principal, nenhuma mensagem de erro de
+  infraestrutura exposta ao usuário) — confirmado em `MontagemTimesShell.tsx`
+  linha 138-147.
+- **Superfície de `PlayerChip`/DnD nativo (Guardrail 31/`ADR-014`)**: nenhuma
+  superfície nova de exposição de dado de atleta — `atletaId` (uuid) é o
+  único valor carregado pelo `dataTransfer`, nunca `nome`/`nivel_tecnico`; o
+  `aria-label` (`"Trocar {nome}, nível técnico {valor}"`) já existia como
+  atributo de acessibilidade do próprio `<button>` renderizado (visível a
+  qualquer inspeção de DOM, mesma exposição que já existia via texto visível
+  do chip — `nome`/`nivelTecnico` já eram dado renderizado na tela antes
+  desta tarefa, dentro do fluxo autenticado de T09, não uma exposição nova).
+  Nenhum uso de `text/html` em `dataTransfer`, nenhuma renderização do
+  conteúdo arrastado via `innerHTML`.
+- **`RN-01`/`ADR-005` (nunca expor `contato`/`data_nascimento`)**: satisfeito
+  para `BE-R02` — confirmado na Seção 87 que o caminho completo do cálculo de
+  `confronto` nunca referencia essas colunas, nem sequer `apelido_exibicao`
+  (o cálculo trabalha só com `atleta_id`).
+- **Guardrail 22 (heurística determinística de duas fases)**: o fallback
+  client-side `buildRoundRobinTimes` (usado só na opção "Gerar mesmo assim,
+  ciente do conflito", quando o Backend já provou via `ADR-010` que nenhuma
+  divisão automática satisfaz as restrições) **já existia antes de `RD3`**
+  (confirmado por `git diff 8925bfb d81fc99 -- src/features/times/times.ts`
+  — a função não aparece no diff) — não é uma introdução nova deste lote, e
+  seu uso já foi aceito em auditoria anterior à Parte II; `RD3`/`FE-R09` não
+  o modifica.
+- **`API-CONTRACT.yaml` conferido contra o código real**: `confronto`/
+  `status_correcao` (schema `ConfrontoRodada`, `RodadaResumoItem`) e
+  `RestricaoObrigatoriaResponse`/`TimeMontadoResponse`/
+  `SugestaoTimesResultado` (inalterados) — mesma conferência já feita pelo
+  QA na Seção 20.6, reconfirmada aqui de forma independente por leitura
+  direta do YAML campo a campo.
+
+**Conclusão desta seção**: nenhum requisito de arquitetura de segurança
+violado. O ponto de maior risco potencial identificado a priori (lógica de
+autorização vazando para o cliente via a reconciliação de restrições) **não
+se concretiza** — confirmado que a decisão de autorização real permanece
+100% no Backend, o cliente só decora a UI com um dado já público
+(`GET /api/restricoes`, endpoint já aprovado).
+
+## 89. `compliance-validation` — LGPD (nível de implementação, escopo Lote RD3)
+
+- **Minimização de dado (LGPD Art. 6, III)**: satisfeito — `BE-R02` calcula
+  `confronto`/`status_correcao` usando exclusivamente `atleta_id` (uuid) e
+  contadores agregados (gols, presença de log de auditoria); nenhuma coluna
+  de identificação civil trafega em nenhum ponto da cadeia banco→API. `FE-R09`
+  não introduz novo campo de coleta/exibição de dado pessoal — `nome`/
+  `nivel_tecnico` exibidos em `PlayerChip` já eram dado exibido por T09 antes
+  desta tarefa (RN-03, já aprovado), dentro do fluxo autenticado.
+- **Nenhuma nova base legal/finalidade de tratamento introduzida**: este
+  lote reorganiza apresentação de dado já coletado e já autorizado
+  (histórico de rodadas e montagem de times, ambos fluxos internos
+  pré-existentes) — não amplia o escopo de dado tratado.
+- **Área pública inalterada**: `BE-R02`/`FE-R09`/`FE-R06`/`FE-R11` operam
+  inteiramente na área autenticada (T06/T09/T11) — nenhuma mudança na
+  fronteira de exposição pública (`ADR-005`) auditada em `RD1`/L2.
+
+**Conclusão desta seção**: nenhum achado de compliance obrigatório em aberto
+no escopo do Lote RD3.
+
+## 90. `sensitive-data-exposure-check` — conclusão dedicada (Lote RD3)
+
+- **Camada de banco/cálculo (`BE-R02`)**: confirmado na Seção 87 — o caminho
+  `repository.ts → confronto.ts → listar.ts` nunca seleciona/agrega
+  `contato`/`data_nascimento`/`apelido_exibicao`; o único identificador que
+  circula é `atleta_id` (uuid), usado apenas como chave de `Map` para
+  agregação em memória, nunca serializado na resposta.
+- **Camada de payload de API (`presenter.ts`)**: `confronto: {colete,
+  sem_colete} | null` e `status_correcao` são os únicos campos novos —
+  ambos numéricos/enum, nenhum identificador de atleta neles.
+- **Camada de DOM/DnD (`FE-R09`)**: `dataTransfer` carrega só `atleta_id`
+  (uuid); `nome`/`nivelTecnico` já eram renderizados como texto visível do
+  `PlayerChip` antes desta tarefa (dado já exposto na tela, dentro do fluxo
+  autenticado de T09) — nenhuma exposição nova de dado sensível pela adição
+  do atalho de DnD.
+- **Camada de mensagem de erro**: `MontagemTimesShell.tsx` trata a falha de
+  `GET /api/restricoes` com degradação silenciosa (`setRestricoes([])`),
+  nunca expõe `error.message` bruto ao usuário; `RodadaListItem.tsx`
+  (`FE-R06`) usa placeholder textual acessível (`role="img"` + `aria-label`)
+  para `confronto: null`, nunca uma mensagem de erro de infraestrutura.
+- **Camada de armazenamento local**: nenhum dos componentes deste lote grava
+  em `localStorage`/`sessionStorage`/cookie — estado 100% `useState` em
+  memória (times montados, restrições carregadas), descartado ao navegar.
+
+**Conclusão desta seção**: nenhum achado de exposição de dado sensível de
+severidade alta/crítica ou média neste lote. Nenhum item novo de baixo risco
+identificado.
+
+## 91. Requisitos de segurança operacional para o DevOps (Lote RD3)
+
+- Nenhuma dependência nova, nenhuma variável de ambiente nova introduzida
+  por este lote (`package.json`/`package-lock.json`/`vercel.json`
+  intocados pelo commit `d81fc99`, confirmado por `git diff` direto na
+  Seção 87) — nenhuma ação de secrets/rede específica de `RD3`.
+- `GET /api/rodadas` (extensão de `BE-16`) não introduz superfície de rede
+  nova — já coberto pela mesma configuração de `INTERNAL_READ_PROTECTED_PREFIXES`
+  usada desde `BE-13`.
+- Reforço, herdado e inalterado por este lote: `DEBT-01`/`DEBT-02`/`DEBT-04`
+  continuam com os mesmos prazos/donos já registrados — nenhuma mudança de
+  urgência atribuível a `RD3`.
+
+## 92. Checklist de "Pronto" do Lote RD3 (Definition of Done do DevSecOps)
+
+- [x] **Nenhum achado de severidade alta/crítica em aberto** — confirmado
+      (Seções 87-88).
+- [x] Todo achado de compliance obrigatório (LGPD e afins) resolvido —
+      nenhum achado desta classe identificado (Seção 89).
+- [x] Todo achado de baixa/média severidade registrado como débito, com
+      prazo — nenhum achado de **segurança** novo neste lote;
+      `BUG-QA-RD3-01` (QA) reconfirmado **sem componente de segurança real**
+      (Seção 87, diff Prettier reexecutado arquivo a arquivo);
+      `DEBT-01`/`DEBT-02`/`DEBT-04` (herdados) reconfirmados sem mudança.
+- [x] Requisitos de segurança operacional definidos para o DevOps —
+      Seção 91.
+- [x] Achado de relevância estratégica sinalizado ao Gestor — **nenhum
+      achado técnico deste lote exige decisão de negócio nova**. `DEBT-03`
+      (CSP pendente) e `DEBT-04` (roadmap `next@15`/`16`) permanecem
+      conhecidos do CTO desde auditorias anteriores; esta auditoria apenas
+      reconfirma que `RD3` não altera esse quadro.
+
+## **Lote RD3 (BE-R02, SPK-02, FE-R09, FE-R06, FE-R11): APROVADO**
+
+Nenhum achado de severidade alta/crítica. Nenhum achado de compliance
+obrigatório em aberto. Nenhuma dependência nova (`package.json`/
+`package-lock.json`/`vercel.json` intocados pelo commit `d81fc99`,
+confirmado por `git diff` direto, não por alegação). `BE-R02` calcula
+`confronto`/`status_correcao` inteiramente em memória via 4 consultas em
+lote (`Promise.all`), sem consulta N+1 e sem vazamento de dado entre
+rodadas/atletas (agregação sempre chaveada por `rodada_id`/`atleta_id`,
+confirmado por leitura direta) — nenhum dos dois campos novos expõe
+`contato`/`data_nascimento` ou qualquer outro dado além de `atleta_id` e
+contadores agregados. A reconciliação de restrições no cliente (`FE-R09`,
+ponto de maior atenção desta auditoria) é confirmada como puramente
+decorativa (banner informativo) — a autorização real de confirmação de
+times permanece 100% no Backend (`app.confirmar_times_rodada`, inalterado).
+`PlayerChip`/HTML5 DnD nativo não abre superfície nova: `dataTransfer`
+carrega só `atleta_id` (uuid) via `text/plain`, nunca `text/html`, sem
+caminho de XSS; `nome`/`nivel_tecnico` já eram dado exibido antes desta
+tarefa, dentro do fluxo autenticado. `FE-R11` confirmado como mudança
+puramente de comentário (`git diff` completo revisado).
+
+**Achado do QA (`BUG-QA-RD3-01`) reavaliado de forma independente por este
+agente, não copiada a conclusão do QA**: reexecutado o diff Prettier dos 8
+arquivos citados contra o conteúdo real — confirmado que **toda** diferença
+é quebra de linha/indentação, sem qualquer mudança de string, token, nome de
+coluna, valor de asserção ou lógica. **Não é um achado de segurança** — não
+altera controle de acesso, exposição de dado, criptografia ou superfície de
+ataque de nenhuma forma. Concordância integral com a classificação do QA
+("Simples"); nenhuma elevação de severidade por parte deste agente.
+
+**Débitos de dependência herdados (`DEBT-01`, `DEBT-02`, `DEBT-04`)
+reconfirmados sem mudança** — `npm audit --json` reexecutado nesta data
+retorna a mesma contagem (1 crítica/9 altas/4 moderadas) já registrada; não
+atribuíveis a este lote (nenhum arquivo de dependência tocado pelo commit
+`d81fc99`, confirmado por `git diff` direto).
+
+**Nenhum achado de relevância estratégica novo para o Gestor.** `DEBT-03`
+(CSP pendente) e `DEBT-04` (roadmap `next@15`/`16`) permanecem no radar do
+CTO desde auditorias anteriores — este lote não altera esse quadro nem
+introduz urgência nova.
+
+**Encaminhamento**: **nenhum achado bloqueante** — lote liberado para a
+dupla aprovação (QA + DevSecOps) exigida antes do deploy (`EXECUTION-FLOW.md`
+§5), condicionado apenas à checagem estrutural do Coordenador sobre a
+criação da tarefa `Refatoração Lote-RD3` (8 arquivos de formatação,
+sinalizada pelo QA em `QA-REPORT.md` 20.8, reconfirmada aqui como
+puramente cosmética) e ao commit pendente de `FE-R06` (ainda só na árvore de
+trabalho) antes de qualquer `/deploy` deste lote. Nenhuma entrada nova em
+`BLOCKERS.md` originada por este agente — nenhum achado deste lote exige
+retorno ao time de implementação.
+
+---
+
+## 93. Lote Refatoração RD1 — `REF-RD1-01` (auditoria enxuta, correção de formatação)
+
+**Gatilho**: `QA-REPORT.md` Seção 21 — Lote Refatoração RD1 (`REF-RD1-01`)
+aprovado sem ressalva pelo QA em 2026-09-05.
+
+**Contexto e escopo proporcional ao risco**: lote de refatoração pura sobre
+7 arquivos já auditados a fundo no fechamento do Lote RD1 de origem (Seções
+79-85) — `npx prettier --write` aplicado a arquivos de propriedade de
+`BE-R01`/`FE-R02`/`FE-R03`, sem reabrir nenhuma das 3 tarefas. Dado o
+escopo mínimo (reflow de linha/indentação, confirmado pelo QA em 21.1),
+esta auditoria é deliberadamente mais enxuta que uma auditoria completa de
+feature nova — foco em confirmar ausência de regressão de segurança, não
+repetir a auditoria integral já feita em 79-85.
+
+**Método**: leitura direta do `git diff` dos 7 arquivos (já suficiente,
+dado o escopo) — nenhuma reexecução de SAST/`npm audit` nova, pois nenhum
+arquivo de dependência (`package.json`/`package-lock.json`) foi tocado.
+
+| Verificação | Resultado |
+|---|---|
+| Nenhuma string/token/log/mensagem de erro alterada nos 7 arquivos | ✅ confirmado — reflow de linha/indentação apenas (mesma leitura do QA em 21.1, reconferida de forma independente por este agente) |
+| Nenhum dado sensível (`contato`/`data_nascimento`/segredo/chave) introduzido em teste ou produto | ✅ nenhuma linha nova de conteúdo — apenas quebra de linha de expressões já existentes |
+| `package.json`/`package-lock.json`/`vercel.json`/qualquer arquivo de dependência ou infraestrutura tocado | ✅ nenhum — `git diff --stat` confirma apenas os 7 arquivos de `BE-R01`/`FE-R02`/`FE-R03` |
+| Superfície de ataque, controle de acesso, RLS, criptografia | ✅ inalterados — nenhum dos 7 arquivos contém lógica de autorização/RLS/criptografia (2 arquivos de produto: `RankingList.tsx` [UI], 5 arquivos de teste) |
+
+**Achados**: nenhum. Nenhuma elevação de severidade sobre o já registrado em
+`BUG-QA-RD1-01`/`BLOCKER-011` (Seção 85, já classificado como "não é um
+achado de segurança").
+
+### 93.1 Checklist de "Pronto" do Lote Refatoração RD1 (Definition of Done do DevSecOps)
+
+- [x] Nenhum achado de severidade alta/crítica em aberto — nenhum achado
+      identificado.
+- [x] Todo achado de compliance obrigatório resolvido — não aplicável,
+      nenhum achado desta classe.
+- [x] Todo achado de baixa/média severidade virou tarefa em
+      `Refatoração Lote-X`, com prazo — não aplicável, nenhum achado novo;
+      débitos herdados (`DEBT-01`/`DEBT-02`/`DEBT-04`) inalterados por este
+      lote (nenhum arquivo de dependência tocado).
+- [x] Requisitos de segurança operacional definidos para o próprio DevOps —
+      nenhum requisito novo, mudança puramente cosmética não afeta
+      infraestrutura/pipeline além do próprio gate "Format check" já
+      corrigido.
+- [x] Achado de relevância estratégica sinalizado ao Gestor — nenhum achado
+      técnico deste lote exige decisão de negócio nova.
+
+## **Lote Refatoração RD1 (`REF-RD1-01`): APROVADO (sem débito)**
+
+Confirmado, por leitura direta do `git diff` dos 7 arquivos, que a correção
+de `BUG-QA-RD1-01`/`BLOCKER-011` é 100% reformatação Prettier — nenhuma
+mudança de string, token, controle de acesso, dado sensível ou superfície
+de ataque. Nenhum arquivo de dependência/infraestrutura tocado. Concordância
+integral com a avaliação do QA (Seção 21) de que o achado original nunca
+teve componente de segurança real.
+
+**Encaminhamento**: **nenhum achado bloqueante** — lote com dupla aprovação
+(QA Seção 21 + DevSecOps aqui) sobre o mesmo build, liberado para a
+checagem estrutural do Coordenador (`EXECUTION-FLOW.md` §5). Nenhuma
+entrada nova em `BLOCKERS.md` originada por este agente.
+
+---
+
+## 94. Lote Refatoração RD3 — `REF-RD3-01` (auditoria enxuta, correção de formatação)
+
+**Gatilho**: `QA-REPORT.md` Seção 22 — Lote Refatoração RD3 (`REF-RD3-01`)
+aprovado sem ressalva pelo QA em 2026-09-05.
+
+**Contexto e escopo proporcional ao risco**: lote de refatoração pura sobre
+8 arquivos já auditados a fundo no fechamento do Lote RD3 de origem (Seções
+86-92) — `npx prettier --write` aplicado a arquivos de propriedade de
+`BE-R02`/`FE-R09`, sem reabrir nenhuma das 2 tarefas. Arquivos totalmente
+disjuntos dos 7 já auditados em `REF-RD1-01`/Seção 93. Dado o escopo mínimo
+(reflow de linha/indentação, confirmado pelo QA em 22.1), esta auditoria é
+deliberadamente mais enxuta que uma auditoria completa de feature nova —
+foco em confirmar ausência de regressão de segurança, não repetir a
+auditoria integral já feita em 86-92.
+
+**Método**: leitura direta do `git diff` dos 8 arquivos (já suficiente,
+dado o escopo) — nenhuma reexecução de SAST/`npm audit` nova, pois nenhum
+arquivo de dependência (`package.json`/`package-lock.json`) foi tocado.
+
+| Verificação | Resultado |
+|---|---|
+| Nenhuma string/token/log/mensagem de erro alterada nos 8 arquivos | ✅ confirmado — reflow de linha/indentação apenas, incluindo a mensagem de `throw new Error` em `repository.ts` (byte-a-byte idêntica, só quebrada em mais linhas) — mesma leitura do QA em 22.1, reconferida de forma independente por este agente |
+| Nenhum dado sensível (placar/`confronto`/nível técnico/segredo/chave) introduzido em teste ou produto | ✅ nenhuma linha nova de conteúdo — apenas quebra de linha de expressões já existentes; nenhum dos 8 arquivos manipula `contato`/`data_nascimento` |
+| `package.json`/`package-lock.json`/`vercel.json`/qualquer arquivo de dependência ou infraestrutura tocado | ✅ nenhum — `git diff --stat` confirma apenas os 8 arquivos de `BE-R02`/`FE-R09` |
+| Superfície de ataque, controle de acesso, RLS, criptografia | ✅ inalterados — nenhum dos 8 arquivos contém lógica de autorização/RLS/criptografia (3 arquivos de produto: `confronto.ts`/`listar.ts`/`repository.ts` [cálculo agregado em memória, sem query nova] e `TimesResultado.tsx` [UI]; 4 arquivos de teste; `page.tsx` é vitrine interna de dev, não rota de produção) |
+| Reflow adicional em `app/dev/design-system/page.tsx` além do parágrafo de `FE-R09` (nota de precisão do QA, Seção 22.1) | ✅ sem componente de segurança — texto estático de vitrine interna (`app/dev/design-system`, não indexado/não exposto como rota de produto), mesmo conteúdo textual, sem dado sensível nem lógica |
+
+**Achados**: nenhum. Nenhuma elevação de severidade sobre o já registrado em
+`BUG-QA-RD3-01` (Seção 92, já classificado sem componente de segurança).
+
+### 94.1 Checklist de "Pronto" do Lote Refatoração RD3 (Definition of Done do DevSecOps)
+
+- [x] Nenhum achado de severidade alta/crítica em aberto — nenhum achado
+      identificado.
+- [x] Todo achado de compliance obrigatório resolvido — não aplicável,
+      nenhum achado desta classe.
+- [x] Todo achado de baixa/média severidade virou tarefa em
+      `Refatoração Lote-X`, com prazo — não aplicável, nenhum achado novo;
+      débitos herdados inalterados por este lote (nenhum arquivo de
+      dependência tocado).
+- [x] Requisitos de segurança operacional definidos para o próprio DevOps —
+      nenhum requisito novo, mudança puramente cosmética não afeta
+      infraestrutura/pipeline além do próprio gate "Format check" já
+      corrigido.
+- [x] Achado de relevância estratégica sinalizado ao Gestor — nenhum achado
+      técnico deste lote exige decisão de negócio nova.
+
+## **Lote Refatoração RD3 (`REF-RD3-01`): APROVADO (sem débito)**
+
+Confirmado, por leitura direta do `git diff` dos 8 arquivos, que a correção
+de `BUG-QA-RD3-01` é 100% reformatação Prettier — nenhuma mudança de
+string, token, controle de acesso, dado sensível ou superfície de ataque.
+Nenhum arquivo de dependência/infraestrutura tocado. Concordância integral
+com a avaliação do QA (Seção 22) de que o achado original nunca teve
+componente de segurança real, incluindo o reflow adicional (não planejado
+no critério, mas inevitável por granularidade de arquivo do Prettier) nos
+parágrafos de `MedalBadge`/`PresenceDot` em `page.tsx`.
+
+**Encaminhamento**: **nenhum achado bloqueante** — lote com dupla aprovação
+(QA Seção 22 + DevSecOps aqui) sobre o mesmo build, liberado para a
+checagem estrutural do Coordenador (`EXECUTION-FLOW.md` §5). Nenhuma
+entrada nova em `BLOCKERS.md` originada por este agente.
+
+---

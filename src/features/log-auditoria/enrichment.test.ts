@@ -14,6 +14,8 @@ const RODADA: RodadaHistoricoItem = {
   status: "lancada",
   criado_em: "2026-09-05T20:00:00.000Z",
   presentes: 18,
+  confronto: { colete: 62, sem_colete: 59 },
+  status_correcao: "encerrada",
 };
 
 const ATLETA: Atleta = {

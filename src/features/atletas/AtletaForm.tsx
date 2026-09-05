@@ -6,6 +6,7 @@ import {
   AlertBanner,
   Button,
   DateInput,
+  Icon,
   Modal,
   NumberInput,
   Skeleton,
@@ -168,8 +169,12 @@ export function AtletaForm({ atletaId }: AtletaFormProps) {
       if (err instanceof SessionExpiredError) {
         // DEBT-10 (SECURITY-REVIEW.md): nunca preservar contato/data_nascimento —
         // whitelist explícita em vez de repassar `body` inteiro.
-        const { nome_completo, apelido_exibicao, pontuacao_inicial, consentimento_responsavel_obtido } =
-          body;
+        const {
+          nome_completo,
+          apelido_exibicao,
+          pontuacao_inicial,
+          consentimento_responsavel_obtido,
+        } = body;
         handleSessionExpired({
           unsavedData: {
             nome_completo,
@@ -292,10 +297,12 @@ export function AtletaForm({ atletaId }: AtletaFormProps) {
           IX para adulto, Art. 14 §1º/consentimento do responsável para menor,
           ver SDD.md Anexo B) e considerado consistente, sem necessidade de
           ajuste de copy. Texto abaixo é literal do wireframe do UX-SPEC.md,
-          Seção 2. */}
+          Seção 2. Glifo 🔒 substituído por `Icon name="lock"` (TASK.md
+          Seção 1.4-R, FE-R04) — decorativo (`aria-hidden` por padrão, sem
+          `aria-label`), o texto adjacente já descreve o significado. */}
       <AlertBanner variant="info">
-        <span aria-hidden="true">🔒</span> Aviso de privacidade: Contato e data de
-        nascimento são usados apenas internamente e nunca aparecem no ranking público.
+        <Icon name="lock" /> Aviso de privacidade: Contato e data de nascimento são usados
+        apenas internamente e nunca aparecem no ranking público.
       </AlertBanner>
 
       <div className={styles.pairRow}>

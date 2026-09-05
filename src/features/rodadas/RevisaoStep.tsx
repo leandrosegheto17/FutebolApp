@@ -12,11 +12,18 @@ export interface RevisaoStepProps {
 }
 
 /**
- * Etapa 3/3 — Revisão e Confirmação (`UX-SPEC.md` T05). Ponto de
- * não-retorno: a ação de confirmar (botão no `Stepper`, fora deste
- * componente) dispara a transação atômica única (`POST /api/rodadas`,
- * TASK.md Seção 1.2). Este componente é só o resumo somente-leitura + área
- * de erro — nunca sugere que algo já foi salvo antes da confirmação.
+ * Resumo somente-leitura + área de erro do **modal de confirmação final**
+ * de T05 (`UX-SPEC.md` Parte II Seção 2.4; `LancamentoRodadaForm.tsx`).
+ *
+ * Reaproveitado sem alteração de composição (Guardrail 31) desde a Parte I
+ * (onde era o corpo da antiga "Etapa 3/3: Revisão e Confirmação" de um
+ * `Stepper`): a reescrita de `FE-R05` removeu o wizard de 3 etapas, mas a
+ * reconciliação do próprio `UX-SPEC.md` para preservar a intenção de
+ * RNF-10 ("ponto de não-retorno com resumo explícito antes da transação")
+ * é justamente reabrir este mesmo componente dentro de um `Modal`, em vez de
+ * duplicar sua composição. Ponto de não-retorno: o botão "Confirmar
+ * lançamento" (nas `actions` do `Modal`, fora deste componente) dispara a
+ * transação atômica única (`POST /api/rodadas`, TASK.md Seção 1.2).
  */
 export function RevisaoStep({ data, resumo, formError }: RevisaoStepProps) {
   return (

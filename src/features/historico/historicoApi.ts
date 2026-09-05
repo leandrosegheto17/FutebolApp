@@ -93,8 +93,10 @@ async function request(
 }
 
 /**
- * `GET /api/rodadas` (BE-16, T06 do `UX-SPEC.md`) — endpoint **real**, já
- * `Concluída`; não é mock a substituir depois. Sem `limit` explícito nesta
+ * `GET /api/rodadas` (BE-16, T06 do `UX-SPEC.md`; estendido por `BE-R02`,
+ * `API-CONTRACT.yaml` 0.14.0, com `confronto`/`status_correcao` para
+ * `FE-R06`) — endpoint **real**, já `Concluída`; não é mock a substituir
+ * depois. Sem `limit` explícito nesta
  * chamada — decisão de detalhe, não escalada: nem o critério de aceite
  * literal de FE-06 ("lista cronológica decrescente") nem o wireframe da
  * Seção 2 do `UX-SPEC.md` preveem paginação/infinite-scroll nesta tela; o

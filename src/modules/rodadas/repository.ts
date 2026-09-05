@@ -646,7 +646,9 @@ export async function listarRodadaIdsComLogAuditoria(
     .select("rodada_id")
     .in("rodada_id", rodadaIds);
   if (error) {
-    throw new Error(`Falha ao listar app.log_auditoria das rodadas informadas: ${error.message}`);
+    throw new Error(
+      `Falha ao listar app.log_auditoria das rodadas informadas: ${error.message}`,
+    );
   }
   return new Set(
     ((data ?? []) as unknown as Array<{ rodada_id: string | null }>)

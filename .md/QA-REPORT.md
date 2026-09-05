@@ -4339,6 +4339,77 @@ ambos).
 | `FE-R02` | Aprovado com ressalvas (1 débito de baixa severidade, `BUG-QA-RD1-01`) | Seção 19.2 |
 | `FE-R03` | Aprovado com ressalvas (1 débito de baixa severidade, `BUG-QA-RD1-01`; `BLOCKER-010` avaliado e classificado como achado de dado/spec, não de implementação) | Seção 19.3/19.6 |
 
+### 19.10 Reconfirmação independente (Validador, chapéu QA — pipeline consolidado de 4 agentes)
+
+**Contexto**: esta seção reconfirma o veredito de 19.1-19.9 a partir do estado
+real atual do repositório, numa sessão distinta da que produziu o veredito
+original — mesmo rigor de uma primeira validação (reexecução real de comandos,
+sem aceitar o número já registrado), não uma cópia do texto anterior.
+
+**Confirmação de que nenhuma das 3 tarefas foi tocada desde o veredito
+original**: `git log --oneline -- <caminho>` para cada um dos arquivos de
+propriedade de `BE-R01`/`FE-R02`/`FE-R03` (view/migration, `RankingList.tsx`,
+`PublicHomeShell.tsx`, `matrix.ts`, `rankingRecentesApi.ts`, `MedalBadge.*`,
+`PresenceDot.*`, `PresencaMensal.*`, `ranking-publico-recentes.integration.test.ts`)
+mostra que o último commit a tocar qualquer um deles continua sendo `d81fc99`
+— o mesmo commit que introduziu esta Seção 19 originalmente. `HEAD` atual
+(`ff3221d`) está dois commits à frente (`0a162fc`, `ff3221d`), nenhum dos dois
+tocando qualquer arquivo do lote (ambos são consolidação de agentes/comando
+`/validar`, fora do código do produto). `git status` no início desta sessão
+confirma que as únicas mudanças não commitadas afetam `src/features/historico/`,
+`src/features/times/SubstituicoesModal.tsx` e `TASK.md` — nenhum arquivo de
+RD1.
+
+**Reexecução real e independente dos comandos**:
+
+| Comando | Resultado obtido agora | Bate com o registrado em 19.2? |
+|---|---|---|
+| `npm run format:check` | ❌ 16 arquivos reprovados no total; os mesmos **7 de propriedade de RD1** continuam na lista, byte a byte os mesmos nomes (`RankingList.tsx`, `format.test.ts`, `matrix.test.ts`, `PublicHomeShell.test.tsx`, `rankingRecentesApi.test.ts`, `PresencaMensal.test.tsx`, `ranking-publico-recentes.integration.test.ts`) | Sim, para os 7 de RD1 — o total subiu de 13→16 só por arquivos de outras tarefas concluídas depois (`FE-R06`/`FE-R09`/outras), fora do escopo desta validação, mesma disciplina de atribuição da 19.7 |
+| `npm test -- --run` | ✅ 111 arquivos, **894 testes, 894 passando, 0 falha** | Cresceu de 109/853 por tarefas de outros lotes concluídas depois (`FE-R06`, `FE-R09`, `FE-R11`); nenhuma regressão em nenhum arquivo de RD1 |
+| `npm run lint` | ✅ 0 erros, 0 warnings | Sim |
+| `npx tsc --noEmit` | ✅ 0 erros | Sim |
+| `npm run build` | ✅ `Compiled successfully`, 21 rotas, `/` estática, 90,3 kB / 197 kB First Load JS | Sim (variação de 196→197 kB é ruído de build de tarefas de outros lotes, não de RD1) |
+| `npm run test:integration` | ✅ 20 arquivos, **190 passando + 2 puladas de 192** | Sim, exatamente |
+| `npx vitest run --config vitest.integration.config.ts ranking-publico-recentes` (isolado) | ✅ **5/5 testes passando**, contra Supabase local real | Sim, exatamente |
+
+**Avaliação independente do achado registrado em `BLOCKER-011` (Aberto,
+confirmado ainda Aberto nesta data em `BLOCKERS.md`)**: reclassificando o
+achado com a própria régua deste agente (Crítica vs. Simples), não copiando a
+classificação prévia — é **Simples**. Razão: o `diff` de cada um dos 7
+arquivos contra a versão formatada por `prettier --write` (já confirmado por
+leitura em 19.7) é só quebra de linha/indentação, sem qualquer mudança de
+token, lógica, comportamento ou saída de teste; nenhum dos critérios de
+aceite literais de `BE-R01` (19.1), `FE-R02` (19.2) ou `FE-R03` (19.3) menciona
+formatação de código como parte do critério central, e nenhuma tarefa deste
+lote (ou de outro) depende do resultado de `format:check` para funcionar —
+a suíte de 894 testes, incluindo os 21 testes novos das 3 tarefas deste lote,
+passa integralmente com o conteúdo atual dos 7 arquivos, sem formatação. Não
+é, portanto, um achado que "compromete o critério de aceite central... ou
+quebra algo que outra tarefa do lote depende" — não há reversão de `Concluída`
+para `Em andamento` em nenhuma das 3 linhas de `TASK.md`.
+
+Consequência prática desta reclassificação, sob a convenção do pipeline
+consolidado (que não existia como tal quando `BLOCKER-011` foi aberto): um
+achado **Simples** devia ter virado uma tarefa no lote `Refatoração Lote-RD1`
+em vez de (ou além de) uma entrada em `BLOCKERS.md` escalada a `tech-lead`.
+Verificado que essa tarefa **ainda não existe** em `TASK.md` (nenhuma
+ocorrência de "Refatoração Lote" no documento) — sinalizado ao `coordenador`
+para criá-la na checagem estrutural deste mesmo comando `/validar`, cobrindo
+os 7 arquivos de RD1 (o débito de `FE-R06`/`FE-R09`/outros, se ainda em
+aberto, é achado de lotes distintos, fora desta reconfirmação). `BLOCKER-011`
+permanece útil como registro do padrão recorrente (3ª ocorrência consecutiva
+no Frontend, 1ª no Backend) que motivou o escalonamento a Tech Lead sobre a
+causa raiz estrutural (ausência de hook de pre-commit) — isso é preocupação
+de processo, não muda a classificação funcional do achado em si.
+
+**Veredito da reconfirmação**: nenhuma mudança de código nas 3 tarefas do
+lote desde o veredito original; todos os comandos reexecutados batem
+(exceto pelo crescimento esperado de números agregados por tarefas de outros
+lotes, sem afetar nenhum arquivo de propriedade de RD1); o achado de
+formatação é reafirmado como débito de baixa severidade/Simples, não
+bloqueante. **O veredito "Aprovado com ressalvas" de RD1 é mantido, sem
+alteração.**
+
 ## **Lote RD1 — Telas Públicas Redesenhadas (Ranking e Presença): Aprovado com ressalvas**
 
 As 3 tarefas do lote foram validadas de forma independente pelo QA —
@@ -4389,4 +4460,506 @@ resolvidos (commit de formatação isolado) antes do próximo push que
 dispare o `CI` compartilhado, sob risco de reprovar o gate "Format check"
 para qualquer lote — não é, porém, condição para este veredito de QA, que
 já avaliou o conteúdo funcional das 3 tarefas como correto.
+
+**Reconfirmação (Seção 19.10)**: veredito revalidado de forma independente
+em sessão posterior, contra o estado real do repositório (`HEAD` `ff3221d`,
+dois commits à frente do commit `d81fc99` que originou este veredito, nenhum
+deles tocando arquivo de propriedade de RD1) — todos os comandos
+reexecutados batem, o achado de formatação persiste idêntico nos mesmos 7
+arquivos e é reclassificado explicitamente como **Simples** (não Crítica),
+com sinalização ao `coordenador` para abrir a tarefa `Refatoração Lote-RD1`
+ainda inexistente em `TASK.md`. **Veredito "Aprovado com ressalvas" mantido
+sem alteração.**
+
+---
+
+## 20. Lote RD3 — Histórico e Times Redesenhados
+
+Primeiro veredito de QA sobre este lote (`BE-R02`, `SPK-02`, `FE-R09`,
+`FE-R06`, `FE-R11`, `TASK.md` Parte II — Iniciativa de Redesenho Visual,
+todas já `Concluída`). `FE-R09`/`FE-R11`/`BE-R02`/`SPK-02` chegam
+mesclados em `main` (commit `d81fc99`); `FE-R06` (a última a fechar o
+lote, nota de fechamento completo em `TASK.md`) ainda está só na árvore
+de trabalho, não commitada — validada como está (diff contra `HEAD`),
+sem que isso afete o veredito; sinalizado ao `coordenador`/`gestor` só
+como observação operacional (commit pendente antes de `/deploy`).
+
+Mudanças de outros escopos vistas em `git status` durante esta validação
+(`src/features/login/*`, `src/features/rodadas/EventosStep.tsx`/
+`PresencaStep.tsx`/`RevisaoStep.tsx`, `AtletaParticipacaoRow.tsx`,
+`RodadaStatTiles.tsx`) são de outra sessão em paralelo (fora do escopo de
+RD3, mesmo padrão já avisado pela nota de ambiente desta validação) —
+não inspecionadas, não fazem parte deste veredito.
+
+### 20.1 `BE-R02` — Exposição de "Confronto"/"Status" em `GET /api/rodadas`
+
+Critério de aceite literal (`TASK.md` Seção 3.1): confirmado item a
+item. `GET /api/rodadas` retorna `confronto: {colete, sem_colete} | null`
+e `status_correcao: "encerrada" | "corrigida"` — lidos diretamente de
+`src/modules/rodadas/confronto.ts`/`listar.ts`/`repository.ts` e
+confirmados via `API-CONTRACT.yaml` 0.14.0 (`RodadaResumoItem.confronto`/
+`.status_correcao`, schema `ConfrontoRodada`, ambos em `required`).
+Confirmado empiricamente, não só por leitura de código, que o campo novo
+é `status_correcao` e não `status` — o `status` de ciclo de vida de
+`app.rodada` (`"lancada"`/`"excluida"`) permanece intocado, exatamente
+como a nota de conclusão registra; risco de colisão de nome citado no
+ponto de atenção desta validação não se concretiza.
+
+`calcularConfronto` (`confronto.ts`) retorna `null` quando
+`times.length !== 2`, nunca lança erro — comportamento confirmado por
+teste unitário dedicado (`confronto.test.ts`, 9 casos) e por integração
+real (ver 20.6). Mapeamento posicional `times[0]` → `colete`/`times[1]`
+→ `sem_colete`, ordenado por `label asc, id asc` (não `criado_em`,
+correção da própria tarefa) — decisão de detalhe documentada, dentro do
+critério de aceite literal (que não especifica correspondência semântica
+a `app.time.label`).
+
+Reexecução independente: suíte de integração real contra Supabase local
+(`npm run test:integration`, sem `db reset` para não perturbar sessões
+paralelas) — **190 passed | 2 skipped, 20 arquivos**, batendo exatamente
+com o número reportado pela própria nota de conclusão. O describe
+`BE-R02 — confronto/status_correcao (T06 redesenhado)` dentro de
+`listar.integration.test.ts` passou, incluindo o caso "confronto soma
+pontos de gol por time... primeiro time = colete, segundo = sem_colete"
+contra dado real. Achado de formatação: ver 20.8 (`BUG-QA-RD3-01`).
+
+**Veredito**: Aprovado com ressalva (débito de formatação, não bloqueante
+— 20.8).
+
+### 20.2 `SPK-02` — Disponibilidade de dado legado para "Confronto"
+
+Spike, não tarefa de entrega — critério de saída era uma resposta
+binária documentada, não código. Conferido: a resposta ("Não" — dado
+insuficiente em 100% da amostra de `presencas_rodada`, 0 gols em 770
+linhas) é coerente com a decisão de `BE-15` de não migrar
+`app.time`/`app.time_atleta` e com o fallback `confronto: null`
+efetivamente implementado por `BE-R02` para toda rodada de origem
+legado. Nenhuma contradição entre o que o spike concluiu e o que o
+código faz. **Veredito**: Aprovado (nada a reprovar num spike já
+absorvido corretamente por quem o consome).
+
+### 20.3 `FE-R09` — T09 Montagem de Times (redesenho)
+
+Maior tarefa da iniciativa — validada com mais profundidade, conforme
+solicitado.
+
+- **`PitchBackground`/`PlayerChip` (componentes novos, Guardrail 31)**:
+  código lido linha a linha. `PlayerChip` é um `<button>` real
+  (`PlayerChip.tsx`), `aria-label` explícito inclui nível técnico (RN-03)
+  mesmo não pintado no chip — reconcilia a célula resumida da Seção 3.2
+  com o comp aprovado, decisão de detalhe aceitável (não reabre nenhum
+  requisito visual fechado). `draggable` sempre presente no DOM, sem
+  `matchMedia` — aceitável porque a API nativa de DnD não dispara por
+  toque em nenhum navegador-alvo (RNF-09), e o `onClick`/modal
+  `TrocarJogadorModal` continua sendo a única via obrigatória em qualquer
+  viewport (Guardrail 30 respeitado — DnD é atalho, não substituto).
+  `aria-hidden="true"` aplicado só a `.centerLine` (puramente decorativa),
+  nunca ao contêiner — confirmado em `PitchBackground.tsx`; jogadores/times
+  reais continuam expostos a tecnologia assistiva, consequência exigida
+  pelo `ADR-014`.
+- **Testes de acessibilidade**: `PlayerChip.test.tsx`/
+  `PitchBackground.test.tsx` incluem `jest-axe` — confirmados passando na
+  reexecução completa da suíte (20.7).
+- **Renomeação "Time A"/"Time B" → "Colete"/"Sem Colete"**: `labelParaIndice`
+  (`times.ts`) altera o valor persistido em `app.time.label` a partir
+  desta tarefa; compatibilidade com a convenção posicional de `BE-R02`
+  confirmada por leitura direta ("Colete" ainda ordena antes de "Sem
+  Colete" em `label asc`, preservando `times[0]`) — nenhuma quebra de
+  contrato entre as duas tarefas, mesmo sendo tarefas "irmãs" do mesmo
+  lote com uma dependência de fato não declarada formalmente no `TASK.md`
+  (`BE-R02` não lista `FE-R09` como dependência, mas a nota de conclusão
+  de `BE-R02` já antecipa a renomeação corretamente).
+- **Banner "✓ Restrição respeitada" — integração cruzada com `BE-11`/
+  `BE-12`/`BE-13`**: ponto de maior atenção desta validação. Confirmado
+  que `restricoesRespeitadas` (`times.ts`) reconcilia inteiramente no
+  cliente `GET /api/restricoes` (schema `RestricaoObrigatoriaResponse`,
+  `atleta_a_id`/`atleta_a_nome`/`atleta_b_id`/`atleta_b_nome`/`ativo` —
+  conferido campo a campo contra `API-CONTRACT.yaml`) com a divisão atual
+  de times — nenhuma mudança em `POST /api/times/sugestao`
+  (`TimeMontadoResponse`/`SugestaoTimesResultado` inalterados, conferido
+  no contrato). Wiring de ponta a ponta confirmado por leitura direta:
+  `MontagemTimesShell.tsx` busca `listarRestricoes` (degradação silenciosa
+  para `[]` em erro, nunca quebra o fluxo principal) e passa para
+  `TimesResultado.tsx`, que chama `restricoesRespeitadas(times,
+  restricoes)` e renderiza o banner por par respeitado. Nenhuma quebra de
+  contrato com `BE-11`/`BE-12`/`BE-13` — confirmado empiricamente, não só
+  por leitura: suíte de integração real (`sugestao.integration.test.ts`,
+  `times.integration.test.ts`, `restricoes.integration.test.ts`) passa
+  100% na reexecução (20.6).
+- **Correção do "Novo sorteio" sem feedback de erro na fase "resultado"**:
+  confirmado em `MontagemTimesShell.tsx` — `erroGeracao` agora também
+  renderiza um `AlertBanner` na fase "resultado", não só na "seleção".
+  Achado genuíno de UX corrigido pela própria tarefa, não uma lacuna
+  remanescente.
+- **Achado de formatação**: ver 20.8 (`BUG-QA-RD3-01`) — 4 arquivos de
+  propriedade desta tarefa fora do padrão Prettier, incluindo
+  `TimesResultado.tsx` (produção, não só teste).
+
+**Veredito**: Aprovado com ressalva (débito de formatação, não bloqueante
+— 20.8).
+
+### 20.4 `FE-R06` — T06 Histórico de Rodadas (Confronto/Status)
+
+Ponto de atenção específico desta validação — confirmado por leitura
+direta do diff (working tree, não commitado): `RodadaHistoricoItem` usa
+literalmente `status_correcao` (`types.ts`), nunca confundido com
+`status` (comentário explícito "ATENÇÃO... NÃO confundir" no próprio
+arquivo). Nenhum novo componente criado (Guardrail 31) — pill "Status"
+reaproveita `Badge` já existente (`variant="success"`/`"warning"`, cores
+já validadas pelo `accessibility-review` de `FE-R00`).
+
+Placeholder de `confronto: null` — WCAG 1.4.1 confirmado por leitura e
+por teste: `<span role="img" aria-label="Confronto não disponível para
+esta rodada">—</span>` (`RodadaListItem.tsx`), nunca célula vazia; teste
+dedicado `RodadaListItem.test.tsx` inclui `jest-axe` explicitamente para
+o caso "Confronto null" (`"sem violação de acessibilidade (axe) com
+'Confronto' null (placeholder '—')"`), confirmado passando na reexecução
+completa.
+
+Escopo de mockup deliberadamente não implementado (2ª linha de
+lesionados/ausentes, `<table>` desktop) — decisão de detalhe documentada,
+consistente com o critério de aceite literal ("duas colunas novas") e com
+a "Correção sobre a revisão 1" da própria Seção 2.5 do `UX-SPEC.md`, que
+lista só "Confronto"/"Status". Não reinterpretado como omissão.
+
+Achado de formatação: nenhum — confirmado isoladamente
+(`npx prettier --check` nos 8 arquivos de propriedade desta tarefa:
+"All matched files use Prettier code style!"), a única das 3 tarefas de
+Frontend deste lote sem esse débito.
+
+**Veredito**: Aprovado.
+
+### 20.5 `FE-R11` — T11 Substituição no Intervalo (auditoria)
+
+Ponto de atenção específico desta validação: confirmar que "zero mudança
+funcional" é uma conclusão correta, não uma tarefa não-testada. Confirmado
+por `git diff` — a única mudança em `SubstituicoesModal.tsx` é um bloco de
+comentário de auditoria (nenhuma linha de código executável alterada).
+Reexecução da suíte confirma contagem idêntica de testes antes/depois
+(888, mesma contagem de `FE-R09`) — consistente com "nenhum teste novo
+necessário porque nenhum comportamento mudou", não com uma tarefa que
+pulou validação. `PlayerChip` avaliado e descartado como substituto dos
+`Select` de "Sai"/"Entra" — justificativa (lista selecionável por teclado
+≠ componente de jogador posicionado) é tecnicamente correta e não reabre
+o critério de aceite. Achado de formatação corretamente identificado
+(16 arquivos, não os desta tarefa) e corretamente **não corrigido** por
+esta tarefa (fora de seu limite de autoridade, risco de conflito com
+outra sessão) — mesma disciplina já vista em `FE-R03`/RD1.
+
+**Veredito**: Aprovado.
+
+### 20.6 `cross-platform-integration-testing`
+
+Reexecução real e independente (sem `supabase db reset`, para não
+perturbar sessões paralelas usando a mesma instância local):
+
+- `npm run test:integration` — **190 passed | 2 skipped (192), 20
+  arquivos**, incluindo `listar.integration.test.ts` (describe `BE-R02`),
+  `sugestao.integration.test.ts`, `times.integration.test.ts`,
+  `restricoes.integration.test.ts` — nenhuma quebra de contrato entre
+  `BE-R02`/`FE-R09` e `BE-11`/`BE-12`/`BE-13`, confirmado empiricamente,
+  não presumido a partir da nota de implementação.
+- Contrato `API-CONTRACT.yaml` 0.14.0 conferido campo a campo contra o
+  código real dos dois lados (Backend `presenter.ts`/`listar.ts` e
+  Frontend `types.ts`/`historicoApi.ts`) para `confronto`/
+  `status_correcao`; `RestricaoObrigatoriaResponse`/`TimeMontadoResponse`/
+  `SugestaoTimesResultado` conferidos como inalterados, batendo com a
+  premissa de "zero mudança de contrato" das notas de `BE-R02`/`FE-R09`.
+
+### 20.7 Non-functional validation
+
+- **Acessibilidade**: `npm test -- --run` reexecutado — **897 passed
+  (111 arquivos)** — inclui todos os `jest-axe` de `PitchBackground`,
+  `PlayerChip`, `RodadaListItem` (com e sem `confronto`), sem violação.
+  (Contagem de 897 é maior que os 894/888 citados pelas notas de `FE-R06`/
+  `FE-R09`/`FE-R11` porque a árvore de trabalho atual também contém
+  mudanças não commitadas de outra sessão/lote, fora do escopo de RD3 —
+  nenhum teste de propriedade das 5 tarefas deste lote falhou ou foi
+  removido.)
+- **Build/typecheck/lint**: `npx tsc --noEmit` limpo (sem saída);
+  `npm run lint` → `✔ No ESLint warnings or errors`; `npm run build` →
+  `✓ Compiled successfully`, 21 rotas geradas — nenhuma regressão.
+- **Usabilidade (UX-SPEC.md)**: rótulos "Colete"/"Sem Colete" propagados
+  de forma consistente entre T09 (`PitchTeamHeader`) e T11
+  (`labelDoTime`, confirmado sem hardcode residual de "Time A"/"Time B").
+
+### 20.8 Achados do QA (bugs/débitos)
+
+---
+
+**`BUG-QA-RD3-01` — Severidade: Baixa (débito, não bloqueante)**
+
+- **Componente**: `npm run format:check` (`prettier --check .`) — **8
+  arquivos de propriedade das tarefas deste lote** fora do padrão:
+  `src/modules/rodadas/confronto.ts`, `src/modules/rodadas/listar.ts`,
+  `src/modules/rodadas/repository.ts`,
+  `app/api/rodadas/__tests__/listar.integration.test.ts` (todos
+  `BE-R02`); `src/features/times/times.test.ts`,
+  `src/features/times/TimesResultado.test.tsx`,
+  `src/features/times/TimesResultado.tsx`,
+  `app/dev/design-system/page.tsx` (parcial — parágrafo de vitrine
+  próprio, o resto do arquivo é de `FE-R02`/RD1) (todos `FE-R09`).
+- **Passos para reproduzir**: `npm run format:check` na raiz do projeto,
+  estado atual do repositório (`HEAD` `d81fc99` + `FE-R06` não commitada).
+- **Resultado esperado**: exit code 0.
+- **Resultado obtido**: exit code 1, `Code style issues found in 16
+  files` — 8 desses 16 são de propriedade deste lote (os outros 8: 7 já
+  registrados e escalados em `BLOCKER-011`/`BUG-QA-RD1-01` (RD1, ainda
+  sem a tarefa `REF-RD1-01` executada) + `AtletaForm.tsx`, de tarefa fora
+  de RD1/RD3, fora do escopo desta validação).
+- **Contradição relevante com a expectativa registrada em `TASK.md`**: a
+  nota de fechamento parcial do lote (ao concluir `FE-R06`) afirma que os
+  "16 arquivos remanescentes... pertencem a `FE-R09`/`BE-R01`/`BE-R02`/
+  outras tarefas já concluídas" sem cravar quantos são de `BE-R01`
+  (RD1, já tratado) vs. `BE-R02`/`FE-R09` (RD3, deste veredito) — esta
+  validação fecha essa ambiguidade por contagem direta: são exatamente 4
+  arquivos de `BE-R02` + 4 de `FE-R09`, nenhum de `BE-R01` além dos já
+  computados em `BUG-QA-RD1-01`.
+- **Por que não bloqueia a aprovação funcional**: confirmado por
+  `npx prettier <arquivo> | diff` em todos os 8 arquivos — 100% quebra de
+  linha/indentação por `printWidth: 90`, nenhuma mudança de token, string,
+  lógica ou valor de asserção; os 897 testes (incluindo os das 5 tarefas
+  deste lote) e a suíte de integração (190/192) passam normalmente com o
+  conteúdo atual.
+- **Classificação**: **Simples** (não Crítica) — mesma régua de
+  `BUG-QA-RD1-01`/Seção 19.10: ajuste pontual, baixo esforço, não
+  compromete critério de aceite central de `BE-R02`/`FE-R09` nem quebra
+  nenhuma outra tarefa do lote (confirmado pela suíte de integração
+  cruzada, 20.6). Nenhum retorno ao `executor` — `BE-R02`/`FE-R09`
+  permanecem `Concluída`.
+- **Ação**: confirma a previsão já registrada em `BLOCKER-011` ("é
+  razoável esperar uma quarta e quinta ocorrência nos lotes RD2/RD3/RD4
+  restantes") — esta é a ocorrência de RD3. Sinalizado ao `coordenador`
+  para criar `Refatoração Lote-RD3` (mesmo padrão de `Refatoração
+  Lote-RD1`/`REF-RD1-01`, ainda não executada) cobrindo estes 8 arquivos,
+  na checagem estrutural deste mesmo comando `/validar`. `BLOCKER-011`
+  não precisa de uma nova entrada — já cobre a causa raiz estrutural
+  (ausência de hook de pre-commit); esta ocorrência é só mais um dado
+  confirmando o padrão já escalado, sem elevar a severidade.
+
+---
+
+**Nenhum outro bug/débito de código encontrado neste lote.** Nenhum achado
+de severidade alta/crítica em nenhuma das 5 tarefas.
+
+### 20.9 Checklist de "Pronto" (Definition of Done de QA, por lote)
+
+- [x] Todo critério de aceite de cada tarefa do lote foi testado e está
+      passando (`BE-R02`: 20.1; `SPK-02`: 20.2; `FE-R09`: 20.3; `FE-R06`:
+      20.4; `FE-R11`: 20.5)
+- [x] Nenhuma reprovação crítica em aberto
+- [x] Toda reprovação simples virou tarefa em `Refatoração Lote-X`
+      (`BUG-QA-RD3-01` → sinalizado para `Refatoração Lote-RD3`, 20.8)
+- [x] Testes de integração cruzada executados e passando (20.6 — contrato
+      `BE-R02`↔`FE-R06` e `BE-11`/`BE-12`/`BE-13`↔`FE-R09` verificados de
+      ponta a ponta, sem quebra)
+- [x] Requisito não funcional relevante ao lote validado (20.7 —
+      acessibilidade/`jest-axe`, build/lint/typecheck, usabilidade)
+
+### 20.10 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `BE-R02` | Aprovado com ressalvas (débito de baixa severidade, `BUG-QA-RD3-01`) | Seção 20.1 |
+| `SPK-02` | Aprovado | Seção 20.2 |
+| `FE-R09` | Aprovado com ressalvas (débito de baixa severidade, `BUG-QA-RD3-01`) | Seção 20.3 |
+| `FE-R06` | Aprovado | Seção 20.4 |
+| `FE-R11` | Aprovado | Seção 20.5 |
+
+**Encaminhamento**: lote elegível para seguir à auditoria do DevSecOps
+sobre RD3, conforme `EXECUTION-FLOW.md` §5 — este QA não dispara essa
+etapa, apenas libera o gate. `BUG-QA-RD3-01` deve virar a tarefa
+`Refatoração Lote-RD3` (coordenador) antes do próximo push que dispare o
+`CI` compartilhado, sob risco de reprovar o gate "Format check" — não é,
+porém, condição para este veredito de QA. Recomenda-se também commitar
+`FE-R06` (hoje só na árvore de trabalho) antes de qualquer `/deploy`
+deste lote.
+
+## **Lote RD3 — Histórico e Times Redesenhados: Aprovado com ressalvas**
+
+---
+
+## 21. Lote Refatoração RD1 — `REF-RD1-01` (correção de `BUG-QA-RD1-01`/`BLOCKER-011`)
+
+**Contexto**: lote de refatoração pura, tarefa única `REF-RD1-01`
+(`TASK.md` Seção 3.3, Parte II), já `Concluída`. Aplica `npx prettier
+--write` aos 7 arquivos identificados em `BUG-QA-RD1-01`/Seção 19.7/19.10
+(propriedade de `BE-R01`/`FE-R02`/`FE-R03`, já validados e aprovados com
+ressalvas no fechamento do Lote RD1, Seção 19) — mudança puramente de
+formatação, sem reabrir nenhuma das 3 tarefas de origem. Validação aplicada
+de forma proporcional ao risco (baixíssimo, escopo mecânico de um único
+comando), sem pular etapa.
+
+**Método**: `git diff` linha a linha dos 7 arquivos (não aceite da nota de
+conclusão do Executor) para confirmar 100% reformatação; reexecução real
+das suítes de teste afetadas; reexecução de `npm run format:check` para
+confirmar que os 7 arquivos saíram da lista de reprovados.
+
+### 21.1 Confirmação por `git diff` — reformatação pura
+
+| Arquivo | Resultado |
+|---|---|
+| `src/features/ranking-publico/RankingList.tsx` | ✅ só quebra de linha/indentação (`printWidth`), nenhum token/classe/string alterado |
+| `src/features/ranking-publico/format.test.ts` | ✅ idem — asserções e valores esperados idênticos |
+| `src/features/ranking-publico/matrix.test.ts` | ✅ idem |
+| `src/features/ranking-publico/PublicHomeShell.test.tsx` | ✅ idem |
+| `src/features/ranking-publico/rankingRecentesApi.test.ts` | ✅ idem |
+| `src/features/presenca-mensal/PresencaMensal.test.tsx` | ✅ idem |
+| `src/lib/supabase/__tests__/ranking-publico-recentes.integration.test.ts` | ✅ maior diff em linhas (reflow de objetos/`Promise.all` multilinha), mas todo `status`/`rodada_id`/`atleta_id`/expressão de cálculo (`Math.round(...)`) permanece byte-a-byte idêntico ao original — confirmado por leitura completa do diff, não amostragem |
+
+Nenhuma das 7 diferenças altera string, nome de coluna, valor de asserção,
+lógica de teste ou comportamento de produção.
+
+### 21.2 Suíte reexecutada
+
+| Comando | Resultado |
+|---|---|
+| `npx vitest run src/features/ranking-publico src/features/presenca-mensal` | ✅ 9 arquivos, **57/57 testes passando** |
+| `npx vitest run --config vitest.integration.config.ts` (`ranking-publico-recentes.integration.test.ts`) | ✅ **5/5 testes passando**, contra Supabase local real |
+| `npx prettier --check` nos 7 arquivos | ✅ `All matched files use Prettier code style!` |
+| `npm run format:check` (repositório inteiro) | ✅ `All matched files use Prettier code style!` — nenhum dos 7 arquivos (nem nenhum outro) reprovado nesta data |
+
+### 21.3 Achados
+
+Nenhum achado novo. `BLOCKER-011` permanece útil como registro da causa raiz
+estrutural (ausência de hook de pre-commit, Tech Lead) — este veredito trata
+apenas da correção mecânica dos 7 arquivos de RD1, não da ação estrutural
+item (2) do próprio `BLOCKER-011`.
+
+### 21.4 Checklist de "Pronto" (Definition of Done de QA, por lote)
+
+- [x] Todo critério de aceite da tarefa do lote foi testado e está passando
+      (único critério: reformatar os 7 arquivos sem alterar comportamento —
+      21.1/21.2)
+- [x] Nenhuma reprovação crítica ou simples em aberto
+- [x] Testes de integração cruzada executados e passando (21.2 —
+      `ranking-publico-recentes.integration.test.ts` reexecutado contra
+      Supabase local real)
+- [x] Requisito não funcional relevante validado (nenhum aplicável além de
+      "sem regressão de comportamento", já coberto pela suíte completa)
+
+### 21.5 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `REF-RD1-01` | Aprovado (sem ressalva) | Seção 21.1/21.2 |
+
+**Encaminhamento**: lote elegível para a auditoria enxuta do DevSecOps
+(`SECURITY-REVIEW.md`) e, em seguida, para a checagem estrutural do
+Coordenador — sem retorno ao `executor`.
+
+## **Lote Refatoração RD1 (`REF-RD1-01`): APROVADO (sem ressalva)**
+
+Os 7 arquivos de propriedade de `BE-R01`/`FE-R02`/`FE-R03` (Lote RD1, já
+aprovado com ressalvas na Seção 19) foram confirmados como 100%
+reformatação Prettier — nenhuma string, token, valor de asserção ou lógica
+alterada, verificado por leitura completa do `git diff` de cada um dos 7
+arquivos, não por amostragem nem pela nota de conclusão do Executor. As 57
+verificações unitárias de `ranking-publico`/`presenca-mensal` e as 5
+verificações de integração de `ranking-publico-recentes` continuam passando
+sem qualquer alteração de resultado. `npm run format:check` confirma que
+nenhum dos 7 arquivos (nem nenhum outro, nesta data) permanece fora do
+padrão. `BUG-QA-RD1-01`/`BLOCKER-011` está resolvido na sua ação item (1)
+(correção mecânica dos 7 arquivos); a ação estrutural item (2) (hook de
+pre-commit) permanece sob responsabilidade do Tech Lead, sem prazo formal.
+
+**Encaminhamento**: liberado para a auditoria do DevSecOps sobre este mesmo
+lote (`SECURITY-REVIEW.md`) e, com a dupla aprovação, para a checagem
+estrutural do Coordenador. Nenhuma entrada nova em `BLOCKERS.md` — nenhum
+achado deste lote exige retorno ao time de implementação.
+
+---
+
+## 22. Lote Refatoração RD3 — `REF-RD3-01` (correção de `BUG-QA-RD3-01`)
+
+**Contexto**: lote de refatoração pura, tarefa única `REF-RD3-01`
+(`TASK.md` Seção 3.3, Parte II), já `Concluída`. Aplica `npx prettier
+--write` aos 8 arquivos identificados em `BUG-QA-RD3-01`/Seção 20.8
+(propriedade de `BE-R02`/`FE-R09`, já validados e aprovados com ressalvas
+no fechamento do Lote RD3, Seção 20) — mudança puramente de formatação,
+sem reabrir nenhuma das 2 tarefas de origem. Arquivos totalmente disjuntos
+dos 7 de `REF-RD1-01`/Seção 21 (confirmado por `TASK.md` Seção 3.0).
+Validação aplicada de forma proporcional ao risco (baixíssimo, escopo
+mecânico de um único comando), sem pular etapa.
+
+**Método**: `git diff` linha a linha dos 8 arquivos (não aceite da nota de
+conclusão do Executor) para confirmar 100% reformatação; reexecução real
+das suítes de teste afetadas; reexecução de `npm run format:check` para
+confirmar que o repositório inteiro está limpo.
+
+### 22.1 Confirmação por `git diff` — reformatação pura
+
+| Arquivo | Resultado |
+|---|---|
+| `src/modules/rodadas/confronto.ts` | ✅ só quebra de linha do corpo de uma função (`printWidth`), nenhum token/valor alterado |
+| `src/modules/rodadas/listar.ts` | ✅ idem — reflow de um `Promise.all` multilinha, mesma ordem/mesmos argumentos |
+| `src/modules/rodadas/repository.ts` | ✅ idem — mensagem de erro (`throw new Error`) byte-a-byte idêntica, só quebrada em mais linhas |
+| `app/api/rodadas/__tests__/listar.integration.test.ts` | ✅ reflow de assinatura de função e de objetos de teste multilinha + um `it()` desindentado (bloco não é mais `async () => {...}` extra-indentado); asserções, nomes de teste e valores esperados idênticos |
+| `src/features/times/times.test.ts` | ✅ reflow de objetos literais multilinha, mesmos valores de campo |
+| `src/features/times/TimesResultado.test.tsx` | ✅ reflow de chamada `getByRole` multilinha, mesmo texto de `name` |
+| `src/features/times/TimesResultado.tsx` | ✅ reflow de props JSX de um `<Button>`, mesmos valores/handlers |
+| `app/dev/design-system/page.tsx` | ✅ reflow de texto de parágrafo (rewrap de prosa, JSX colapsa espaço em branco em renderização — zero mudança de conteúdo renderizado). **Observação de precisão**: a nota de conclusão do Executor (`TASK.md`) e a descrição do achado (20.8) dizem que só o parágrafo de vitrine de `FE-R09` (`PitchBackground`/`PlayerChip`) seria tocado; o `git diff` real mostra que os parágrafos de `MedalBadge`/`PresenceDot` (`FE-R02`, fora do escopo nominal desta tarefa) também foram reformatados. Isso é uma consequência inevitável de `npx prettier --write <arquivo>` operar em granularidade de arquivo inteiro, não de parágrafo — não é possível restringir Prettier a um trecho de um arquivo. Não é reprovação: (1) o critério de aceite formal da tarefa restringe a **arquivos** ("restrito exatamente a estes 8 arquivos"), não a parágrafos, e nenhum arquivo fora da lista foi tocado; (2) o conteúdo textual dos 3 parágrafos é idêntico, só o ponto de quebra de linha mudou, sem efeito no HTML renderizado; (3) `FE-R02`/RD1 já está `Concluída` e não depende de layout de linha-fonte desta página de vitrine interna (`app/dev/design-system`, não é tela de produção). Registrado aqui só para manter a nota de conclusão da tarefa precisa — não é um achado que exija ação. |
+
+Nenhuma das 8 diferenças altera string, nome de campo/coluna, valor de
+asserção, lógica de teste ou comportamento de produção.
+
+### 22.2 Suíte reexecutada
+
+| Comando | Resultado |
+|---|---|
+| `npx vitest run src/modules/rodadas src/features/times` | ✅ 11 arquivos, **160/160 testes passando** |
+| `npx vitest run --config vitest.integration.config.ts app/api/rodadas` | ✅ 8 arquivos, **52/52 testes passando**, contra Supabase local real (inclui `listar.integration.test.ts`, 8/8) |
+| `npm run format:check` (repositório inteiro) | ✅ `All matched files use Prettier code style!` — zero arquivo pendente nesta data; confirma que este era o último achado de formatação em aberto (`BUG-QA-RD1-01` e `BUG-QA-RD3-01` ambos resolvidos) |
+
+### 22.3 Achados
+
+Nenhum achado novo de comportamento/segurança. Único ponto registrado é a
+observação de precisão da Seção 22.1 sobre o alcance real da reformatação
+em `app/dev/design-system/page.tsx` (informativo, não bloqueante, não gera
+tarefa nova — sem efeito de conteúdo renderizado nem conflito com `FE-R02`/
+RD1, já `Concluída`).
+
+### 22.4 Checklist de "Pronto" (Definition of Done de QA, por lote)
+
+- [x] Todo critério de aceite da tarefa do lote foi testado e está passando
+      (único critério: reformatar os 8 arquivos sem alterar comportamento —
+      22.1/22.2)
+- [x] Nenhuma reprovação crítica ou simples em aberto
+- [x] Testes de integração cruzada executados e passando (22.2 —
+      `app/api/rodadas` reexecutado contra Supabase local real, 52/52)
+- [x] Requisito não funcional relevante validado (`npm run format:check`
+      limpo no repositório inteiro, 22.2)
+
+### 22.5 Veredito agregado
+
+| Tarefa | Veredito | Referência |
+|---|---|---|
+| `REF-RD3-01` | Aprovado (sem ressalva) | Seção 22.1/22.2 |
+
+**Encaminhamento**: lote elegível para a auditoria enxuta do DevSecOps
+(`SECURITY-REVIEW.md`) e, em seguida, para a checagem estrutural do
+Coordenador — sem retorno ao `executor`.
+
+## **Lote Refatoração RD3 (`REF-RD3-01`): APROVADO (sem ressalva)**
+
+Os 8 arquivos de propriedade de `BE-R02`/`FE-R09` (Lote RD3, já aprovado
+com ressalvas na Seção 20) foram confirmados como 100% reformatação
+Prettier — nenhuma string, token, valor de asserção ou lógica alterada,
+verificado por leitura completa do `git diff` de cada um dos 8 arquivos,
+não por amostragem nem pela nota de conclusão do Executor. As 160
+verificações unitárias de `src/modules/rodadas`/`src/features/times` e as
+52 verificações de integração de `app/api/rodadas` continuam passando sem
+qualquer alteração de resultado. `npm run format:check` confirma que o
+repositório inteiro está limpo nesta data — este era o último achado de
+formatação pendente entre `REF-RD1-01` e `REF-RD3-01`. `BUG-QA-RD3-01`
+está resolvido; `BLOCKER-011` (causa raiz estrutural, ausência de hook de
+pre-commit) permanece sob responsabilidade do Tech Lead, sem prazo formal,
+inalterado por este lote.
+
+**Encaminhamento**: liberado para a auditoria do DevSecOps sobre este mesmo
+lote (`SECURITY-REVIEW.md`) e, com a dupla aprovação, para a checagem
+estrutural do Coordenador. Nenhuma entrada nova em `BLOCKERS.md` — nenhum
+achado deste lote exige retorno ao time de implementação.
+
+---
 
