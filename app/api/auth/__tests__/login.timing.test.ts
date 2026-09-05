@@ -110,7 +110,10 @@ describe("POST /api/auth/login — equalização de timing (DEBT-05)", () => {
     const response = await POST(buildLoginRequest("senha-errada"));
 
     expect(mockVerifyPasswordOrDummy).toHaveBeenCalledTimes(1);
-    expect(mockVerifyPasswordOrDummy).toHaveBeenCalledWith("hash-vigente-fake", "senha-errada");
+    expect(mockVerifyPasswordOrDummy).toHaveBeenCalledWith(
+      "hash-vigente-fake",
+      "senha-errada",
+    );
     expect(response.status).toBe(401);
   });
 
