@@ -460,6 +460,11 @@ aplicável (ex.: UX-SPEC.md).
   **Nota**: o job `build-and-test` do mesmo CI segue falhando por
   `BLOCKER-007` (formatação de `login.timing.test.ts`), independente deste
   bloqueio — não resolvido por esta ação, dono próprio (Backend/DevOps).
+- **Commit de referência**: `705becc` ("fix(security): reconhecer débito de
+  segurança aceito no gate npm audit do CI") — inclui `.github/workflows/
+  ci.yml`, `scripts/security-audit-gate.mjs`, `security/
+  npm-audit-allowlist.json` e esta atualização de `BLOCKERS.md`/
+  `SECURITY-REVIEW.md`.
 
 ---
 
