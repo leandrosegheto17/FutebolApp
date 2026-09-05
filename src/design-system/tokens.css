@@ -1,5 +1,6 @@
 /**
- * Design tokens — UX-SPEC.md Seção 3.1.
+ * Design tokens — UX-SPEC.md Seção 3.1 (baseline) + Parte II Seção 3.1
+ * (substituição atômica de paleta/tipografia, FE-R00, ADR-013).
  *
  * Fonte única da verdade para cor, espaçamento, raio, tipografia, elevação e
  * movimento. Nenhum componente declara valor "mágico" fora daqui — sempre
@@ -9,20 +10,33 @@
  * Contraste verificado manualmente contra WCAG 1.4.3/1.4.11 (texto ≥ 4.5:1,
  * componentes de UI ≥ 3:1) para os pares cor-de-fundo × cor-de-texto
  * efetivamente usados pelos componentes (ver comentário ao lado de cada cor).
+ *
+ * ATENÇÃO — substituição atômica (ADR-013/Guardrail 37): este arquivo nunca
+ * deve conter dois conjuntos de valores coexistindo (ex.: `data-theme`,
+ * feature flag de paleta). Qualquer revisão de valor é feita no lugar, num
+ * único commit isolado (Guardrail 38) — nunca um arquivo de tokens paralelo.
  */
 
 :root {
-  /* ---- color.primary — identidade "campo de futebol" ------------------ */
-  /* #0B6E4F sobre branco ≈ 7.7:1 — usado em Button primary, links, tabs ativas */
-  --color-primary-50: #e6f5ef;
-  --color-primary-100: #c1e6d6;
-  --color-primary-400: #158a5f;
-  --color-primary: #0b6e4f;
-  --color-primary-hover: #095b41;
-  --color-primary-active: #084a35;
+  /* ---- color.primary — paleta "Grupo Rola" (navy/dourado + verde de campo
+     como acento), UX-SPEC.md Parte II Seção 3.1. Valor trocado nesta revisão:
+     #0b6e4f → #1c6e46 (`--pitch` do mockup real). */
+  /* #1c6e46 sobre branco ≈ 6.23:1 / branco sobre #1c6e46 ≈ 6.23:1 — passa AA
+     (UX-SPEC Parte II Seção 5.3). Escala 50/100/400/hover/active recalculada
+     nesta revisão (decisão de detalhe do Frontend — UX-SPEC não especifica a
+     escala completa, só o valor-base): mesma relação proporcional de matiz/
+     saturação/luminosidade que a escala anterior tinha com o `--color-primary`
+     antigo, reaplicada sobre o novo matiz (HSL ~151°/59%), preservando o
+     "grau de escurecimento" relativo de hover/active. */
+  --color-primary-50: #f3f9f6;
+  --color-primary-100: #d2e6dc;
+  --color-primary-400: #298759;
+  --color-primary: #1c6e46;
+  --color-primary-hover: #185d3b;
+  --color-primary-active: #144f32;
   --color-primary-contrast: #ffffff;
 
-  /* ---- color.neutral.50…900 --------------------------------------------- */
+  /* ---- color.neutral.50…900 — inalterado (UX-SPEC Parte II Seção 3.1) --- */
   --color-neutral-50: #f9fafb;
   --color-neutral-100: #f3f4f6;
   --color-neutral-200: #e5e7eb;
@@ -34,34 +48,96 @@
   --color-neutral-800: #1f2937;
   --color-neutral-900: #111827;
 
-  /* ---- color.success — matiz distinto de color.primary ------------------ */
-  /* Propositalmente mais "verde-limão" que o primary (mais azulado/floresta),
-     para nunca confundir "ação disponível" (primary) com "confirmação" (success) */
-  /* #2e7d32 sobre branco ≈ 5.1:1 */
-  --color-success-bg: #e8f5e9;
-  --color-success: #2e7d32;
-  --color-success-contrast: #ffffff;
+  /* ---- color.success — DEIXA DE SER matiz distinto nesta revisão --------
+     UX-SPEC.md Parte II Seção 3.1 ("achado de design-system-consistency-
+     check"): o mockup real não distingue "ação disponível" de "confirmação"
+     por matiz — usa o mesmo verde (`--pitch`) para os dois papéis. A partir
+     deste commit, `--color-success`/`--color-success-bg` são ALIAS de
+     `--color-primary`/`--color-pitch-bg` — não redeclarar com hex próprio
+     nesta ou em nenhuma revisão futura sem novo ADR (Guardrail 37). Qualquer
+     diferenciação entre os dois papéis passa a depender exclusivamente de
+     texto/ícone adjacente (já exigido por todo componente, Guardrail 29). */
+  --color-success-bg: var(--color-pitch-bg);
+  --color-success: var(--color-primary);
+  --color-success-contrast: var(--color-primary-contrast);
 
-  /* ---- color.warning ----------------------------------------------------- */
-  /* Fundo claro + texto escuro sobre ele (nunca amarelo puro com texto branco,
-     que reprova contraste) */
-  --color-warning-bg: #fef3c7;
-  --color-warning: #92400e; /* texto/ícone sobre --color-warning-bg ≈ 7.2:1 */
+  /* ---- color.warning — valor refinado nesta revisão (UX-SPEC Parte II
+     Seção 3.1: mockup real usa um tom próprio, ligeiramente diferente do que
+     já estava em produção) ---------------------------------------------- */
+  /* #8a5a10 sobre #fbedd0 ≈ 5.11:1 — passa AA (produção anterior: ~7.2:1,
+     ainda dentro do piso após a troca — UX-SPEC Parte II Seção 5.3) */
+  --color-warning-bg: #fbedd0;
+  --color-warning: #8a5a10;
   --color-warning-strong: #b45309;
 
-  /* ---- color.danger -------------------------------------------------- */
-  /* #b91c1c sobre branco ≈ 6:1 */
-  --color-danger-bg: #fee2e2;
-  --color-danger: #b91c1c;
-  --color-danger-hover: #991b1b;
-  --color-danger-active: #7f1d1d;
+  /* ---- color.danger — valor refinado nesta revisão (idem warning) ------- */
+  /* #a4231b sobre #fbe9e7 ≈ 6.32:1 — passa AA. NOTA de accessibility-review
+     (achado desta tarefa, não bloqueante): UX-SPEC.md Parte II Seção 5.3
+     registra 7,41:1 para este par especificamente — o cálculo direto pela
+     fórmula de luminância relativa do WCAG 2.1 dá 6,32:1 (o valor 7,41:1
+     corresponde, na verdade, ao par "#a4231b sobre branco", não sobre
+     `--color-danger-bg`). Ambos os valores reais (6,32:1 texto sobre bg /
+     7,41:1 texto sobre branco) passam com folga o piso AA (4.5:1) — a
+     divergência não muda nenhuma conclusão de conformidade, mas fica
+     sinalizada aqui para o UX/UI corrigir o número na próxima revisão do
+     UX-SPEC.md (não é uma lacuna que bloqueia esta tarefa). */
+  /* hover/active recalculados na mesma proporção de escurecimento/saturação
+     que a escala anterior tinha (decisão de detalhe do Frontend, mesmo
+     método aplicado a `--color-primary` acima) — UX-SPEC não define esses
+     dois tons derivados. */
+  --color-danger-bg: #fbe9e7;
+  --color-danger: #a4231b;
+  --color-danger-hover: #852019;
+  --color-danger-active: #6c1f1a;
   --color-danger-contrast: #ffffff;
 
-  /* ---- color.info ------------------------------------------------------ */
+  /* ---- color.info — inalterado (UX-SPEC Parte II Seção 3.1: não aparece no
+     CSS do mockup, mantido sem alteração) ---------------------------------- */
   /* #1d4ed8 sobre branco ≈ 5.6:1 */
   --color-info-bg: #dbeafe;
   --color-info: #1d4ed8;
   --color-info-contrast: #ffffff;
+
+  /* ---- Paleta de marca "Grupo Rola" (novo — UX-SPEC.md Parte II Seção 3.1) */
+  /* Branco sobre navy ≈ 15.29:1 (AAA). Chrome de navegação, hero (T01),
+     moldura escura do simulador tático (T09) — nunca o campo em si, que é
+     verde (`--color-primary`), ver Seção 5.4 do UX-SPEC.md Parte II. */
+  --color-brand-navy: #16234a;
+  /* Tom mais escuro de navy — gradientes de fundo, nunca usado como fundo de
+     campo. Mais escuro que `--color-brand-navy`, então qualquer texto claro
+     que passe sobre o navy puro passa também sobre este tom. */
+  --color-brand-navy-strong: #0a1226;
+  /* Dourado puro — NUNCA usar como texto/ícone informativo sobre fundo claro
+     (1.96:1, reprova). Sobre navy, pode ser usado livremente como texto/ícone
+     (7.82:1). Uso não-textual sobre claro (ex.: borda decorativa) permitido,
+     sempre conferindo 3:1 caso a caso (UX-SPEC Parte II Seção 5.3, regra 1). */
+  --color-brand-gold: #d9b64a;
+  /* Texto/rótulo sobre fundo `--color-brand-gold` (ex.: `.pill.gold`,
+     `MedalBadge`) — 5.65:1 sobre `--color-brand-gold`, passa AA. NUNCA usar
+     `--color-brand-navy` nem branco como texto sobre dourado (branco sobre
+     dourado ≈ 1.96:1, reprova). */
+  --color-brand-gold-contrast: #4a3a0d;
+  /* Dourado usado como TEXTO/ícone informativo sobre fundo CLARO (ex.: kicker
+     de seção) — 4.90:1 sobre branco, passa AA como texto (diferente de
+     `--color-brand-gold`, que reprova nesse mesmo uso). */
+  --color-brand-gold-text-safe: #8a6d1b;
+  /* Anel de foco sobre superfícies navy fixas (TopNav, hero de T01, moldura
+     de T09) — 7.82:1 sobre navy, passa 3:1 (não-texto). O `--color-focus-ring`
+     padrão (verde) REPROVA sobre navy (2.45:1, viola 1.4.11) — toda tela/
+     componente composto sobre fundo navy deve sobrescrever localmente
+     `--color-focus-ring` para este valor no escopo daquele contêiner (não há,
+     hoje, nenhum componente dos 17 compartilhados desta baseline composto
+     sobre fundo navy — a obrigação é para as tarefas de composição de tela
+     que introduzirem chrome navy, ex. FE-R01/FE-R02/FE-R09/FE-R12; UX-SPEC.md
+     Parte II Seção 5.3, regra 2). */
+  --color-focus-ring-on-dark: #d9b64a;
+  /* Fundo claro para estado "presente"/"ok" — 5.42:1 pareado com
+     `--color-primary`, passa AA. Também usado como alias de
+     `--color-success-bg` acima. */
+  --color-pitch-bg: #e6f2ea;
+  /* Fundo claro de avatar/iniciais (texto `--color-brand-navy` sobre este
+     tom) — 13.52:1, passa AAA. */
+  --color-navy-tint: #eef1f8;
 
   /* ---- superfícies genéricas -------------------------------------------- */
   --color-bg: #ffffff;
@@ -69,7 +145,7 @@
   --color-border: var(--color-neutral-300);
   --color-text: var(--color-neutral-900);
   --color-text-muted: var(--color-neutral-600);
-  --color-focus-ring: #0b6e4f;
+  --color-focus-ring: var(--color-primary);
   --color-focus-ring-offset: #ffffff;
 
   /* ---- spacing.1…8 (múltiplos de 4px) --------------------------------- */
@@ -88,9 +164,26 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  /* ---- type.scale (base 16px, nunca < 14px para corpo — WCAG 1.4.4) ---- */
+  /* ---- type.scale (base 16px, nunca < 14px para corpo — WCAG 1.4.4) ----
+     `--font-public-sans`/`--font-bebas-neue`/`--font-jetbrains-mono` são
+     variáveis CSS injetadas pelo `next/font/google` (ADR-012), aplicadas na
+     tag <html> em `app/layout.tsx`. Self-host em build — nenhuma requisição
+     de rede em produção, CSP `font-src 'self'` (vercel.json) permanece
+     intocada. Fallback de sistema sempre presente caso a variável não tenha
+     sido aplicada (ex.: SSR de um trecho isolado em teste). */
   --font-family-base:
-    system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    var(--font-public-sans), system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  /* Títulos/display — h1/h2/h3, cabeçalho de seções, data grande de T06.
+     Bebas Neue só existe em peso 400 no catálogo do Google Fonts — conferido
+     via `next/font/google` nesta tarefa (ADR-012, checagem obrigatória antes
+     de concluir FE-R00); é o único peso usado pelo mockup para esta fonte,
+     então não há perda de fidelidade. */
+  --font-family-display: var(--font-bebas-neue), "Arial Narrow", sans-serif;
+  /* Dados/estatísticas — pontuação, datas de rodada, iniciais de avatar,
+     legendas em maiúsculas. */
+  --font-family-mono:
+    var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
   --font-size-sm: 0.875rem; /* 14px — piso da escala, legendas/rótulos auxiliares */
   --font-size-base: 1rem; /* 16px — corpo */
   --font-size-md: 1.125rem; /* 18px */
