@@ -174,6 +174,18 @@ aplicável (ex.: UX-SPEC.md).
   `software-architect`/`backend`. `FE-02` (já `Concluída`) permanece
   implementado sem a coluna de ausências até `BLOCKER-005` ser resolvido — a
   divergência está documentada em `UX-SPEC.md`, não escondida.
+- **Nota de atualização (2026-09-04, business-analyst)**: a premissa de fundo
+  desta resolução — RF-03.1 exigir número agregado de presenças/ausências —
+  foi **revertida por decisão direta do organizador**, no contexto da
+  Iniciativa de Redesenho Visual (`UX-SPEC.md`, Seção 7.2, item 7, `
+  [RESOLVIDO em 2026-09-04]`). RF-03.1 (`PRD-TECNICO.md`) foi reescrito para
+  exigir apenas a matriz de status (Presente/Ausente/Lesionado) das últimas N
+  rodadas por atleta, sem contagem agregada de ausências (Interpretação #14,
+  Seção 7 do `PRD-TECNICO.md`). Esta nota **não reabre** `BLOCKER-004` (o
+  bloqueio em si, sobre a inconsistência de então entre wireframe/Seção
+  6.2/contrato de dado da tabela pública antiga, já não se aplica ao layout
+  atual do produto) — mantido `Status: Resolvido`, registrado aqui apenas
+  para rastreabilidade de que o requisito de origem mudou.
 
 ---
 
@@ -227,6 +239,25 @@ aplicável (ex.: UX-SPEC.md).
   (`RankingPublicoItem.ausencias`); Frontend deve incrementar `FE-02` para
   consumir e exibir a nova coluna — ambas as tarefas a serem redisparadas em
   seguida, fora do escopo deste agente.
+- **Nota de atualização (2026-09-04, business-analyst)**: o requisito de
+  origem que motivou este bloqueio — RF-03.1 exigir um campo `ausencias` na
+  view `app.ranking_publico` para exibição agregada no ranking público — foi
+  **revertido por decisão direta do organizador**, no contexto da Iniciativa
+  de Redesenho Visual (`UX-SPEC.md`, Seção 7.2, item 7, `[RESOLVIDO em
+  2026-09-04]`). RF-03.1 (`PRD-TECNICO.md`) foi reescrito para exigir apenas a
+  matriz de status (Presente/Ausente/Lesionado) das últimas N rodadas por
+  atleta na área pública, sem número agregado de ausências (Interpretação
+  #14, Seção 7 do `PRD-TECNICO.md`) — consistente com o commit `d9b77e5`
+  ("Remove presenças and cartões columns from public ranking table"), que já
+  havia removido essas colunas da tabela pública em produção. Esta nota
+  **não reabre** `BLOCKER-005` — mantido `Status: Resolvido` como registro
+  histórico da especificação técnica então correta; o campo `ausencias`
+  descrito na resolução acima **deixa de ser necessário** para a tela T02 na
+  versão atual do produto (redesenho). Se o campo já tiver sido implementado
+  na view/`API-CONTRACT.yaml`, cabe a `software-architect`/`backend` avaliar,
+  em tarefa própria, se ele deve ser removido ou mantido sem consumidor no
+  frontend — decisão técnica fora da alçada do BA, apenas sinalizada aqui
+  para não perder rastreabilidade.
 
 ---
 
@@ -309,6 +340,200 @@ aplicável (ex.: UX-SPEC.md).
   de produção. Veredito de L0 atualizado para Aprovado com débito
   registrado (era Bloqueado). Nenhuma ação adicional pendente do Backend
   para fechar `BLOCKER-006`.
+
+---
+
+## BLOCKER-007
+
+- **Data**: 2026-09-05
+- **Origem**: devops
+- **Escalado para**: backend
+- **Artefato afetado**: `app/api/auth/__tests__/login.timing.test.ts` (introduzido
+  pelo commit `56d9047`, "Retomar governança v1...", 2026-09-04); gate `Format
+  check` (`npm run format:check`) de `.github/workflows/ci.yml`.
+- **Descrição**: durante a execução real (não simulada) de `deployment-execution`
+  do Lote RD0, o push de `efaf297` a `origin/main` disparou o `CI` real pela
+  primeira vez desde que os secrets de GitHub Actions passaram a existir. O job
+  `build-and-test` falhou no passo "Format check" — `prettier --check .` reprova
+  `app/api/auth/__tests__/login.timing.test.ts`. Reproduzido em worktree isolado
+  (checkout com `core.autocrlf=false`, replicando o comportamento LF do runner
+  Ubuntu, para não confundir com um falso positivo de line-ending local do Windows)
+  contra o commit anterior ao RD0 (`40a6400`, `origin/main` antes deste push): a
+  mesma falha, no mesmo arquivo, já existia — **não é uma regressão do Lote RD0**
+  (`5c7bad0`/`efaf297` não tocam esse arquivo).
+- **Impacto se não resolvido**: bloqueia o `CI` (`build-and-test`) para **qualquer**
+  push em `main`, o que por sua vez impede `deploy-staging.yml` de rodar (o
+  `workflow_run` exige `conclusion == 'success'` do `CI`) — bloqueia deploy de
+  staging de RD0 e de todo lote futuro, não só deste.
+- **Sugestão**: `prettier --write app/api/auth/__tests__/login.timing.test.ts`
+  (ou revisão de conteúdo, se a formatação divergente esconder algo além de
+  estilo) e novo commit, revisado pela mesma esteira de QA/DevSecOps antes de
+  contar como parte de um lote fechado.
+- **Status**: Resolvido
+- **Prazo**: bloqueante — antes do próximo deploy de staging (qualquer lote).
+- **Resolução (2026-09-05, backend)**: confirmado que a divergência era
+  puramente de estilo (quebra de linha de um `expect(...).toHaveBeenCalledWith(...)`
+  que excedia `printWidth`), sem nenhum conteúdo de asserção alterado. Rodado
+  `prettier --write app/api/auth/__tests__/login.timing.test.ts` (commit
+  isolado `89f1c47`, sem misturar com nenhum outro arquivo em progresso de
+  outros agentes — `git status` confirmou que só esse arquivo foi
+  modificado/staged). Pós-fix: `npm run format:check` não lista mais este
+  arquivo (restam apenas arquivos de WIP de outros agentes, fora do escopo
+  deste blocker); `npx vitest run app/api/auth/__tests__/login.timing.test.ts`
+  segue com os mesmos 3 testes passando; suíte completa (`npm test`) 109
+  arquivos/853 testes verdes; `npm run lint` sem warnings/erros; `npm run
+  typecheck` sem erros — nenhuma mudança de comportamento, só formatação.
+  `CI`/`build-and-test` deve voltar a passar no gate "Format check" a partir
+  deste commit; `deploy-staging.yml`/`deploy-production.yml` continuam
+  bloqueados apenas pelo `BLOCKER-008` (gate `security-scan`) e pelo
+  `BLOCKER-009` (secrets de staging inexistentes), ambos fora do escopo
+  deste blocker.
+
+---
+
+## BLOCKER-008
+
+- **Data**: 2026-09-05
+- **Origem**: devops
+- **Escalado para**: devsecops
+- **Artefato afetado**: `.github/workflows/ci.yml` (job `security-scan`, passo
+  "Auditoria de dependências", `npm audit --audit-level=high`); `DEBT-04`
+  (`SECURITY-REVIEW.md`).
+- **Descrição**: no mesmo `CI` real disparado pelo push de `efaf297` (Lote RD0),
+  o job `security-scan` falhou em `npm audit --audit-level=high`: 14
+  vulnerabilidades (1 crítica, 9 altas, 4 moderadas) em `next@14.2.35` e
+  dependências transitivas (`postcss`, `minimatch` via `@typescript-eslint`).
+  Reproduzido em worktree isolado contra `40a6400` (commit anterior ao RD0,
+  `origin/main` antes deste push): resultado idêntico — **não é uma dependência
+  nova do Lote RD0** (`git diff -- package.json package-lock.json` entre
+  `40a6400` e `efaf297` é vazio, já confirmado por DevSecOps em
+  `EXECUTION-LOG.md`, entrada "Lote RD0"). Esta classe de achado já está
+  rastreada como `DEBT-04` em `SECURITY-REVIEW.md`, aceito como débito de
+  severidade Média com prazo — mas o gate mecânico do CI (`--audit-level=high`)
+  não tem forma de reconhecer essa aceitação: trata qualquer achado alto/crítico
+  como falha dura, sem exceção.
+- **Impacto se não resolvido**: mesmo impacto do `BLOCKER-007` — bloqueia `CI`
+  (job `security-scan`) para qualquer push em `main`, impedindo `deploy-
+  staging.yml`/`deploy-production.yml` de rodar para qualquer lote, não só RD0.
+  Enquanto isso, a única forma de publicar qualquer lote seria contornar o
+  pipeline governado (o mesmo padrão já registrado como problema em `DEPLOY.md`
+  Seções 7.3/7.6) — o que este agente não fará.
+- **Sugestão**: uma de duas decisões, que cabe a DevSecOps/CTO, não a DevOps
+  unilateralmente: (a) atualizar `next`/dependências para eliminar os achados
+  reais (pode envolver breaking change, já sinalizado em `DEBT-04`), ou (b)
+  ajustar o gate do CI para reconhecer débito de segurança formalmente aceito
+  com prazo (ex.: lista de exceções por advisory, ou rebaixar para
+  `--audit-level=critical` combinado com revisão manual dos achados altos) —
+  sem enfraquecer a postura de "fail-closed" para achados não avaliados.
+- **Status**: Aberto
+- **Prazo**: bloqueante — antes do próximo deploy de staging ou produção
+  (qualquer lote).
+
+---
+
+## BLOCKER-009
+
+- **Data**: 2026-09-05 (reconfirmação de pendência já registrada em
+  `DEPLOY.md` Seção 5.1 desde 2026-09-03; primeira vez que bloqueia uma
+  tentativa real de deploy de staging, não mais uma preparação teórica)
+- **Origem**: devops
+- **Escalado para**: cto
+- **Artefato afetado**: `.github/workflows/deploy-staging.yml` (secrets
+  `SUPABASE_STAGING_PROJECT_REF`/`SUPABASE_STAGING_DB_PASSWORD`); `infra/
+  README.md` Seção 2; `DEPLOY.md` Seção 5.1.
+- **Descrição**: não existe projeto Supabase dedicado a staging. Reconfirmado
+  agora, 2026-09-05, via `npx supabase projects list` (sessão CLI local
+  autenticada): a organização segue com apenas 2 projetos — `futebol-ranking`
+  (legado de produção, `ADR-002`) e `mymoney` (não relacionado). Criar esse
+  projeto é tecnicamente possível com a sessão disponível, mas é uma decisão de
+  infraestrutura real (consome cota de uma conta compartilhada com outro
+  projeto) que este agente não toma unilateralmente — precisa de confirmação
+  explícita do usuário/organizador (mesma razão já registrada em `DEPLOY.md`
+  Seção 5.1 desde a tentativa de deploy do Lote L0, 2026-09-03).
+- **Impacto se não resolvido**: mesmo que `BLOCKER-007`/`BLOCKER-008` sejam
+  resolvidos e o `CI` volte a passar, `deploy-staging.yml` falhará de qualquer
+  forma no passo "Verifica secrets obrigatórios" — staging nunca produz um
+  ambiente navegável real, apenas migrations/build validados localmente. Isso
+  já bloqueou, na prática, a tentativa real de deploy do Lote RD0 (2026-09-05).
+- **Sugestão**: decisão do usuário/organizador: (a) criar um segundo projeto
+  Supabase gratuito dedicado a staging na mesma organização — se permitido pelo
+  tier gratuito, a única ação adicional é configurar os 2 secrets acima; ou
+  (b) aceitar formalmente que staging fique restrito a "CI efêmero apenas" (sem
+  ambiente navegável) até decisão de investimento, registrando essa aceitação
+  em `CTO-REVIEW.md`.
+- **Status**: Aberto
+- **Prazo**: sem prazo formal — mas bloqueia todo deploy de staging real desde
+  2026-09-03, agora confirmado por uma tentativa real, não apenas teórica.
+
+---
+
+## BLOCKER-010
+
+- **Data**: 2026-09-05
+- **Origem**: frontend
+- **Escalado para**: ux-ui (spec) / software-architect (dado, se a leitura (2)
+  abaixo for confirmada)
+- **Artefato afetado**: `UX-SPEC.md` Parte II Seção 2.3 (T03 — Presença
+  Mensal, delta) e "Nota de verificação de fidelidade", item 8 — e, por
+  consequência, `API-CONTRACT.yaml` (schema `PresencaMensalPublicaItem`,
+  endpoint `/presenca_mensal_publica`, BE-03) e `TASK.md` Parte II Seção 3.2,
+  linha `FE-R03`.
+- **Descrição**: `UX-SPEC.md` Parte II Seção 2.3 descreve a composição
+  redesenhada de T03 como "uma matriz atleta × data do mês inteiro (dots
+  `P`/`A`/`L`, mesmo componente/estilo confirmado em T02) com legenda
+  'Presente/Ausente/Lesionado'" — uma linha por atleta, réplica estrutural da
+  matriz de T02 (`ranking_publico_recentes`, `BE-R01`). A view pública real
+  consumida por T03, `app.presenca_mensal_publica` (`BE-03`, já `Concluída`),
+  não suporta essa estrutura: expõe uma linha **por rodada** (não por
+  atleta), com `total_presentes`/`nomes_presentes` — só os nomes de quem
+  esteve presente, sem o universo de atletas ativos do período e sem
+  distinguir `ausente` de `lesionado`. É o mesmo tipo de lacuna de dado já
+  identificado e resolvido (depois revertido por mudança de requisito) para
+  T02 em `BLOCKER-004`/`BLOCKER-005` ("esta última só lista quem esteve
+  presente por rodada, não o universo de quem deveria estar presente") — a
+  citação já estava em ambos os blockers anteriores, mas nenhum dos dois
+  atualizou a Seção 2.3 de T03 para refletir essa mesma limitação quando a
+  Seção 2.2 (T02) foi reescrita nesta mesma revisão 2 do `UX-SPEC.md` para
+  usar `ranking_publico_recentes` (`BE-R01`, um endpoint novo, dedicado, com
+  status de 3 valores por atleta×rodada). `TASK.md` Parte II, linha
+  `FE-R03`, também não lista nenhuma dependência de Backend (só `FE-R00`) e
+  classifica o esforço como `S (1 PD)`, "repintura de tokens" — consistente
+  com a Frontend não ter sido informada de que um novo dado seria necessário;
+  construir a grade literal exigiria um novo endpoint público (por atleta
+  ativo × rodada do mês civil navegável, com status de 3 valores — diferente
+  de `ranking_publico_recentes`, que é uma janela fixa das últimas N=7
+  rodadas, não navegável por mês civil arbitrário como RN-09 exige em T03).
+- **Impacto se não resolvido**: `FE-R03` foi implementado (`PresencaMensal.tsx`)
+  mantendo a estrutura por rodada já disponível no dado real — uma seção por
+  rodada do mês (sem accordion, atendendo o critério de aceite literal do
+  `TASK.md`, "mostra a matriz do mês diretamente"), cada nome presente
+  marcado com o mesmo componente `PresenceDot`/estilo confirmado em T02
+  (reuso literal do componente), legenda reduzida a apenas "Presente" (não os
+  3 itens do `UX-SPEC.md`, para não anunciar uma distinção `ausente`/
+  `lesionado` que o dado não sustenta). Divergência visível e documentada no
+  próprio código (comentário de topo de `PresencaMensal.tsx`), não escondida.
+  Se a intenção confirmada for a grade literal atleta×data (paridade visual
+  completa com T02), é necessário um novo endpoint público (Backend) +
+  reescrita de `PresencaMensal.tsx`/`presencaMensalApi.ts` (Frontend) —
+  mudança de escopo maior que o `S (1 PD)` hoje registrado em `TASK.md`.
+- **Sugestão**: confirmar qual das duas leituras é a correta — (1) a Seção
+  2.3 do `UX-SPEC.md` está desatualizada (herdou a descrição de T02 sem
+  ajustar para a fonte de dado real de T03, já disponível e mais limitada
+  desde `BE-03`), e deve ser corrigida para descrever a estrutura por rodada
+  já implementada (nesse caso, nenhuma mudança de contrato é necessária,
+  `FE-R03` já está correto como está); ou (2) a matriz atleta×data é para
+  valer também em T03, caso em que `ux-ui` ajusta a Seção 2.3 apenas depois
+  que `software-architect`/`backend` confirmarem um novo endpoint público
+  equivalente a `ranking_publico_recentes`, mas por mês civil navegável (não
+  janela fixa de N rodadas) — nova tarefa de Backend fora do lote RD1 atual,
+  com reestimativa de `FE-R03` pelo Tech Lead.
+- **Status**: Aberto
+- **Prazo**: sem prazo formal — não bloqueia o fechamento do Lote RD1 (mesmo
+  padrão de precedente de `BLOCKER-005`: a tela já implementada com a
+  divergência documentada, não uma tela quebrada/incompleta em relação ao
+  seu próprio critério de aceite no `TASK.md`); bloqueia apenas um eventual
+  sign-off (RF-D02) de T03 contra a Seção 2.3 do `UX-SPEC.md` como está
+  escrita hoje, se o organizador insistir na paridade visual literal com T02.
 
 ---
 
