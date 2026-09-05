@@ -1390,6 +1390,148 @@ execução — lacuna já registrada na Seção 8/9, inalterada.
    `VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` explícitos — para que a próxima
    sessão não corra o mesmo risco de publicar no projeto errado por engano.
 
+### 7.10 Ajuste pós-deploy de produto (`75a0c0e`) — redução da matriz de "últimas rodadas" no ranking público (T02) — PRODUÇÃO — 2026-09-05
+
+**Natureza da mudança**: pedido direto do organizador, pós-deploy da
+iniciativa "Redesenho Visual" (Seção 7.9), sem passar pelo fluxo completo de
+`executor`/QA/DevSecOps deste conjunto de 4 agentes — verificação
+(`npx vitest run`: 899/899; `npm run lint`; `npx tsc --noEmit`; `npm run
+build`; `npx prettier --check`) foi feita diretamente pelo autor da mudança,
+registrada como tal no commit, não por um Executor. Escopo confirmado por
+leitura do diff real (`git show 75a0c0e -- src/features/ranking-publico/matrix.ts`),
+não pela mensagem de commit: `DESKTOP_COLUMN_LIMIT` `7→5`,
+`MOBILE_COLUMN_LIMIT` `5→2`, em `src/features/ranking-publico/matrix.ts` (mais
+ajuste correspondente de `matrix.test.ts` e `RankingList.module.css`) — corte
+puramente de apresentação client-side; a view `BE-R01`
+(`app.ranking_publico_recentes`) continua expondo `N=7` por atleta, nenhum
+contrato de API alterado. Sem envolvimento de dado sensível, autenticação ou
+autorização — fora do escopo de nova auditoria completa do chapéu DevSecOps;
+tratado aqui só como execução do chapéu DevOps (build + deploy), não como
+nova rodada de QA/DevSecOps.
+
+**1. Confirmação de estado antes de agir**:
+- `git rev-parse HEAD` / `git rev-parse origin/main` → ambos
+  `75a0c0efd53d8b149e97b4ab917ec1b86982dd81`, `git status --short` limpo —
+  nada mudou desde a verificação relatada pelo solicitante; não repetida do
+  zero, só reconfirmada a convergência do `HEAD` real.
+- `git diff 01549d3..75a0c0e -- supabase/migrations/` → **vazio**. Nenhuma
+  migration nova desde o último deploy real de produção confirmado
+  (`01549d3`, Seção 7.9) — consistente com a natureza puramente de frontend
+  da mudança. Nenhuma ação de `supabase db push` necessária nesta execução.
+
+**2. `gh` CLI — reconfirmado indisponível, mesmo padrão das Seções
+7.4-7.9**: `gh auth status` → `command not found`. Caminho usado: CLI direta
+da Vercel (`npx vercel whoami` → `leandrosegheto17`), com
+`VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9` e
+`VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu` explícitos — o
+`.vercel/project.json` local segue desalinhado (`futebol-ranking-comary`,
+item 5 da Seção 7.9, ainda não corrigido), contornado da mesma forma, sem
+editar o arquivo.
+
+**3. `vercel env ls production`** — confirmação, não reconfiguração: os
+mesmos 5 secrets de produção seguem presentes e `Encrypted`
+(`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_APP_BASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SESSION_COOKIE_SECRET`). Nenhum valor alterado.
+
+**4. Estado do alias antes do deploy**: `vercel alias ls` confirmou
+`futebol-app-lsm.vercel.app` ainda apontando para
+`futebol-qxehs14ki-…` (o deployment do `01549d3`, publicado na Seção 7.9) —
+convergente com o esperado, nenhum deploy intermediário não registrado.
+
+**5. Build e deploy de fato executados**:
+
+```
+$ VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9 \
+  VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu \
+  npx vercel --prod --yes
+
+▲ Production  https://futebol-d50c6sb66-leandrosegheto17s-projects.vercel.app
+✓ Compiled successfully
+✓ Generating static pages (21/21)
+▲ Aliased     https://futebol-app-leandrosegheto17s-projects.vercel.app
+{"status":"ok","deployment":{"id":"dpl_GdDzKXKh1aZ6YhKnxmxfE9xhBCdU", ...},
+ "readyState":"READY","target":"production"}
+```
+
+Build limpo (Next.js 14.2.35, `npm run build`), 21 rotas geradas — mesma
+contagem da Seção 7.9, nenhuma rota nova/removida, consistente com mudança
+puramente de apresentação. `npm install` reportou as mesmas 14
+vulnerabilidades já conhecidas (4 moderate, 9 high, 1 critical) —
+reconferidas contra os débitos já aceitos em `SECURITY-REVIEW.md`
+(`DEBT-01/02/04`); nenhum achado novo.
+
+Como já ocorrido na Seção 7.9, o deploy foi automaticamente aliasado só ao
+alias default do projeto (`futebol-app-leandrosegheto17s-projects.vercel.app`),
+não ao alias real de produção. Reatribuído explicitamente:
+
+```
+$ VERCEL_ORG_ID=team_LGMpqv4TnLt60QJ52AKDqQI9 \
+  VERCEL_PROJECT_ID=prj_Q2JFtxecdphcta03X1ds8DX6C9Pu \
+  npx vercel alias set futebol-d50c6sb66-leandrosegheto17s-projects.vercel.app futebol-app-lsm.vercel.app
+
+Success! https://futebol-app-lsm.vercel.app now points to
+futebol-d50c6sb66-leandrosegheto17s-projects.vercel.app
+```
+
+`vercel alias ls` reconfirmado depois, apontando para
+`futebol-d50c6sb66-…`.
+
+**6. Confirmação de saúde pós-deploy**:
+
+```
+$ curl -s -D - -o /dev/null https://futebol-app-lsm.vercel.app/
+HTTP/1.1 200 OK
+Age: 0
+X-Vercel-Cache: PRERENDER
+Content-Security-Policy: default-src 'self'; ...
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+
+$ curl -s https://futebol-app-lsm.vercel.app/api/health
+{"status":"ok"}
+```
+
+`Age: 0` confirma conteúdo gerado por esta build, não cache de antes do
+deploy. Headers de segurança presentes, inalterados. `curl` na home também
+confirmou as classes `PublicHomeShell_*` no HTML servido (`PublicHomeShell_hero__`,
+`PublicHomeShell_footer__`, etc.) — a página carrega normalmente. **Não
+esperado e não verificado por `curl`**: a redução de 7→5 (desktop) e 5→2
+(mobile) colunas da matriz de rodadas é renderizada client-side, após
+hidratação, consumindo a mesma view `BE-R01` via SDK Supabase no navegador —
+não aparece no HTML estático puro, consistente com a mesma limitação já
+registrada no item 8 da Seção 7.9 para a tabela de ranking em geral.
+Recomendação inalterada: confirmar visualmente em navegador real (ou via
+`playwright-skill`) que a home carrega sem rolagem e sem erro de
+renderização.
+
+**7. Rollback**: mecanismo (`vercel rollback`/reatribuição de alias) segue
+disponível e já testado de ponta a ponta (Seção 7.4); o deployment anterior
+(`futebol-qxehs14ki-…`, `01549d3`) permanece `Ready`, disponível como
+reversão imediata caso necessário. Não reexercitado nesta execução — mudança
+de baixo risco (CSS/constantes de apresentação, sem migration), sem
+indício de necessidade.
+
+**8. Observabilidade**: inalterada em relação à Seção 7.9 — Guardrail 36
+(saúde do Supabase) ativo; observabilidade de aplicação (logs
+estruturados/métricas/alertas) segue não implementada, lacuna já registrada
+na Seção 8/9.
+
+| Versão/Commit | Ambiente | Horário | Resultado |
+|---|---|---|---|
+| Ajuste de matriz de rodadas (`75a0c0e`) | **Produção** (`futebol-app-lsm.vercel.app`) | 2026-09-05 | **Deploy real, bem-sucedido.** Sem migration nova (confirmado por diff vazio contra `01549d3`); build Vercel limpo (`dpl_GdDzKXKh1aZ6YhKnxmxfE9xhBCdU`, 21 rotas, mesma contagem da Seção 7.9); alias de produção reatribuído; `/`(200, `Age: 0`)/`/api/health`(`{"status":"ok"}`) confirmados; headers de segurança presentes; mesmos 14 débitos de `npm audit` já aceitos, nenhum achado novo. Verificação de código (testes/lint/types/build/format) feita diretamente pelo solicitante antes do commit, não repetida do zero — só reconfirmada a convergência do `HEAD` real. Caminho usado: CLI direta da Vercel (`gh` indisponível), mesmo padrão das Seções 7.4-7.9. Não verificado por `curl`: renderização client-side da matriz reduzida (não visível em HTML estático, mesma limitação da Seção 7.9). Nenhum incidente na checagem imediata pós-deploy. `BLOCKER-009` (staging) segue `Aberto`, fora do escopo deste ajuste pontual. |
+
+**Próximos passos (nenhum decidido unilateralmente por este agente)**:
+1. Validar em navegador real (ou via `playwright-skill`) que a home pública
+   carrega sem rolagem com 5 colunas (desktop) / 2 colunas (mobile) na
+   matriz de últimas rodadas — não confirmável por `curl` puro.
+2. `BLOCKER-009` segue pendente de decisão do organizador — inalterado por
+   este ajuste.
+3. Observar produção pela janela padrão de 24h (Definition of Done do
+   chapéu DevOps) — nenhum incidente até o momento desta execução.
+
 ## 8. Incidentes Pós-Deploy
 
 **Reavaliado em 2026-09-04.** Não há, até o momento, sinal de incidente
